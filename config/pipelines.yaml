@@ -1,0 +1,98 @@
+pipelines:
+  dragen_germline:
+    label: "DRAGEN Germline v3"
+    header_pattern: "DRAGEN"
+    default_filters:
+      gnomad_af_max: 0.01
+      consequences:
+        - missense_variant
+        - frameshift_variant
+        - stop_gained
+        - stop_lost
+        - start_lost
+        - splice_donor_variant
+        - splice_acceptor_variant
+        - splice_region_variant
+      clinvar_exclude:
+        - Benign
+        - Likely_benign
+
+  dragen_somatic:
+    label: "DRAGEN Somatic"
+    header_pattern: "DRAGEN"
+    default_filters:
+      gnomad_af_max: 0.001
+      consequences:
+        - missense_variant
+        - frameshift_variant
+        - stop_gained
+        - stop_lost
+        - start_lost
+        - splice_donor_variant
+        - splice_acceptor_variant
+      clinvar_exclude:
+        - Benign
+
+  gatk_haplotypecaller:
+    label: "GATK HaplotypeCaller"
+    header_pattern: "HaplotypeCaller"
+    default_filters:
+      gnomad_af_max: 0.005
+      consequences:
+        - missense_variant
+        - frameshift_variant
+        - stop_gained
+        - stop_lost
+        - start_lost
+        - splice_donor_variant
+        - splice_acceptor_variant
+        - splice_region_variant
+      clinvar_exclude:
+        - Benign
+
+  mutect2:
+    label: "GATK Mutect2"
+    header_pattern: "Mutect2"
+    default_filters:
+      gnomad_af_max: 0.001
+      consequences:
+        - missense_variant
+        - frameshift_variant
+        - stop_gained
+        - splice_donor_variant
+        - splice_acceptor_variant
+      clinvar_exclude:
+        - Benign
+        - Likely_benign
+
+  strelka2:
+    label: "Strelka2"
+    header_pattern: "strelka"
+    default_filters:
+      gnomad_af_max: 0.001
+      consequences:
+        - missense_variant
+        - frameshift_variant
+        - stop_gained
+        - splice_donor_variant
+        - splice_acceptor_variant
+      clinvar_exclude:
+        - Benign
+
+  unknown:
+    label: "Unknown / Other"
+    header_pattern: ""
+    default_filters:
+      gnomad_af_max: 0.01
+      consequences:
+        - missense_variant
+        - frameshift_variant
+        - stop_gained
+        - stop_lost
+        - start_lost
+        - splice_donor_variant
+        - splice_acceptor_variant
+        - splice_region_variant
+      clinvar_exclude:
+        - Benign
+        - Likely_benign
