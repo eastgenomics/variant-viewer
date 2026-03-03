@@ -26,3 +26,6 @@ npm-debug.log*
 
 # TypeScript build output (Lambda)
 dist/
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
