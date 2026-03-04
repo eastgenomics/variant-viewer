@@ -28,3 +28,8 @@ output "lambda_function_name" {
   description = "Lambda ingest function name"
   value       = aws_lambda_function.ingest.function_name
 }
+
+output "subdomain_name_servers" {
+  description = "NS records to add to genomics-resources.uk in the other account"
+  value       = aws_route53_zone.app.name_servers
+}
