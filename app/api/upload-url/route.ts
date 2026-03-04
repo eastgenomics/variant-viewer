@@ -28,13 +28,15 @@ export async function GET(req: NextRequest) {
   const manifestKey = vcfKey.replace(/\.(vcf\.gz|vcf)$/, ".manifest.json");
   const s3 = new S3Client({ region: REGION });
 
+  const vcfContentType = vcfKey.endsWith(".vcf.gz") ? "application/gzip" : "text/plain";
+
   const [vcfUrl, manifestUrl] = await Promise.all([
     getSignedUrl(
       s3,
       new PutObjectCommand({
         Bucket: BUCKET,
         Key: vcfKey,
-        ContentType: "application/gzip",
+        ContentType: vcfContentType,
       }),
       { expiresIn: PRESIGNED_EXPIRES }
     ),
