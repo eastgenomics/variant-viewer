@@ -42,6 +42,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "vcf" {
   rule {
     id     = "archive-vcf"
     status = "Enabled"
+    filter {}
     transition {
       days          = var.vcf_glacier_days
       storage_class = "GLACIER"
@@ -50,6 +51,20 @@ resource "aws_s3_bucket_lifecycle_configuration" "vcf" {
       noncurrent_days = var.vcf_glacier_days
       storage_class   = "GLACIER"
     }
+  }
+}
+
+# CORS — allows the browser to PUT directly to presigned URLs from the app domain
+resource "aws_s3_bucket_cors_configuration" "vcf" {
+  bucket = aws_s3_bucket.vcf.id
+
+  cors_rule {
+    allowed_headers = ["Content-Type"]
+    allowed_methods = ["PUT"]
+    allowed_origins = [
+      "https://${var.domain_name}",
+    ]
+    max_age_seconds = 3000
   }
 }
 

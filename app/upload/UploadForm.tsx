@@ -196,6 +196,15 @@ export default function UploadForm({
       <div className="bg-green-50 border border-green-200 rounded-lg p-6">
         <h2 className="text-green-800 font-semibold mb-2">Upload complete</h2>
         <p className="text-green-700 text-sm">{progress}</p>
+        {!IS_DEV && (
+          <div className="mt-3 flex items-start gap-2 rounded-md bg-blue-50 border border-blue-200 px-3 py-2">
+            <span className="text-blue-500 mt-0.5">ℹ</span>
+            <p className="text-blue-700 text-sm">
+              Data ingest runs in the background and may take up to a minute to complete.
+              The patient will appear in the list once ingestion has finished.
+            </p>
+          </div>
+        )}
         <div className="mt-4 flex gap-3">
           <a href="/" className="btn btn-primary text-sm">
             View patients →

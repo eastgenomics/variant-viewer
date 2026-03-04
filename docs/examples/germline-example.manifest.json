@@ -1,0 +1,77 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "https://fhir.example-lab.org/Id/lab-number",
+            "value": "LAB-2024-00123"
+          },
+          {
+            "system": "https://fhir.nhs.uk/Id/nhs-number",
+            "use": "official",
+            "value": "9000000009"
+          }
+        ],
+        "name": [
+          {
+            "family": "Smith",
+            "given": ["Jane", "Elizabeth"]
+          }
+        ],
+        "birthDate": "1978-04-12"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Specimen",
+        "identifier": [
+          { "value": "26041S0057" }
+        ],
+        "extension": [
+          {
+            "url": "https://example.org/fhir/StructureDefinition/case-type",
+            "valueCode": "germline"
+          }
+        ],
+        "type": {
+          "coding": [
+            {
+              "display": "Peripheral blood"
+            }
+          ]
+        },
+        "collection": {
+          "collectedDateTime": "2024-11-05T09:30:00Z"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Task",
+        "status": "completed",
+        "identifier": [
+          { "value": "RUN-20241105-001" }
+        ],
+        "code": {
+          "text": "dragen_germline"
+        },
+        "input": [
+          {
+            "type": { "text": "pipeline_version" },
+            "valueString": "4.2.4"
+          }
+        ],
+        "output": [
+          {
+            "type": { "text": "vcf" },
+            "valueString": "germline-example.vcf.gz"
+          }
+        ]
+      }
+    }
+  ]
+}

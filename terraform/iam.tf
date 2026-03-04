@@ -68,6 +68,16 @@ resource "aws_iam_role_policy" "ecs_task_secrets" {
         Effect   = "Allow"
         Action   = ["kms:GenerateDataKey", "kms:Decrypt"]
         Resource = aws_kms_key.s3.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel",
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -90,6 +100,11 @@ resource "aws_iam_role_policy" "lambda_permissions" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.vcf.arn
+      },
       {
         Effect = "Allow"
         Action = [
