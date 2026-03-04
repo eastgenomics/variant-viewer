@@ -59,8 +59,10 @@ async function readManifest(
   const raw = await resp.Body.transformToString("utf-8");
   const manifestJson = JSON.parse(raw);
 
-  // Validate against JSON schema before parsing
-  const ajv = new Ajv();
+  // Validate against JSON schema before parsing.
+  // strict: false suppresses Ajv v8 warnings about missing "type":"object"
+  // annotations on schema nodes that use "properties" — the schema is correct.
+  const ajv = new Ajv({ strict: false });
   const validate = ajv.compile(manifestSchema);
   if (!validate(manifestJson)) {
     const errors = validate.errors?.map((e) => `${e.instancePath} ${e.message}`).join("; ");
