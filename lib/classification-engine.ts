@@ -3,8 +3,15 @@
  * Implements Tavtigian point-based scoring for ACGS SNV and SVIG-UK frameworks.
  */
 
+import canvigGeneMtaf from "../config/canvig-gene-mtaf.json";
+
 export const ACGS_VERSION = "ACGS 2024 Best Practice Guidelines";
 export const SVIG_VERSION = "SVIG-UK v1.0";
+
+// CanVIG gene set for efficient case-insensitive lookup
+const CANVIG_GENE_SET = new Set(
+  Object.keys(canvigGeneMtaf.genes).map((g) => g.toUpperCase())
+);
 
 export type Framework = "acgs_snv" | "svig";
 
@@ -188,12 +195,10 @@ export function selectFramework(
   if (caseType === "somatic") {
     return { framework: "svig", isCanvig: false };
   }
-  // germline — check if gene is in CanVIG gene list
-  if (gene) {
-    const canvigGenes = require("../config/canvig-gene-mtaf.json").genes;
-    if (gene in canvigGenes) {
-      return { framework: "acgs_snv", isCanvig: true };
-    }
+  // germline — check if gene is in CanVIG gene list (case-insensitive)
+  const normalisedGene = gene?.trim().toUpperCase();
+  if (normalisedGene && CANVIG_GENE_SET.has(normalisedGene)) {
+    return { framework: "acgs_snv", isCanvig: true };
   }
   return { framework: "acgs_snv", isCanvig: false };
 }

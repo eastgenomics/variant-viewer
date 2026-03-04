@@ -6,12 +6,14 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
 import { PoolClient } from "pg";
+import Ajv from "ajv";
 import { parseVcf, VcfVariant } from "./vcf-parser";
 import { parseManifest, ParsedManifest } from "./fhir-manifest";
 import { withTransaction } from "./db";
 import { preComputeCriteria } from "./pre-compute-criteria";
 import { selectFramework, getFrameworkVersion } from "./classification-engine";
 import { detectPipelineKey } from "./pipeline-config";
+import manifestSchema from "../config/manifest-schema.json";
 
 export interface IngestOptions {
   s3Key: string;
@@ -51,7 +53,17 @@ async function readManifest(
   const resp = await s3.send(cmd);
   if (!resp.Body) throw new Error(`No body in S3 response for ${sidecarKey}`);
   const raw = await resp.Body.transformToString("utf-8");
-  return parseManifest(JSON.parse(raw));
+  const manifestJson = JSON.parse(raw);
+
+  // Validate against JSON schema before parsing
+  const ajv = new Ajv();
+  const validate = ajv.compile(manifestSchema);
+  if (!validate(manifestJson)) {
+    const errors = validate.errors?.map((e) => `${e.instancePath} ${e.message}`).join("; ");
+    throw new Error(`Manifest schema validation failed: ${errors}`);
+  }
+
+  return parseManifest(manifestJson);
 }
 
 /** Upsert patient row and return patient id */
@@ -252,7 +264,7 @@ export async function ingestFromStream(
       }
 
       // Update pipeline_key if detected from VCF headers
-      if (!pipelineKey && meta.pipeline_key) {
+      if (!pipelineKey) {
         detectedPipelineKey = detectPipelineKey(meta.header_lines);
         if (detectedPipelineKey) {
           await client.query(

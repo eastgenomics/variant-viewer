@@ -14,6 +14,7 @@
     "@aws-sdk/client-secrets-manager": "^3.583.0",
     "@aws-sdk/s3-request-presigner": "^3.583.0",
     "@tanstack/react-table": "^8.17.3",
+    "ajv": "^8.18.0",
     "js-yaml": "^4.1.0",
     "next": "^15.5.12",
     "pg": "^8.12.0",
