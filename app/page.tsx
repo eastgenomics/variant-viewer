@@ -47,8 +47,8 @@ export default async function PatientsPage() {
   try {
     patients = await getPatients();
   } catch (err) {
-    dbError =
-      err instanceof Error ? err.message : "Failed to load patients";
+    console.error("Failed to load patients:", err);
+    dbError = "Failed to load patients. Please try again later.";
   }
 
   return (

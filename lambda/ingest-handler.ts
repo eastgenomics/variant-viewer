@@ -17,7 +17,10 @@ async function resolveSecrets(): Promise<void> {
   if (secretsResolved) return;
   const secretArn = process.env.DB_SECRET_ARN;
   if (!secretArn) {
-    // DATABASE_URL already set via env (e.g. in tests)
+    // DATABASE_URL must be set via env when DB_SECRET_ARN is absent
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL or DB_SECRET_ARN must be set");
+    }
     secretsResolved = true;
     return;
   }

@@ -13,14 +13,25 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { sample_id, status, user_id } = body;
-  if (!sample_id || !status) {
+
+  // Validate sample_id
+  if (typeof sample_id !== "number" || !Number.isInteger(sample_id) || sample_id <= 0) {
     return NextResponse.json(
-      { error: "sample_id and status are required" },
+      { error: "sample_id must be a positive integer" },
       { status: 400 }
     );
   }
 
-  if (!VALID_STATUSES.includes(status as WorkflowStatus)) {
+  // Validate and normalize status
+  if (typeof status !== "string") {
+    return NextResponse.json(
+      { error: "status must be a string" },
+      { status: 400 }
+    );
+  }
+
+  const normalizedStatus = status.trim().toLowerCase();
+  if (!VALID_STATUSES.includes(normalizedStatus as WorkflowStatus)) {
     return NextResponse.json(
       { error: `status must be one of: ${VALID_STATUSES.join(", ")}` },
       { status: 400 }
@@ -38,7 +49,7 @@ export async function PATCH(req: NextRequest) {
       await client.query(
         `INSERT INTO workflow (sample_id, status, updated_at, updated_by)
          VALUES ($1, $2, NOW(), $3)`,
-        [sample_id, status, user_id ?? null]
+        [sample_id, normalizedStatus, user_id ?? null]
       );
     } else {
       const oldStatus = existing.rows[0].old_status;
@@ -46,7 +57,7 @@ export async function PATCH(req: NextRequest) {
         `UPDATE workflow
          SET status = $1, updated_at = NOW(), updated_by = $2
          WHERE sample_id = $3`,
-        [status, user_id ?? null, sample_id]
+        [normalizedStatus, user_id ?? null, sample_id]
       );
 
       await client.query(
@@ -57,11 +68,11 @@ export async function PATCH(req: NextRequest) {
           user_id ?? null,
           existing.rows[0].id,
           JSON.stringify({ status: oldStatus }),
-          JSON.stringify({ status }),
+          JSON.stringify({ status: normalizedStatus }),
         ]
       );
     }
   });
 
-  return NextResponse.json({ success: true, sample_id, status });
+  return NextResponse.json({ success: true, sample_id, status: normalizedStatus });
 }

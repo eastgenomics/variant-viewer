@@ -86,8 +86,9 @@ export default function UploadForm({
         await handleProdUpload();
       }
     } catch (err) {
+      console.error("Upload failed:", err);
       setPhase("error");
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError("Upload failed. Please check your file and try again.");
     }
   }
 

@@ -43,9 +43,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("Ingest error:", err);
-    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: `Ingest failed: ${message}` },
+      { error: "Ingest failed. Please check the logs for details." },
       { status: 500 }
     );
   }

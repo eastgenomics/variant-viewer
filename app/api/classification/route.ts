@@ -35,6 +35,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  // TODO: Do not trust client-supplied user_id - extract from authenticated session
+  // For now, user_id is accepted but should be replaced with server-side auth
   const { variant_id, framework, criteria, locked = false, user_id } = body;
   if (!variant_id || !framework || !criteria) {
     return NextResponse.json(
@@ -47,7 +49,19 @@ export async function POST(req: NextRequest) {
   const { score, classification, warnings } = classify(criteria, framework, rules);
   const frameworkVersion = getFrameworkVersion(framework);
 
-  const result = await withTransaction(async (client) => {
+  try {
+    const result = await withTransaction(async (client) => {
+    // Check if an active locked classification already exists
+    const lockedCheck = await client.query(
+      `SELECT id FROM variant_classification
+       WHERE variant_id = $1 AND deleted_at IS NULL AND locked_at IS NOT NULL`,
+      [variant_id]
+    );
+
+    if (lockedCheck.rows.length > 0) {
+      throw new Error("Cannot replace a locked classification");
+    }
+
     // Soft-delete any existing non-locked classification for this variant
     await client.query(
       `UPDATE variant_classification
@@ -106,10 +120,18 @@ export async function POST(req: NextRequest) {
       ]
     );
 
-    return { classId, score, classification, warnings };
-  });
+      return { classId, score, classification, warnings };
+    });
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Classification creation failed";
+    if (message === "Cannot replace a locked classification") {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+    console.error("Classification creation error:", error);
+    return NextResponse.json({ error: "Classification creation failed" }, { status: 500 });
+  }
 }
 
 /** PATCH /api/classification — update criteria on an existing classification */

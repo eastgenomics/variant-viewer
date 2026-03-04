@@ -18,20 +18,35 @@ const MAX_LIMIT = 500;
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
-  const sampleId = searchParams.get("sample_id");
-  if (!sampleId) {
+  const sampleIdRaw = searchParams.get("sample_id");
+  if (!sampleIdRaw) {
     return NextResponse.json(
       { error: "sample_id query parameter required" },
       { status: 400 }
     );
   }
 
+  const sampleId = parseInt(sampleIdRaw, 10);
+  if (isNaN(sampleId) || sampleId <= 0) {
+    return NextResponse.json(
+      { error: "sample_id must be a positive integer" },
+      { status: 400 }
+    );
+  }
+
   // Pagination
-  const limit = Math.min(
-    parseInt(searchParams.get("limit") ?? String(DEFAULT_LIMIT), 10),
-    MAX_LIMIT
-  );
-  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
+  const limitRaw = parseInt(searchParams.get("limit") ?? String(DEFAULT_LIMIT), 10);
+  const offsetRaw = parseInt(searchParams.get("offset") ?? "0", 10);
+
+  if (isNaN(limitRaw) || limitRaw <= 0) {
+    return NextResponse.json({ error: "limit must be a positive integer" }, { status: 400 });
+  }
+  if (isNaN(offsetRaw) || offsetRaw < 0) {
+    return NextResponse.json({ error: "offset must be a non-negative integer" }, { status: 400 });
+  }
+
+  const limit = Math.min(limitRaw, MAX_LIMIT);
+  const offset = offsetRaw;
 
   // Sorting
   const rawSortBy = searchParams.get("sort_by") ?? "pos";
@@ -50,10 +65,17 @@ export async function GET(req: NextRequest) {
   let paramIdx = 2;
 
   if (gnomadAfMax) {
+    const gnomadAfMaxNum = parseFloat(gnomadAfMax);
+    if (isNaN(gnomadAfMaxNum) || gnomadAfMaxNum < 0 || gnomadAfMaxNum > 1) {
+      return NextResponse.json(
+        { error: "gnomad_af_max must be a number between 0 and 1" },
+        { status: 400 }
+      );
+    }
     conditions.push(
       `(v.gnomad_af IS NULL OR v.gnomad_af <= $${paramIdx})`
     );
-    params.push(parseFloat(gnomadAfMax));
+    params.push(gnomadAfMaxNum);
     paramIdx++;
   }
 

@@ -109,14 +109,17 @@ function extractVepAnnotations(
     ].filter((v) => !isNaN(v));
     const spliceaiMax = saiScores.length > 0 ? Math.max(...saiScores) : null;
 
+    const gnomadAfNum = gnomadRaw ? parseFloat(gnomadRaw) : NaN;
+    const revelNum = revelRaw ? parseFloat(revelRaw) : NaN;
+
     return {
       gene: get("SYMBOL") || get("Gene") || null,
       consequence: get("Consequence") || null,
       hgvs_c: get("HGVSc") || null,
       hgvs_p: get("HGVSp") || null,
-      gnomad_af: gnomadRaw ? parseFloat(gnomadRaw) : null,
+      gnomad_af: isNaN(gnomadAfNum) ? null : gnomadAfNum,
       clinvar_sig: get("CLIN_SIG") || get("ClinVar_CLNSIG") || null,
-      revel_score: revelRaw ? parseFloat(revelRaw) : null,
+      revel_score: isNaN(revelNum) ? null : revelNum,
       spliceai_max: spliceaiMax,
     };
   }
