@@ -57,11 +57,12 @@ resource "aws_ecs_task_definition" "app" {
     }]
 
     environment = [
-      { name = "NODE_ENV", value = "production" },
-      { name = "PORT", value = "3000" },
+      { name = "NODE_ENV",        value = "production" },
+      { name = "PORT",            value = "3000" },
+      { name = "HOSTNAME",        value = "0.0.0.0" },
       { name = "VCF_BUCKET_NAME", value = aws_s3_bucket.vcf.id },
-      { name = "AWS_REGION", value = var.aws_region },
-      { name = "DB_SECRET_ARN", value = aws_secretsmanager_secret.db.arn },
+      { name = "AWS_REGION",      value = var.aws_region },
+      { name = "DB_SECRET_ARN",   value = aws_secretsmanager_secret.db.arn },
     ]
 
     logConfiguration = {
@@ -73,12 +74,14 @@ resource "aws_ecs_task_definition" "app" {
       }
     }
 
+    # CMD avoids Alpine sh quoting issues; startPeriod=60s gives Next.js standalone
+    # time to start on low-CPU Fargate before health checks begin
     healthCheck = {
-      command     = ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api/health',r=>r.statusCode===200?process.exit(0):process.exit(1)).on('error',()=>process.exit(1))\""]
+      command     = ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health',r=>r.statusCode===200?process.exit(0):process.exit(1)).on('error',()=>process.exit(1))"]
       interval    = 30
       timeout     = 5
       retries     = 3
-      startPeriod = 30
+      startPeriod = 60
     }
   }])
 
