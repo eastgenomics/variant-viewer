@@ -43,7 +43,6 @@ resource "aws_lambda_function" "ingest" {
     variables = {
       VCF_BUCKET_NAME = aws_s3_bucket.vcf.id
       DB_SECRET_ARN   = aws_secretsmanager_secret.db.arn
-      AWS_REGION      = var.aws_region
     }
   }
 

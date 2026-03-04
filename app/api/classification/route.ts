@@ -167,7 +167,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    let score: number, classification: string, warnings: string[];
+    let score = 0, classification = "", warnings: string[] = [];
 
     await withTransaction(async (client) => {
       // Fetch current classification with row lock to prevent concurrent modification

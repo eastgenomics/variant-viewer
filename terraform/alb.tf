@@ -1,6 +1,6 @@
 resource "aws_security_group" "alb" {
   name        = "${var.app_name}-alb-sg"
-  description = "ALB — allow HTTP and HTTPS from internet"
+  description = "ALB - allow HTTP and HTTPS from internet"
   vpc_id      = aws_vpc.main.id
 
   ingress {

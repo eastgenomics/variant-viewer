@@ -1,7 +1,9 @@
-data "aws_route53_zone" "parent" {
-  # Strip the first label (e.g. "devv.genomics-resources.uk" → "genomics-resources.uk")
-  name         = join(".", slice(split(".", var.domain_name), 1, length(split(".", var.domain_name))))
-  private_zone = false
+# Hosted zone for the subdomain in this account.
+# After first apply, copy the NS records shown in the
+# "subdomain_name_servers" output into the genomics-resources.uk
+# zone in the other account.
+resource "aws_route53_zone" "app" {
+  name = var.domain_name
 }
 
 # ACM DNS validation record
@@ -14,7 +16,7 @@ resource "aws_route53_record" "cert_validation" {
     }
   }
 
-  zone_id = data.aws_route53_zone.parent.zone_id
+  zone_id = aws_route53_zone.app.zone_id
   name    = each.value.name
   type    = each.value.type
   ttl     = 60
@@ -28,7 +30,7 @@ resource "aws_acm_certificate_validation" "app" {
 
 # ALB alias record for the subdomain
 resource "aws_route53_record" "app" {
-  zone_id = data.aws_route53_zone.parent.zone_id
+  zone_id = aws_route53_zone.app.zone_id
   name    = var.domain_name
   type    = "A"
 

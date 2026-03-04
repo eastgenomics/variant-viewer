@@ -42,6 +42,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "vcf" {
   rule {
     id     = "archive-vcf"
     status = "Enabled"
+    filter {}
     transition {
       days          = var.vcf_glacier_days
       storage_class = "GLACIER"

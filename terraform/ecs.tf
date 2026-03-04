@@ -74,11 +74,11 @@ resource "aws_ecs_task_definition" "app" {
     }
 
     healthCheck = {
-      command     = ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      command     = ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api/health',r=>r.statusCode===200?process.exit(0):process.exit(1)).on('error',()=>process.exit(1))\""]
       interval    = 30
       timeout     = 5
       retries     = 3
-      startPeriod = 15
+      startPeriod = 30
     }
   }])
 
@@ -104,6 +104,7 @@ resource "aws_ecs_service" "app" {
     container_port   = 3000
   }
 
+  enable_execute_command             = true
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
 
