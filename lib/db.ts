@@ -22,9 +22,9 @@ async function resolveSecrets(): Promise<void> {
         `DB secret ${secretArn} is missing required fields (username, password, host, dbname)`
       );
     }
-    process.env.DATABASE_URL = `postgresql://${username}:${encodeURIComponent(
+    process.env.DATABASE_URL = `postgresql://${encodeURIComponent(username)}:${encodeURIComponent(
       password
-    )}@${host}:${secret.port ?? 5432}/${dbname}`;
+    )}@${host}:${secret.port ?? 5432}/${encodeURIComponent(dbname)}`;
   }
 
   if (!process.env.DATABASE_URL) {

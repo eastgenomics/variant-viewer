@@ -29,4 +29,4 @@ Lambda is triggered by the VCF upload (`ObjectCreated` event) and then fetches t
 | `germline-example.manifest.json` | `germline-example.vcf.gz` | Germline | `dragen_germline` |
 | `somatic-example.manifest.json` | `somatic-example.vcf.gz` | Somatic | `mutect2` |
 
-Both use NHS test number `9000000009` (valid Luhn mod-11 checksum).
+Both use NHS test number `9000000009` (valid Modulus 11 checksum).
