@@ -5,6 +5,7 @@
 
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
+import { createGunzip } from "zlib";
 import { PoolClient } from "pg";
 import Ajv from "ajv";
 import { parseVcf, VcfVariant } from "./vcf-parser";
@@ -291,7 +292,12 @@ export async function ingestVcf(options: IngestOptions): Promise<IngestResult> {
   const vcfCmd = new GetObjectCommand({ Bucket: s3Bucket, Key: s3Key });
   const vcfResp = await s3.send(vcfCmd);
   if (!vcfResp.Body) throw new Error(`No body in S3 response for ${s3Key}`);
-  const stream = vcfResp.Body as unknown as NodeJS.ReadableStream;
+  let stream = vcfResp.Body as unknown as NodeJS.ReadableStream;
+
+  // Decompress .vcf.gz files
+  if (s3Key.endsWith(".vcf.gz")) {
+    stream = stream.pipe(createGunzip());
+  }
 
   return ingestFromStream(stream, manifest, s3Key);
 }

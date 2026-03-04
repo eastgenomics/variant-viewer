@@ -12,6 +12,16 @@ import {
 import acgsCriteria from "@/config/acgs-snv-criteria.json";
 import svigCriteria from "@/config/svig-criteria.json";
 
+/** Validate evidence link URLs - only allow http/https protocols */
+function isValidEvidenceLink(url: string): boolean {
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 type CriterionDef = (typeof acgsCriteria.criteria)[number];
 
 interface ClassificationState {
@@ -538,6 +548,10 @@ function CriterionRow({
                       className="border border-gray-300 rounded px-2 py-0.5 text-xs flex-1"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && pendingLink) {
+                          if (!isValidEvidenceLink(pendingLink)) {
+                            alert("Invalid URL. Only http:// and https:// links are allowed.");
+                            return;
+                          }
                           onChange({
                             evidence_links: [...crit.evidence_links, pendingLink],
                           });
@@ -550,6 +564,10 @@ function CriterionRow({
                       disabled={!pendingLink}
                       onClick={() => {
                         if (!pendingLink) return;
+                        if (!isValidEvidenceLink(pendingLink)) {
+                          alert("Invalid URL. Only http:// and https:// links are allowed.");
+                          return;
+                        }
                         onChange({
                           evidence_links: [...crit.evidence_links, pendingLink],
                         });

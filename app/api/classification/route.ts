@@ -38,11 +38,16 @@ export async function POST(req: NextRequest) {
   // TODO: Do not trust client-supplied user_id - extract from authenticated session
   // For now, user_id is accepted but should be replaced with server-side auth
   const { variant_id, framework, criteria, locked = false, user_id } = body;
-  if (!variant_id || !framework || !criteria) {
-    return NextResponse.json(
-      { error: "variant_id, framework, and criteria are required" },
-      { status: 400 }
-    );
+
+  // Validate required fields and types
+  if (typeof variant_id !== "number" || variant_id <= 0) {
+    return NextResponse.json({ error: "variant_id must be a positive integer" }, { status: 400 });
+  }
+  if (framework !== "acgs_snv" && framework !== "svig") {
+    return NextResponse.json({ error: "framework must be 'acgs_snv' or 'svig'" }, { status: 400 });
+  }
+  if (!Array.isArray(criteria)) {
+    return NextResponse.json({ error: "criteria must be an array" }, { status: 400 });
   }
 
   const rules = getRules(framework);
@@ -273,17 +278,25 @@ export async function PATCH(req: NextRequest) {
     if (message === "Classification changed concurrently") {
       return NextResponse.json({ error: message }, { status: 409 });
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Don't expose internal error details
+    console.error("Classification update error:", error);
+    return NextResponse.json({ error: "Classification update failed" }, { status: 500 });
   }
 }
 
 /** DELETE /api/classification — soft-delete (reset) a classification */
 export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
+  const idRaw = searchParams.get("id");
   const userId = searchParams.get("user_id");
-  if (!id) {
+
+  if (!idRaw) {
     return NextResponse.json({ error: "id query parameter required" }, { status: 400 });
+  }
+
+  const id = parseInt(idRaw, 10);
+  if (isNaN(id) || id <= 0) {
+    return NextResponse.json({ error: "id must be a positive integer" }, { status: 400 });
   }
 
   await withTransaction(async (client) => {
@@ -304,10 +317,19 @@ export async function DELETE(req: NextRequest) {
 /** GET /api/classification?variant_id=X — fetch active classification + criteria */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const variantId = searchParams.get("variant_id");
-  if (!variantId) {
+  const variantIdRaw = searchParams.get("variant_id");
+
+  if (!variantIdRaw) {
     return NextResponse.json(
       { error: "variant_id query parameter required" },
+      { status: 400 }
+    );
+  }
+
+  const variantId = parseInt(variantIdRaw, 10);
+  if (isNaN(variantId) || variantId <= 0) {
+    return NextResponse.json(
+      { error: "variant_id must be a positive integer" },
       { status: 400 }
     );
   }
