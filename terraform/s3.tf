@@ -54,6 +54,20 @@ resource "aws_s3_bucket_lifecycle_configuration" "vcf" {
   }
 }
 
+# CORS — allows the browser to PUT directly to presigned URLs from the app domain
+resource "aws_s3_bucket_cors_configuration" "vcf" {
+  bucket = aws_s3_bucket.vcf.id
+
+  cors_rule {
+    allowed_headers = ["Content-Type"]
+    allowed_methods = ["PUT"]
+    allowed_origins = [
+      "https://${var.domain_name}",
+    ]
+    max_age_seconds = 3000
+  }
+}
+
 # S3 event notification → Lambda on *.vcf.gz and *.vcf object creation
 resource "aws_s3_bucket_notification" "vcf_ingest" {
   bucket = aws_s3_bucket.vcf.id
