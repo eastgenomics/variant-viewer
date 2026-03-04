@@ -16,9 +16,15 @@ async function resolveSecrets(): Promise<void> {
     const resp = await sm.send(new GetSecretValueCommand({ SecretId: secretArn }));
     const secret = JSON.parse(resp.SecretString ?? "{}");
     // Secrets Manager stores: { username, password, host, port, dbname }
-    process.env.DATABASE_URL = `postgresql://${secret.username}:${encodeURIComponent(
-      secret.password
-    )}@${secret.host}:${secret.port ?? 5432}/${secret.dbname}`;
+    const { username, password, host, dbname } = secret;
+    if (!username || !password || !host || !dbname) {
+      throw new Error(
+        `DB secret ${secretArn} is missing required fields (username, password, host, dbname)`
+      );
+    }
+    process.env.DATABASE_URL = `postgresql://${username}:${encodeURIComponent(
+      password
+    )}@${host}:${secret.port ?? 5432}/${dbname}`;
   }
 
   if (!process.env.DATABASE_URL) {

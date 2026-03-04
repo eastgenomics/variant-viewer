@@ -1,6 +1,6 @@
 # Example manifest files
 
-These are example FHIR R4 Bundle manifests for testing direct S3 uploads.
+These are examples of FHIR R4 Bundle manifests for testing direct S3 uploads.
 
 ## Naming convention
 
@@ -15,7 +15,7 @@ The manifest **must** have the same name as the VCF with `.manifest.json` replac
 
 Both files must be uploaded to the **same S3 prefix**:
 
-```
+```text
 uploads/<lab-number>/sample.vcf.gz
 uploads/<lab-number>/sample.manifest.json
 ```

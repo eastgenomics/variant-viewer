@@ -18,17 +18,18 @@ export async function GET(req: NextRequest) {
       { status: 400 }
     );
   }
-  if (!vcfKey.endsWith(".vcf.gz") && !vcfKey.endsWith(".vcf")) {
+  const vcfKeyLower = vcfKey.toLowerCase();
+  if (!vcfKeyLower.endsWith(".vcf.gz") && !vcfKeyLower.endsWith(".vcf")) {
     return NextResponse.json(
       { error: "vcfKey must end with .vcf.gz or .vcf" },
       { status: 400 }
     );
   }
 
-  const manifestKey = vcfKey.replace(/\.(vcf\.gz|vcf)$/, ".manifest.json");
+  const manifestKey = vcfKey.replace(/\.(vcf\.gz|vcf)$/i, ".manifest.json");
   const s3 = new S3Client({ region: REGION });
 
-  const vcfContentType = vcfKey.endsWith(".vcf.gz") ? "application/gzip" : "text/plain";
+  const vcfContentType = vcfKeyLower.endsWith(".vcf.gz") ? "application/gzip" : "text/plain";
 
   const [vcfUrl, manifestUrl] = await Promise.all([
     getSignedUrl(
