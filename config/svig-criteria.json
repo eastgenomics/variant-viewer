@@ -1,0 +1,243 @@
+{
+  "version": "SVIG-UK v1.0",
+  "framework": "svig",
+  "criteria": [
+    {
+      "code": "O1",
+      "label": "O1",
+      "category": "other_databases",
+      "direction": "oncogenic",
+      "default_strength": "standalone",
+      "permitted_strengths": ["standalone"],
+      "adjustable": false,
+      "description": "Variant in a well-curated somatic oncogenic database (canonical oncogenic). Standalone Oncogenic.",
+      "pre_computable": true,
+      "pre_compute_hint": "ClinVar somatic (likely) oncogenic or COSMIC/OncoKB canonical"
+    },
+    {
+      "code": "O2",
+      "label": "O2",
+      "category": "functional",
+      "direction": "oncogenic",
+      "default_strength": "very_strong",
+      "permitted_strengths": ["very_strong", "strong", "moderate"],
+      "adjustable": true,
+      "description": "Null variant (frameshift, nonsense, essential splice) in TSG with LOF mechanism",
+      "pre_computable": true,
+      "pre_compute_hint": "Frameshift, stop_gained, or canonical splice in known TSG"
+    },
+    {
+      "code": "O3",
+      "label": "O3",
+      "category": "population",
+      "direction": "oncogenic",
+      "default_strength": "moderate",
+      "permitted_strengths": ["moderate", "supporting"],
+      "adjustable": true,
+      "description": "Absent or very rare in population databases (gnomAD somatic)",
+      "pre_computable": true,
+      "pre_compute_hint": "gnomAD AF absent or < 0.0001"
+    },
+    {
+      "code": "O4",
+      "label": "O4",
+      "category": "case_evidence",
+      "direction": "oncogenic",
+      "default_strength": "strong",
+      "permitted_strengths": ["very_strong", "strong", "moderate"],
+      "adjustable": true,
+      "description": "Recurrence in somatic databases (COSMIC, GENIE) above expected background",
+      "pre_computable": false
+    },
+    {
+      "code": "O5",
+      "label": "O5",
+      "category": "case_evidence",
+      "direction": "oncogenic",
+      "default_strength": "moderate",
+      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "adjustable": true,
+      "description": "Variant at a known somatic mutational hotspot",
+      "pre_computable": false
+    },
+    {
+      "code": "O6",
+      "label": "O6",
+      "category": "computational",
+      "direction": "oncogenic",
+      "default_strength": "supporting",
+      "permitted_strengths": ["moderate", "supporting"],
+      "adjustable": true,
+      "description": "Computational evidence supports oncogenic effect (REVEL, CADD, or similar)",
+      "pre_computable": true,
+      "pre_compute_hint": "REVEL ≥ 0.7 or equivalent in-silico prediction"
+    },
+    {
+      "code": "O7",
+      "label": "O7",
+      "category": "functional",
+      "direction": "oncogenic",
+      "default_strength": "strong",
+      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "adjustable": true,
+      "description": "Well-established functional study shows oncogenic effect",
+      "pre_computable": false
+    },
+    {
+      "code": "O8",
+      "label": "O8",
+      "category": "functional",
+      "direction": "oncogenic",
+      "default_strength": "supporting",
+      "permitted_strengths": ["supporting"],
+      "adjustable": false,
+      "description": "Missense in a region with known oncogenic missense mechanism",
+      "pre_computable": false
+    },
+    {
+      "code": "O9",
+      "label": "O9",
+      "category": "segregation",
+      "direction": "oncogenic",
+      "default_strength": "supporting",
+      "permitted_strengths": ["supporting"],
+      "adjustable": false,
+      "description": "Variant in cancer predisposition gene, found in tumour",
+      "pre_computable": false
+    },
+    {
+      "code": "O10",
+      "label": "O10",
+      "category": "case_evidence",
+      "direction": "oncogenic",
+      "default_strength": "supporting",
+      "permitted_strengths": ["supporting"],
+      "adjustable": false,
+      "description": "Found in cancer type consistent with gene-disease association",
+      "pre_computable": false
+    },
+    {
+      "code": "O11",
+      "label": "O11",
+      "category": "other_databases",
+      "direction": "oncogenic",
+      "default_strength": "supporting",
+      "permitted_strengths": ["supporting"],
+      "adjustable": false,
+      "description": "Reported as somatic in literature (single case report, unvalidated)",
+      "pre_computable": false
+    },
+    {
+      "code": "B1",
+      "label": "B1",
+      "category": "population",
+      "direction": "benign",
+      "default_strength": "standalone",
+      "permitted_strengths": ["standalone"],
+      "adjustable": false,
+      "description": "High frequency in population databases (germline polymorphism). Standalone Benign.",
+      "pre_computable": true,
+      "pre_compute_hint": "gnomAD AF > 0.01 in any major population"
+    },
+    {
+      "code": "B2",
+      "label": "B2",
+      "category": "functional",
+      "direction": "benign",
+      "default_strength": "standalone",
+      "permitted_strengths": ["standalone"],
+      "adjustable": false,
+      "description": "Variant forces VUS classification regardless of score (e.g. uncertain functional significance). Manual only.",
+      "pre_computable": false
+    },
+    {
+      "code": "B3",
+      "label": "B3",
+      "category": "computational",
+      "direction": "benign",
+      "default_strength": "supporting",
+      "permitted_strengths": ["moderate", "supporting"],
+      "adjustable": true,
+      "description": "Computational evidence supports benign effect (REVEL ≤ 0.4 or low SpliceAI)",
+      "pre_computable": true,
+      "pre_compute_hint": "REVEL ≤ 0.4 or SpliceAI max delta < 0.1"
+    },
+    {
+      "code": "B4",
+      "label": "B4",
+      "category": "population",
+      "direction": "benign",
+      "default_strength": "strong",
+      "permitted_strengths": ["strong", "moderate"],
+      "adjustable": true,
+      "description": "Elevated germline frequency above moderate threshold",
+      "pre_computable": true,
+      "pre_compute_hint": "gnomAD AF > moderate threshold"
+    },
+    {
+      "code": "B5",
+      "label": "B5",
+      "category": "functional",
+      "direction": "benign",
+      "default_strength": "strong",
+      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "adjustable": true,
+      "description": "Well-established functional study shows no oncogenic effect",
+      "pre_computable": false
+    },
+    {
+      "code": "B6",
+      "label": "B6",
+      "category": "case_evidence",
+      "direction": "benign",
+      "default_strength": "supporting",
+      "permitted_strengths": ["supporting"],
+      "adjustable": false,
+      "description": "Non-recurrent in somatic databases in a gene with known mutational context",
+      "pre_computable": false
+    },
+    {
+      "code": "B7",
+      "label": "B7",
+      "category": "other_databases",
+      "direction": "benign",
+      "default_strength": "supporting",
+      "permitted_strengths": ["supporting"],
+      "adjustable": false,
+      "description": "Classified as benign/likely benign in reputable somatic database",
+      "pre_computable": false
+    }
+  ],
+  "combination_rules": [
+    {
+      "rule": "O1_standalone",
+      "codes": ["O1"],
+      "message": "O1 is standalone Oncogenic. Other criteria are informational only."
+    },
+    {
+      "rule": "B1_standalone",
+      "codes": ["B1"],
+      "message": "B1 is standalone Benign. Other criteria are informational only."
+    },
+    {
+      "rule": "B2_forces_vus",
+      "codes": ["B2"],
+      "message": "B2 forces VUS classification regardless of the total score."
+    },
+    {
+      "rule": "O6_B3_conflict",
+      "codes": ["O6", "B3"],
+      "message": "O6 and B3 are opposing computational evidence. Only one should be applied."
+    }
+  ],
+  "thresholds": {
+    "oncogenic": 10,
+    "likely_oncogenic_min": 6,
+    "likely_oncogenic_max": 9,
+    "vus_min": 0,
+    "vus_max": 5,
+    "likely_benign_min": -6,
+    "likely_benign_max": -1,
+    "benign": -7
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "_comment": "CanVIG-UK gene-specific Maximum Tolerated Allele Frequency (MTAF) thresholds for BA1 and BS1 criteria. Values based on CanVIG-UK 2022 recommendations. Genes not listed use ACGS standard 5% (BA1) threshold.",
+  "genes": {
+    "BRCA1": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Breast and Ovarian Cancer",
+      "inheritance": "AD"
+    },
+    "BRCA2": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Breast and Ovarian Cancer",
+      "inheritance": "AD"
+    },
+    "MLH1": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Lynch Syndrome",
+      "inheritance": "AD"
+    },
+    "MSH2": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Lynch Syndrome",
+      "inheritance": "AD"
+    },
+    "MSH6": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Lynch Syndrome",
+      "inheritance": "AD"
+    },
+    "PMS2": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Lynch Syndrome",
+      "inheritance": "AD"
+    },
+    "EPCAM": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Lynch Syndrome",
+      "inheritance": "AD"
+    },
+    "TP53": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0001,
+      "disease": "Li-Fraumeni Syndrome",
+      "inheritance": "AD"
+    },
+    "PTEN": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "PTEN Hamartoma Tumour Syndrome",
+      "inheritance": "AD"
+    },
+    "STK11": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Peutz-Jeghers Syndrome",
+      "inheritance": "AD"
+    },
+    "SMAD4": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Juvenile Polyposis Syndrome",
+      "inheritance": "AD"
+    },
+    "BMPR1A": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Juvenile Polyposis Syndrome",
+      "inheritance": "AD"
+    },
+    "APC": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Familial Adenomatous Polyposis",
+      "inheritance": "AD"
+    },
+    "MUTYH": {
+      "ba1_threshold": 0.01,
+      "bs1_threshold": 0.003,
+      "disease": "MUTYH-Associated Polyposis",
+      "inheritance": "AR"
+    },
+    "PALB2": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Breast Cancer",
+      "inheritance": "AD"
+    },
+    "ATM": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Ataxia-Telangiectasia / Cancer Predisposition",
+      "inheritance": "AD/AR"
+    },
+    "CHEK2": {
+      "ba1_threshold": 0.01,
+      "bs1_threshold": 0.003,
+      "disease": "Hereditary Breast Cancer",
+      "inheritance": "AD"
+    },
+    "RAD51C": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Ovarian Cancer",
+      "inheritance": "AD"
+    },
+    "RAD51D": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Ovarian Cancer",
+      "inheritance": "AD"
+    },
+    "BARD1": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Breast Cancer",
+      "inheritance": "AD"
+    },
+    "BRIP1": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Ovarian Cancer",
+      "inheritance": "AD"
+    },
+    "NBN": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Nijmegen Breakage Syndrome",
+      "inheritance": "AR"
+    },
+    "VHL": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0001,
+      "disease": "Von Hippel-Lindau Disease",
+      "inheritance": "AD"
+    },
+    "SDHA": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Paraganglioma-Pheochromocytoma",
+      "inheritance": "AD"
+    },
+    "SDHB": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Paraganglioma-Pheochromocytoma",
+      "inheritance": "AD"
+    },
+    "SDHC": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Paraganglioma-Pheochromocytoma",
+      "inheritance": "AD"
+    },
+    "SDHD": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Hereditary Paraganglioma-Pheochromocytoma",
+      "inheritance": "AD"
+    },
+    "MEN1": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Multiple Endocrine Neoplasia Type 1",
+      "inheritance": "AD"
+    },
+    "RET": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Multiple Endocrine Neoplasia Type 2",
+      "inheritance": "AD"
+    },
+    "NF1": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Neurofibromatosis Type 1",
+      "inheritance": "AD"
+    },
+    "NF2": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Neurofibromatosis Type 2",
+      "inheritance": "AD"
+    },
+    "TSC1": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Tuberous Sclerosis",
+      "inheritance": "AD"
+    },
+    "TSC2": {
+      "ba1_threshold": 0.001,
+      "bs1_threshold": 0.0003,
+      "disease": "Tuberous Sclerosis",
+      "inheritance": "AD"
+    }
+  }
+}
