@@ -40,6 +40,9 @@ function getS3Client(provided?: S3Client): S3Client {
 
 /** Derive the sidecar manifest S3 key from the VCF key */
 export function sidecarKeyFromVcfKey(vcfKey: string): string {
+  if (!/\.(vcf\.gz|vcf)$/.test(vcfKey)) {
+    throw new Error(`Unsupported VCF key format: ${vcfKey}`);
+  }
   return vcfKey.replace(/\.(vcf\.gz|vcf)$/, ".manifest.json");
 }
 

@@ -299,17 +299,30 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "id must be a positive integer" }, { status: 400 });
   }
 
-  await withTransaction(async (client) => {
-    await client.query(
-      `UPDATE variant_classification SET deleted_at = NOW() WHERE id = $1`,
-      [id]
-    );
-    await client.query(
-      `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_value)
-       VALUES ($1, 'reset_classification', 'classification', $2, $3)`,
-      [userId ?? null, id, JSON.stringify({ deleted: true })]
-    );
-  });
+  try {
+    await withTransaction(async (client) => {
+      const updateRes = await client.query(
+        `UPDATE variant_classification SET deleted_at = NOW()
+         WHERE id = $1 AND deleted_at IS NULL`,
+        [id]
+      );
+      if (updateRes.rowCount !== 1) {
+        throw new Error("Classification not found");
+      }
+      await client.query(
+        `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_value)
+         VALUES ($1, 'reset_classification', 'classification', $2, $3)`,
+        [userId ?? null, id, JSON.stringify({ deleted: true })]
+      );
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message === "Classification not found") {
+      return NextResponse.json({ error: message }, { status: 404 });
+    }
+    console.error("Classification delete error:", error);
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 }
