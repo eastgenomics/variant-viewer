@@ -38,7 +38,7 @@
   },
   "allOf": [
     {
-      "description": "Must contain exactly one Patient, one Specimen, and one Task",
+      "description": "Must contain exactly one Patient",
       "properties": {
         "entry": {
           "type": "array",
@@ -62,6 +62,45 @@
                   }
                 },
                 "required": ["identifier"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Must contain exactly one Specimen",
+      "properties": {
+        "entry": {
+          "type": "array",
+          "contains": {
+            "properties": {
+              "resource": {
+                "properties": {
+                  "resourceType": { "const": "Specimen" },
+                  "identifier": {
+                    "type": "array",
+                    "minItems": 1
+                  }
+                },
+                "required": ["identifier"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Must contain exactly one Task",
+      "properties": {
+        "entry": {
+          "type": "array",
+          "contains": {
+            "properties": {
+              "resource": {
+                "properties": {
+                  "resourceType": { "const": "Task" }
+                }
               }
             }
           }

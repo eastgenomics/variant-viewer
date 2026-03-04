@@ -39,10 +39,11 @@ function parseInfo(infoStr: string): Record<string, string | boolean> {
   return result;
 }
 
-/** Extract VEP CSQ annotations from INFO map */
+/** Extract VEP CSQ annotations from INFO map for a specific ALT allele */
 function extractVepAnnotations(
   info: Record<string, string | boolean>,
-  csqHeader: string[] | null
+  csqHeader: string[] | null,
+  altAllele: string
 ): {
   gene: string | null;
   consequence: string | null;
@@ -66,14 +67,25 @@ function extractVepAnnotations(
 
   if (csqHeader && info["CSQ"]) {
     const csqValue = info["CSQ"] as string;
-    // VEP may have multiple transcripts — pick first canonical or first entry
+    // VEP may have multiple transcripts and alleles — filter by this ALT first
     const entries = csqValue.split(",");
-    // prefer canonical transcript (CANONICAL=YES)
+    const alleleIdx = csqHeader.indexOf("Allele");
+
+    // Filter to entries matching this ALT allele (if Allele field exists)
+    const alleleMatched =
+      alleleIdx >= 0
+        ? entries.filter((e) => e.split("|")[alleleIdx] === altAllele)
+        : entries;
+
+    // Use allele-matched pool, or fall back to all entries if no match
+    const pool = alleleMatched.length > 0 ? alleleMatched : entries;
+
+    // Prefer canonical transcript (CANONICAL=YES)
     const canonIdx = csqHeader.indexOf("CANONICAL");
     const preferred =
       canonIdx >= 0
-        ? entries.find((e) => e.split("|")[canonIdx] === "YES") ?? entries[0]
-        : entries[0];
+        ? pool.find((e) => e.split("|")[canonIdx] === "YES") ?? pool[0]
+        : pool[0];
 
     const fields = preferred.split("|");
     const get = (name: string): string => {
@@ -177,7 +189,7 @@ export async function parseVcf(
     for (const alt of alts) {
       if (!alt || alt === "*") continue; // skip spanning deletions
 
-      const annotations = extractVepAnnotations(info, csqHeader);
+      const annotations = extractVepAnnotations(info, csqHeader, alt);
       const variant: VcfVariant = {
         chrom,
         pos: parseInt(posStr, 10),

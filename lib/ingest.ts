@@ -197,7 +197,7 @@ export async function ingestFromStream(
 ): Promise<IngestResult> {
   const batchBuffer: VcfVariant[] = [];
   let totalVariants = 0;
-  const variantsForPreCompute: Array<{ id: number; v: VcfVariant }> = [];
+  const caseType = manifest.specimen.case_type;
 
   const result = await withTransaction(async (client) => {
     let detectedPipelineKey: string | null = null;
@@ -235,9 +235,9 @@ export async function ingestFromStream(
 
       if (batchBuffer.length >= BATCH_SIZE) {
         const ids = await insertVariantBatch(client, sampleId, batchBuffer);
-        // Queue pre-compute (done after parse to avoid interleaving)
+        // Pre-compute criteria per batch to keep memory bounded
         for (let i = 0; i < batchBuffer.length; i++) {
-          variantsForPreCompute.push({ id: ids[i], v: batchBuffer[i] });
+          await insertPreComputedCriteria(client, ids[i], batchBuffer[i], caseType);
         }
         batchBuffer.length = 0;
       }
@@ -246,7 +246,7 @@ export async function ingestFromStream(
       if (batchBuffer.length > 0) {
         const ids = await insertVariantBatch(client, sampleId, batchBuffer);
         for (let i = 0; i < batchBuffer.length; i++) {
-          variantsForPreCompute.push({ id: ids[i], v: batchBuffer[i] });
+          await insertPreComputedCriteria(client, ids[i], batchBuffer[i], caseType);
         }
         batchBuffer.length = 0;
       }
@@ -263,12 +263,6 @@ export async function ingestFromStream(
         }
       }
     });
-
-    // Pre-compute criteria
-    const caseType = manifest.specimen.case_type;
-    for (const { id, v } of variantsForPreCompute) {
-      await insertPreComputedCriteria(client, id, v, caseType);
-    }
 
     return { patientId, sampleId, variantCount: totalVariants, pipelineKey };
   });

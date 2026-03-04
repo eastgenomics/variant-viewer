@@ -255,8 +255,12 @@ export default function ClassificationPanel({
               value={framework}
               disabled={frameworkLocked || !!lockedAt}
               onChange={(e) => {
-                setFramework(e.target.value as Framework);
-                setCriteria(initCriteriaState(getCriteriaDefs(e.target.value as Framework), []));
+                const nextFramework = e.target.value as Framework;
+                setFramework(nextFramework);
+                setClassId(null);  // force POST on next save
+                setLockedAt(null);
+                setFrameworkLocked(false);
+                setCriteria(initCriteriaState(getCriteriaDefs(nextFramework), []));
               }}
               className="border border-gray-300 rounded px-2 py-1 text-sm"
             >

@@ -142,7 +142,13 @@ export function classify(
 
     if (hasO1 || hasB1 || hasB2) {
       const classification = classifySvig(0, hasO1, hasB1, hasB2);
-      return { score: hasO1 ? 999 : hasB1 ? -999 : 0, classification, warnings };
+      const sentinelScore =
+        classification === "Oncogenic"
+          ? 999
+          : classification === "Benign"
+            ? -999
+            : 0;
+      return { score: sentinelScore, classification, warnings };
     }
 
     for (const c of applied) {

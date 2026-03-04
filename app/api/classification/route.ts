@@ -139,98 +139,120 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  // Fetch current classification
-  const existing = await dbQuery<{
-    id: number;
-    variant_id: number;
-    framework: Framework;
-    locked_at: string | null;
-    deleted_at: string | null;
-  }>(
-    `SELECT id, variant_id, framework, locked_at, deleted_at
-     FROM variant_classification WHERE id = $1`,
-    [classification_id]
-  );
+  try {
+    let score: number, classification: string, warnings: string[];
 
-  if (existing.rows.length === 0) {
-    return NextResponse.json({ error: "Classification not found" }, { status: 404 });
-  }
+    await withTransaction(async (client) => {
+      // Fetch current classification with row lock to prevent concurrent modification
+      const existing = await client.query<{
+        id: number;
+        variant_id: number;
+        framework: Framework;
+        locked_at: string | null;
+        deleted_at: string | null;
+      }>(
+        `SELECT id, variant_id, framework, locked_at, deleted_at
+         FROM variant_classification
+         WHERE id = $1
+         FOR UPDATE`,
+        [classification_id]
+      );
 
-  const cls = existing.rows[0];
-  if (cls.locked_at) {
-    return NextResponse.json(
-      { error: "Classification is locked and cannot be modified" },
-      { status: 409 }
-    );
-  }
-  if (cls.deleted_at) {
-    return NextResponse.json(
-      { error: "Classification has been deleted" },
-      { status: 410 }
-    );
-  }
+      if (existing.rows.length === 0) {
+        throw new Error("Classification not found");
+      }
 
-  const rules = getRules(cls.framework);
-  const { score, classification, warnings } = classify(
-    criteria as AppliedCriterion[],
-    cls.framework,
-    rules
-  );
+      const cls = existing.rows[0];
+      if (cls.locked_at) {
+        throw new Error("Classification is locked and cannot be modified");
+      }
+      if (cls.deleted_at) {
+        throw new Error("Classification has been deleted");
+      }
 
-  await withTransaction(async (client) => {
-    // Delete existing criteria and re-insert
-    await client.query(
-      "DELETE FROM classification_criterion WHERE classification_id = $1",
-      [classification_id]
-    );
+      const rules = getRules(cls.framework);
+      const result = classify(
+        criteria as AppliedCriterion[],
+        cls.framework,
+        rules
+      );
+      score = result.score;
+      classification = result.classification;
+      warnings = result.warnings;
 
-    for (const c of criteria) {
+      // Delete existing criteria and re-insert
       await client.query(
-        `INSERT INTO classification_criterion
-           (classification_id, criterion_code, applied, strength,
-            notes, evidence_links, pre_computed, pre_computed_value)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        "DELETE FROM classification_criterion WHERE classification_id = $1",
+        [classification_id]
+      );
+
+      for (const c of criteria) {
+        await client.query(
+          `INSERT INTO classification_criterion
+             (classification_id, criterion_code, applied, strength,
+              notes, evidence_links, pre_computed, pre_computed_value)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            classification_id,
+            c.criterion_code,
+            c.applied,
+            c.strength,
+            c.notes ?? null,
+            c.evidence_links ?? null,
+            (c as { pre_computed?: boolean }).pre_computed ?? false,
+            (c as { pre_computed_value?: string }).pre_computed_value ?? null,
+          ]
+        );
+      }
+
+      // Update score/classification and optionally lock with double-check
+      const updateRes = await client.query(
+        `UPDATE variant_classification
+         SET score = $1, classification = $2,
+             locked_at = $3, locked_by = $4
+         WHERE id = $5 AND locked_at IS NULL AND deleted_at IS NULL`,
         [
+          score,
+          classification,
+          lock ? new Date().toISOString() : null,
+          lock ? (user_id ?? null) : null,
           classification_id,
-          c.criterion_code,
-          c.applied,
-          c.strength,
-          c.notes ?? null,
-          c.evidence_links ?? null,
-          (c as { pre_computed?: boolean }).pre_computed ?? false,
-          (c as { pre_computed_value?: string }).pre_computed_value ?? null,
         ]
       );
+
+      if (updateRes.rowCount !== 1) {
+        throw new Error("Classification changed concurrently");
+      }
+
+      // Audit log
+      await client.query(
+        `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_value)
+         VALUES ($1, 'update_classification', 'classification', $2, $3)`,
+        [
+          user_id ?? null,
+          classification_id,
+          JSON.stringify({ score, classification, lock }),
+        ]
+      );
+    });
+
+    return NextResponse.json({ score, classification, warnings });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Update failed";
+    if (message === "Classification not found") {
+      return NextResponse.json({ error: message }, { status: 404 });
     }
-
-    // Update score/classification and optionally lock
-    await client.query(
-      `UPDATE variant_classification
-       SET score = $1, classification = $2,
-           locked_at = $3, locked_by = $4
-       WHERE id = $5`,
-      [
-        score,
-        classification,
-        lock ? new Date().toISOString() : null,
-        lock ? (user_id ?? null) : null,
-        classification_id,
-      ]
-    );
-
-    // Audit log
-    await client.query(
-      `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_value)
-       VALUES ($1, 'update_classification', 'classification', $2, $3)`,
-      [
-        user_id ?? null,
-        classification_id,
-        JSON.stringify({ score, classification, lock }),
-      ]
-    );
-  });
-
-  return NextResponse.json({ score, classification, warnings });
+    if (message === "Classification is locked and cannot be modified") {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+    if (message === "Classification has been deleted") {
+      return NextResponse.json({ error: message }, { status: 410 });
+    }
+    if (message === "Classification changed concurrently") {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 /** DELETE /api/classification — soft-delete (reset) a classification */
