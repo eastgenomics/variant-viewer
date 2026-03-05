@@ -15,7 +15,8 @@ export default function DeleteSampleButton({ id, name, workflowStatus }: Props) 
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isHighRisk = workflowStatus === "reported" || workflowStatus === "archived";
+  const normalisedStatus = workflowStatus.toLowerCase();
+  const isHighRisk = normalisedStatus === "reported" || normalisedStatus === "archived";
 
   const confirmMessage = isHighRisk
     ? `This sample is ${workflowStatus}. Deleting it will permanently remove all variants and classifications.`
@@ -30,9 +31,11 @@ export default function DeleteSampleButton({ id, name, workflowStatus }: Props) 
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Delete failed");
       }
+      setShowConfirm(false);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
       setDeleting(false);
     }
   }
