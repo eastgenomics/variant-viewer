@@ -19,7 +19,7 @@ export default function DeleteSampleButton({ id, name, workflowStatus }: Props) 
 
   const confirmMessage = isHighRisk
     ? `This sample is ${workflowStatus}. Deleting it will permanently remove all variants and classifications.`
-    : `Delete ${name} and all its variants?`;
+    : `Delete ${name} and all its variants and classifications?`;
 
   async function handleDelete() {
     setDeleting(true);
@@ -37,10 +37,6 @@ export default function DeleteSampleButton({ id, name, workflowStatus }: Props) 
     }
   }
 
-  if (error) {
-    return <span className="text-xs text-red-600">{error}</span>;
-  }
-
   if (showConfirm) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded text-sm">
@@ -54,21 +50,25 @@ export default function DeleteSampleButton({ id, name, workflowStatus }: Props) 
         </button>
         <button
           className="btn btn-secondary text-xs"
-          onClick={() => setShowConfirm(false)}
+          onClick={() => { setShowConfirm(false); setError(null); }}
           disabled={deleting}
         >
           Cancel
         </button>
+        {error && <span className="text-xs text-red-600">{error}</span>}
       </div>
     );
   }
 
   return (
-    <button
-      className="btn btn-danger text-xs"
-      onClick={() => setShowConfirm(true)}
-    >
-      Delete sample
-    </button>
+    <div className="flex flex-col items-start gap-1">
+      <button
+        className="btn btn-danger text-xs"
+        onClick={() => setShowConfirm(true)}
+      >
+        Delete sample
+      </button>
+      {error && <span className="text-xs text-red-600">{error}</span>}
+    </div>
   );
 }

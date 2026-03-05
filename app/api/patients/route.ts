@@ -9,31 +9,32 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "id query parameter required" }, { status: 400 });
   }
 
-  const id = parseInt(idRaw, 10);
-  if (isNaN(id) || id <= 0) {
+  if (!/^[1-9]\d*$/.test(idRaw)) {
+    return NextResponse.json({ error: "id must be a positive integer" }, { status: 400 });
+  }
+  const id = Number(idRaw);
+  if (!Number.isSafeInteger(id)) {
     return NextResponse.json({ error: "id must be a positive integer" }, { status: 400 });
   }
 
   try {
     await withTransaction(async (client) => {
-      const patientRes = await client.query<{ name: string; lab_number: string }>(
-        `SELECT name, lab_number FROM patients WHERE id = $1`,
+      const deleted = await client.query<{ name: string; lab_number: string }>(
+        `DELETE FROM patients WHERE id = $1 RETURNING name, lab_number`,
         [id]
       );
 
-      if (patientRes.rows.length === 0) {
+      if (deleted.rowCount !== 1) {
         throw new Error("Patient not found");
       }
 
-      const { name, lab_number } = patientRes.rows[0];
+      const { name, lab_number } = deleted.rows[0];
 
       await client.query(
         `INSERT INTO audit_log (action, entity_type, entity_id, old_value)
-         VALUES ('delete', 'patient', $1, $2)`,
+         VALUES ('delete', 'patient', $1, $2::jsonb)`,
         [id, JSON.stringify({ name, lab_number })]
       );
-
-      await client.query(`DELETE FROM patients WHERE id = $1`, [id]);
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

@@ -9,31 +9,32 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "id query parameter required" }, { status: 400 });
   }
 
-  const id = parseInt(idRaw, 10);
-  if (isNaN(id) || id <= 0) {
+  if (!/^[1-9]\d*$/.test(idRaw)) {
+    return NextResponse.json({ error: "id must be a positive integer" }, { status: 400 });
+  }
+  const id = Number(idRaw);
+  if (!Number.isSafeInteger(id)) {
     return NextResponse.json({ error: "id must be a positive integer" }, { status: 400 });
   }
 
   try {
     await withTransaction(async (client) => {
-      const sampleRes = await client.query<{ name: string; s3_key: string }>(
-        `SELECT name, s3_key FROM samples WHERE id = $1`,
+      const deleted = await client.query<{ name: string; s3_key: string }>(
+        `DELETE FROM samples WHERE id = $1 RETURNING name, s3_key`,
         [id]
       );
 
-      if (sampleRes.rows.length === 0) {
+      if (deleted.rowCount !== 1) {
         throw new Error("Sample not found");
       }
 
-      const { name, s3_key } = sampleRes.rows[0];
+      const { name, s3_key } = deleted.rows[0];
 
       await client.query(
         `INSERT INTO audit_log (action, entity_type, entity_id, old_value)
-         VALUES ('delete', 'sample', $1, $2)`,
+         VALUES ('delete', 'sample', $1, $2::jsonb)`,
         [id, JSON.stringify({ name, s3_key })]
       );
-
-      await client.query(`DELETE FROM samples WHERE id = $1`, [id]);
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
