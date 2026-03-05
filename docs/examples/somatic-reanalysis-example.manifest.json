@@ -1,0 +1,81 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "https://fhir.example-lab.org/Id/lab-number",
+            "value": "LAB-2024-00456"
+          },
+          {
+            "system": "https://fhir.nhs.uk/Id/nhs-number",
+            "use": "official",
+            "value": "9000000009"
+          }
+        ],
+        "name": [
+          {
+            "family": "Jones",
+            "given": ["Robert"]
+          }
+        ],
+        "birthDate": "1965-09-23"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Specimen",
+        "identifier": [
+          { "value": "26041S0089-T" }
+        ],
+        "extension": [
+          {
+            "url": "https://example.org/fhir/StructureDefinition/case-type",
+            "valueCode": "somatic"
+          }
+        ],
+        "type": {
+          "coding": [
+            {
+              "display": "FFPE tumour biopsy"
+            }
+          ]
+        },
+        "collection": {
+          "collectedDateTime": "2024-10-18T00:00:00Z"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Task",
+        "status": "completed",
+        "identifier": [
+          { "value": "RUN-20250210-001" }
+        ],
+        "code": {
+          "text": "mutect2"
+        },
+        "input": [
+          {
+            "type": { "text": "pipeline_version" },
+            "valueString": "4.5.0.0"
+          },
+          {
+            "type": { "text": "reason" },
+            "valueString": "reanalysis — updated panel of normals"
+          }
+        ],
+        "output": [
+          {
+            "type": { "text": "vcf" },
+            "valueString": "somatic-reanalysis-example.vcf.gz"
+          }
+        ]
+      }
+    }
+  ]
+}

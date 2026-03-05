@@ -1,0 +1,77 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "https://fhir.example-lab.org/Id/lab-number",
+            "value": "LAB-2025-00789"
+          },
+          {
+            "system": "https://fhir.nhs.uk/Id/nhs-number",
+            "use": "official",
+            "value": "9000000017"
+          }
+        ],
+        "name": [
+          {
+            "family": "Patel",
+            "given": ["Amir"]
+          }
+        ],
+        "birthDate": "1971-03-07"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Specimen",
+        "identifier": [
+          { "value": "26055S0112-T" }
+        ],
+        "extension": [
+          {
+            "url": "https://example.org/fhir/StructureDefinition/case-type",
+            "valueCode": "somatic"
+          }
+        ],
+        "type": {
+          "coding": [
+            {
+              "display": "Fresh frozen tumour — WGS"
+            }
+          ]
+        },
+        "collection": {
+          "collectedDateTime": "2025-01-14T00:00:00Z"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Task",
+        "status": "completed",
+        "identifier": [
+          { "value": "RUN-20250114-003" }
+        ],
+        "code": {
+          "text": "strelka2"
+        },
+        "input": [
+          {
+            "type": { "text": "pipeline_version" },
+            "valueString": "2.9.10"
+          }
+        ],
+        "output": [
+          {
+            "type": { "text": "vcf" },
+            "valueString": "somatic-wgs-example.vcf.gz"
+          }
+        ]
+      }
+    }
+  ]
+}

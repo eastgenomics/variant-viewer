@@ -24,9 +24,14 @@ Lambda is triggered by the VCF upload (`ObjectCreated` event) and then fetches t
 
 ## Examples
 
-| File | Pairs with | Case type | Pipeline |
-|---|---|---|---|
-| `germline-example.manifest.json` | `germline-example.vcf.gz` | Germline | `dragen_germline` |
-| `somatic-example.manifest.json` | `somatic-example.vcf.gz` | Somatic | `mutect2` |
+| File | Pairs with | Case type | Pipeline | Notes |
+|---|---|---|---|---|
+| `germline-example.manifest.json` | `germline-example.vcf.gz` | Germline | `dragen_germline` | Peripheral blood |
+| `somatic-example.manifest.json` | `somatic-example.vcf.gz` | Somatic | `mutect2` | FFPE tumour biopsy |
+| `somatic-wgs-example.manifest.json` | `somatic-wgs-example.vcf.gz` | Somatic | `strelka2` | Fresh frozen tumour WGS |
+| `germline-panel-example.manifest.json` | `germline-panel-example.vcf.gz` | Germline | `dragen_germline` | Saliva, targeted panel (`BRCA1_BRCA2_v3`) |
+| `somatic-cfdna-example.manifest.json` | `somatic-cfdna-example.vcf.gz` | Somatic | `mutect2` | Liquid biopsy cfDNA, tumour-only mode |
+| `germline-trio-proband-example.manifest.json` | `germline-trio-proband-example.vcf.gz` | Germline | `dragen_germline` | Trio analysis, proband sample |
+| `somatic-reanalysis-example.manifest.json` | `somatic-reanalysis-example.vcf.gz` | Somatic | `mutect2` | Re-analysis of LAB-2024-00456 with updated PoN |
 
-Both use NHS test number `9000000009` (valid Modulus 11 checksum).
+NHS test numbers used (all valid Modulus 11): `9000000009`, `9000000017`, `9000000025`, `9000000033`, `9000000041`.
