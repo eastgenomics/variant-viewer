@@ -1,0 +1,85 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "https://fhir.example-lab.org/Id/lab-number",
+            "value": "LAB-2025-00667"
+          },
+          {
+            "system": "https://fhir.nhs.uk/Id/nhs-number",
+            "use": "official",
+            "value": "9000000041"
+          }
+        ],
+        "name": [
+          {
+            "family": "Kowalski",
+            "given": ["Tomasz"]
+          }
+        ],
+        "birthDate": "2018-06-14"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Specimen",
+        "identifier": [
+          { "value": "26055S0412" }
+        ],
+        "extension": [
+          {
+            "url": "https://example.org/fhir/StructureDefinition/case-type",
+            "valueCode": "germline"
+          },
+          {
+            "url": "https://example.org/fhir/StructureDefinition/family-role",
+            "valueCode": "proband"
+          }
+        ],
+        "type": {
+          "coding": [
+            {
+              "display": "Peripheral blood"
+            }
+          ]
+        },
+        "collection": {
+          "collectedDateTime": "2025-03-01T11:00:00Z"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Task",
+        "status": "completed",
+        "identifier": [
+          { "value": "RUN-20250301-009" }
+        ],
+        "code": {
+          "text": "dragen_germline"
+        },
+        "input": [
+          {
+            "type": { "text": "pipeline_version" },
+            "valueString": "4.2.4"
+          },
+          {
+            "type": { "text": "analysis_type" },
+            "valueString": "trio"
+          }
+        ],
+        "output": [
+          {
+            "type": { "text": "vcf" },
+            "valueString": "germline-trio-proband-example.vcf.gz"
+          }
+        ]
+      }
+    }
+  ]
+}

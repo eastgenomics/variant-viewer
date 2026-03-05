@@ -1,0 +1,81 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          {
+            "system": "https://fhir.example-lab.org/Id/lab-number",
+            "value": "LAB-2025-00234"
+          },
+          {
+            "system": "https://fhir.nhs.uk/Id/nhs-number",
+            "use": "official",
+            "value": "9000000025"
+          }
+        ],
+        "name": [
+          {
+            "family": "Okafor",
+            "given": ["Chioma"]
+          }
+        ],
+        "birthDate": "1990-11-22"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Specimen",
+        "identifier": [
+          { "value": "26055S0201" }
+        ],
+        "extension": [
+          {
+            "url": "https://example.org/fhir/StructureDefinition/case-type",
+            "valueCode": "germline"
+          }
+        ],
+        "type": {
+          "coding": [
+            {
+              "display": "Saliva"
+            }
+          ]
+        },
+        "collection": {
+          "collectedDateTime": "2025-02-03T10:15:00Z"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Task",
+        "status": "completed",
+        "identifier": [
+          { "value": "RUN-20250203-014" }
+        ],
+        "code": {
+          "text": "dragen_germline"
+        },
+        "input": [
+          {
+            "type": { "text": "pipeline_version" },
+            "valueString": "4.2.4"
+          },
+          {
+            "type": { "text": "panel" },
+            "valueString": "BRCA1_BRCA2_v3"
+          }
+        ],
+        "output": [
+          {
+            "type": { "text": "vcf" },
+            "valueString": "germline-panel-example.vcf.gz"
+          }
+        ]
+      }
+    }
+  ]
+}
