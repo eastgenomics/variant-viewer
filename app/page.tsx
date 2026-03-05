@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { query } from "@/lib/db";
 import WorkflowBadge from "@/components/WorkflowBadge";
+import DeletePatientButton from "./DeletePatientButton";
 
 interface PatientRow {
   id: number;
@@ -98,6 +99,7 @@ export default async function PatientsPage() {
                 <th className="px-4 py-3">Workflow</th>
                 <th className="px-4 py-3">Ingested</th>
                 <th className="px-4 py-3"></th>
+                <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -147,6 +149,9 @@ export default async function PatientsPage() {
                     >
                       View →
                     </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <DeletePatientButton id={p.id} name={p.name} />
                   </td>
                 </tr>
               ))}
