@@ -6,6 +6,7 @@ import { query } from "@/lib/db";
 import WorkflowBadge from "@/components/WorkflowBadge";
 import VariantTable from "./VariantTable";
 import WorkflowControl from "./WorkflowControl";
+import DeleteSampleButton from "./DeleteSampleButton";
 import { getDefaultFilters } from "@/lib/pipeline-config";
 
 interface PatientDetail {
@@ -140,6 +141,11 @@ export default async function PatientPage({
                   <WorkflowControl
                     sampleId={sample.id}
                     currentStatus={sample.workflow_status}
+                  />
+                  <DeleteSampleButton
+                    id={sample.id}
+                    name={sample.name}
+                    workflowStatus={sample.workflow_status}
                   />
                 </div>
               </div>
