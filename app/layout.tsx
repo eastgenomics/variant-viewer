@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Genomics Variant Viewer",
+  title: "Variant Viewer",
   description: "Diagnostic variant review and classification",
 };
 

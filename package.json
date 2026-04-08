@@ -1,5 +1,5 @@
 {
-  "name": "genomics-variant-viewer",
+  "name": "variant-viewer",
   "version": "0.1.0",
   "private": true,
   "scripts": {
