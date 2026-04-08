@@ -19,7 +19,7 @@ export default function RootLayout({
             Variant Viewer
           </a>
           <a href="/" className="text-sm text-gray-600 hover:text-gray-900">
-            Patients
+            Cases
           </a>
           <a href="/upload" className="text-sm text-gray-600 hover:text-gray-900">
             Upload VCF
