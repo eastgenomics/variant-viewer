@@ -17,7 +17,7 @@ variable "environment" {
 variable "app_name" {
   description = "Application name prefix for resources"
   type        = string
-  default     = "genomics-variant-viewer"
+  default     = "variant-viewer"
 }
 
 variable "domain_name" {

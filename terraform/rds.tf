@@ -1,5 +1,5 @@
 resource "aws_db_subnet_group" "postgres" {
-  name       = "${var.app_name}-rds-subnet-group"
+  name       = "genomics-variant-viewer-rds-subnet-group" # kept from original deploy — RDS can't change subnet groups within the same VPC
   subnet_ids = aws_subnet.private[*].id
   tags       = { Name = "${var.app_name}-rds-subnet-group" }
 }

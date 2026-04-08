@@ -1,6 +1,7 @@
 resource "aws_ecr_repository" "app" {
   name                 = var.app_name
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
@@ -32,6 +33,7 @@ resource "aws_ecr_lifecycle_policy" "app" {
 resource "aws_ecr_repository" "lambda" {
   name                 = "${var.app_name}-lambda"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
