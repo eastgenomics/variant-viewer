@@ -9,17 +9,6 @@
           {
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2025-00667"
-          },
-          {
-            "system": "https://fhir.nhs.uk/Id/nhs-number",
-            "use": "official",
-            "value": "9000000041"
-          }
-        ],
-        "name": [
-          {
-            "family": "Kowalski",
-            "given": ["Tomasz"]
           }
         ],
         "birthDate": "2018-06-14"

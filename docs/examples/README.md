@@ -34,4 +34,4 @@ Lambda is triggered by the VCF upload (`ObjectCreated` event) and then fetches t
 | `germline-trio-proband-example.manifest.json` | `germline-trio-proband-example.vcf.gz` | Germline | `dragen_germline` | Trio analysis, proband sample |
 | `somatic-reanalysis-example.manifest.json` | `somatic-reanalysis-example.vcf.gz` | Somatic | `mutect2` | Re-analysis of LAB-2024-00456 with updated PoN |
 
-NHS test numbers used (all valid Modulus 11): `9000000009`, `9000000017`, `9000000025`, `9000000033`, `9000000041`.
+Patient resources include `birthDate` and lab number only. NHS numbers and patient names are not included.

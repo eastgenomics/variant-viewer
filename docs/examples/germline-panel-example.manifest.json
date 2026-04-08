@@ -9,17 +9,6 @@
           {
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2025-00234"
-          },
-          {
-            "system": "https://fhir.nhs.uk/Id/nhs-number",
-            "use": "official",
-            "value": "9000000025"
-          }
-        ],
-        "name": [
-          {
-            "family": "Okafor",
-            "given": ["Chioma"]
           }
         ],
         "birthDate": "1990-11-22"

@@ -9,17 +9,6 @@
           {
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2025-00789"
-          },
-          {
-            "system": "https://fhir.nhs.uk/Id/nhs-number",
-            "use": "official",
-            "value": "9000000017"
-          }
-        ],
-        "name": [
-          {
-            "family": "Patel",
-            "given": ["Amir"]
           }
         ],
         "birthDate": "1971-03-07"
