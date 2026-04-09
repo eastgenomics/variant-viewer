@@ -26,11 +26,9 @@ export default function UploadForm({
 }) {
   // Patient fields
   const [labNumber, setLabNumber] = useState("");
-  const [patientName, setPatientName] = useState("");
   const [dob, setDob] = useState("");
-  const [nhsNumber, setNhsNumber] = useState("");
 
-  // Sample fields
+  // Specimen fields
   const [sampleName, setSampleName] = useState("");
   const [caseType, setCaseType] = useState<"germline" | "somatic">("germline");
   const [sequencingDate, setSequencingDate] = useState("");
@@ -49,19 +47,6 @@ export default function UploadForm({
   const [error, setError] = useState<string | null>(null);
   const [resultSampleId, setResultSampleId] = useState<number | null>(null);
 
-  function validateNhsLocally(nhs: string): boolean {
-    const digits = nhs.replace(/\s/g, "");
-    if (!/^\d{10}$/.test(digits)) return false;
-    const weights = [10, 9, 8, 7, 6, 5, 4, 3, 2];
-    let sum = 0;
-    for (let i = 0; i < 9; i++) sum += parseInt(digits[i]) * weights[i];
-    const rem = sum % 11;
-    const check = 11 - rem;
-    if (check === 11) return parseInt(digits[9]) === 0;
-    if (check === 10) return false;
-    return parseInt(digits[9]) === check;
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -72,10 +57,6 @@ export default function UploadForm({
     }
     if (!file) {
       setError("Please select a VCF file.");
-      return;
-    }
-    if (nhsNumber.trim() && !validateNhsLocally(nhsNumber.replace(/\s/g, ""))) {
-      setError("NHS number is invalid (failed Luhn modulo-11 checksum).");
       return;
     }
 
@@ -100,9 +81,7 @@ export default function UploadForm({
     const fd = new FormData();
     fd.append("vcf", file!);
     fd.append("lab_number", labNumber.trim());
-    if (patientName.trim()) fd.append("patient_name", patientName.trim());
     if (dob) fd.append("dob", dob);
-    if (nhsNumber.trim()) fd.append("nhs_number", nhsNumber.trim());
     fd.append("sample_name", sampleName.trim() || file!.name);
     fd.append("case_type", caseType);
     if (sequencingDate) fd.append("sequencing_date", sequencingDate);
@@ -140,8 +119,8 @@ export default function UploadForm({
     const manifest = buildManifest(
       {
         lab_number: labNumber.trim(),
-        nhs_number: nhsNumber.trim() || null,
-        name: patientName.trim() || null,
+        nhs_number: null,
+        name: null,
         dob: dob || null,
       },
       {
@@ -215,9 +194,7 @@ export default function UploadForm({
               setPhase("idle");
               setFile(null);
               setLabNumber("");
-              setPatientName("");
               setDob("");
-              setNhsNumber("");
               setSampleName("");
               setSequencingDate("");
               setRunId("");
@@ -259,30 +236,6 @@ export default function UploadForm({
           </div>
           <div className="col-span-2 md:col-span-1">
             <label className="block text-xs text-gray-500 mb-1">
-              NHS number (optional)
-            </label>
-            <input
-              type="text"
-              value={nhsNumber}
-              onChange={(e) => setNhsNumber(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
-              placeholder="9000000009"
-            />
-          </div>
-          <div className="col-span-2 md:col-span-1">
-            <label className="block text-xs text-gray-500 mb-1">
-              Patient name (optional)
-            </label>
-            <input
-              type="text"
-              value={patientName}
-              onChange={(e) => setPatientName(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
-              placeholder="Jane Smith"
-            />
-          </div>
-          <div className="col-span-2 md:col-span-1">
-            <label className="block text-xs text-gray-500 mb-1">
               Date of birth (optional)
             </label>
             <input
@@ -295,20 +248,20 @@ export default function UploadForm({
         </div>
       </section>
 
-      {/* Sample details */}
+      {/* Specimen details */}
       <section className="bg-white border border-gray-200 rounded-lg p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">Sample</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Specimen</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 md:col-span-1">
             <label className="block text-xs text-gray-500 mb-1">
-              Sample name
+              Specimen name
             </label>
             <input
               type="text"
               value={sampleName}
               onChange={(e) => setSampleName(e.target.value)}
               className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm"
-              placeholder="SAMPLE_001"
+              placeholder="SPEC_001"
             />
           </div>
           <div className="col-span-2 md:col-span-1">

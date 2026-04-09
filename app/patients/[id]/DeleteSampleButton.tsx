@@ -19,8 +19,8 @@ export default function DeleteSampleButton({ id, name, workflowStatus }: Props) 
   const isHighRisk = normalisedStatus === "reported" || normalisedStatus === "archived";
 
   const confirmMessage = isHighRisk
-    ? `This sample is ${workflowStatus}. Deleting it will permanently remove all variants and classifications.`
-    : `Delete ${name} and all its variants and classifications?`;
+    ? `This specimen is ${workflowStatus}. Deleting it will permanently remove all variants and classifications.`
+    : `Delete specimen ${name} and all its variants and classifications?`;
 
   async function handleDelete() {
     setDeleting(true);
@@ -69,7 +69,7 @@ export default function DeleteSampleButton({ id, name, workflowStatus }: Props) 
         className="btn btn-danger text-xs"
         onClick={() => setShowConfirm(true)}
       >
-        Delete sample
+        Delete specimen
       </button>
       {error && <span className="text-xs text-red-600">{error}</span>}
     </div>

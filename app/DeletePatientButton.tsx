@@ -34,7 +34,7 @@ export default function DeletePatientButton({ id, name }: Props) {
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded text-sm">
         <span className="text-red-700 text-xs">
-          Delete {name} and all their samples/variants?
+          Delete {name} and all their specimens/variants?
         </span>
         <button
           className="btn btn-danger text-xs"

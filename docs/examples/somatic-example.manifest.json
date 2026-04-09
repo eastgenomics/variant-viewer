@@ -9,17 +9,6 @@
           {
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2024-00456"
-          },
-          {
-            "system": "https://fhir.nhs.uk/Id/nhs-number",
-            "use": "official",
-            "value": "9000000009"
-          }
-        ],
-        "name": [
-          {
-            "family": "Jones",
-            "given": ["Robert"]
           }
         ],
         "birthDate": "1965-09-23"

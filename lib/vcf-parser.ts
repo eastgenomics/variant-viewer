@@ -136,6 +136,37 @@ function extractVepAnnotations(
     };
   }
 
+  // Flat CSQ_* fields (pre-exploded VEP annotations, e.g. from East Genomics pipeline)
+  if (info["CSQ_SYMBOL"] || info["CSQ_Consequence"]) {
+    const get = (name: string): string => (info[name] as string) ?? "";
+
+    const gnomadRaw =
+      get("CSQ_gnomADe_AF") || get("CSQ_gnomADg_AF");
+    const revelRaw = get("CSQ_REVEL");
+
+    const saiScores = [
+      parseFloat(get("CSQ_SpliceAI_pred_DS_AG")),
+      parseFloat(get("CSQ_SpliceAI_pred_DS_AL")),
+      parseFloat(get("CSQ_SpliceAI_pred_DS_DG")),
+      parseFloat(get("CSQ_SpliceAI_pred_DS_DL")),
+    ].filter((v) => !isNaN(v));
+    const spliceaiMax = saiScores.length > 0 ? Math.max(...saiScores) : null;
+
+    const gnomadAfNum = gnomadRaw ? parseFloat(gnomadRaw) : NaN;
+    const revelNum = revelRaw ? parseFloat(revelRaw) : NaN;
+
+    return {
+      gene: get("CSQ_SYMBOL") || null,
+      consequence: get("CSQ_Consequence") || null,
+      hgvs_c: get("CSQ_HGVSc") || null,
+      hgvs_p: get("CSQ_HGVSp") || null,
+      gnomad_af: isNaN(gnomadAfNum) ? null : gnomadAfNum,
+      clinvar_sig: get("CSQ_ClinVar_CLNSIG") || null,
+      revel_score: isNaN(revelNum) ? null : revelNum,
+      spliceai_max: spliceaiMax,
+    };
+  }
+
   return empty;
 }
 
