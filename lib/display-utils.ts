@@ -6,5 +6,6 @@ export function formatYearOfBirth(
   dob: string | null | undefined
 ): string {
   if (!dob) return "\u2014";
-  return new Date(dob).getFullYear().toString();
+  const match = dob.match(/^(\d{4})(?:-|$)/);
+  return match ? match[1] : "\u2014";
 }

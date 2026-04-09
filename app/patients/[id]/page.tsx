@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { query } from "@/lib/db";
 import PatientHeader from "@/components/PatientHeader";
-import SpecimenCard, { SpecimenRow } from "@/components/SpecimenCard";
+import SpecimenCard, { type SpecimenRow } from "@/components/SpecimenCard";
 import { getDefaultFilters } from "@/lib/pipeline-config";
 
 interface PatientDetail {

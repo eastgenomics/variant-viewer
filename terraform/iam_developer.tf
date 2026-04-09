@@ -1,4 +1,4 @@
-# IAM policy for developers working on the genomics-variant-viewer.
+# IAM policy for developers working on the variant-viewer.
 # Grants the minimum permissions needed to build, deploy, debug, and
 # run migrations — but NOT to modify infrastructure (Terraform) or
 # manage IAM itself.
@@ -67,8 +67,6 @@ resource "aws_iam_policy" "developer" {
           "ecs:UpdateService",
           "ecs:ListTasks",
           "ecs:DescribeTasks",
-          "ecs:DescribeTaskDefinition",
-          "ecs:RegisterTaskDefinition",
         ]
         Resource = "*"
         Condition = {
@@ -79,7 +77,7 @@ resource "aws_iam_policy" "developer" {
       },
       {
         # RegisterTaskDefinition and DescribeTaskDefinition don't
-        # support resource-level constraints
+        # support resource-level constraints, so kept in a separate global statement
         Sid    = "ECSTaskDefGlobal"
         Effect = "Allow"
         Action = [
