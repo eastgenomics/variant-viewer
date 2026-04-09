@@ -1,4 +1,4 @@
-# IAM policy for developers working on the genomics-variant-viewer.
+# IAM policy for developers working on the variant-viewer.
 # Grants the minimum permissions needed to build, deploy, debug, and
 # run migrations — but NOT to modify infrastructure (Terraform) or
 # manage IAM itself.

@@ -29,8 +29,8 @@ nvm use 22         # or: cd into the repo — .nvmrc picks it up automatically
 ### 1. Clone and install dependencies
 
 ```bash
-git clone <repo-url> genomics-variant-viewer
-cd genomics-variant-viewer
+git clone <repo-url> variant-viewer
+cd variant-viewer
 npm install
 ```
 
@@ -110,7 +110,7 @@ All infrastructure is managed by Terraform in the `/terraform` directory.
 | `vv-admin` | 749929395031 | AdministratorAccess | Terraform only |
 | `vv-dev` | 749929395031 | variant-viewer-developer | Day-to-day deployments (ECR push, ECS deploy, Lambda update, ECS Exec, logs) |
 
-The Terraform state bucket (`genomics-variant-viewer-tfstate`) and all infrastructure live in account **749929395031**.
+The Terraform state bucket (`genomics-variant-viewer-tfstate`) and all infrastructure live in account **749929395031**. Note: the state bucket retains its original name — renaming it would require migrating Terraform state.
 
 ### Prerequisites
 
@@ -129,16 +129,16 @@ The Terraform state bucket (`genomics-variant-viewer-tfstate`) and all infrastru
 The backend uses S3 + DynamoDB for state locking. Create these once before running `terraform init`:
 
 ```bash
-aws s3 mb s3://genomics-variant-viewer-tfstate --region eu-west-2
+aws s3 mb s3://variant-viewer-tfstate --region eu-west-2
 aws s3api put-bucket-versioning \
-  --bucket genomics-variant-viewer-tfstate \
+  --bucket variant-viewer-tfstate \
   --versioning-configuration Status=Enabled
 aws s3api put-bucket-encryption \
-  --bucket genomics-variant-viewer-tfstate \
+  --bucket variant-viewer-tfstate \
   --server-side-encryption-configuration \
     '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
 aws dynamodb create-table \
-  --table-name genomics-variant-viewer-tflock \
+  --table-name variant-viewer-tflock \
   --attribute-definitions AttributeName=LockID,AttributeType=S \
   --key-schema AttributeName=LockID,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST \
