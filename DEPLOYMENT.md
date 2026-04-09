@@ -103,16 +103,24 @@ S3 (VCF uploads) → Lambda (ingest) ────────────┘
 
 All infrastructure is managed by Terraform in the `/terraform` directory.
 
+### AWS accounts and profiles
+
+| Profile | Account | Role | Used for |
+|---------|---------|------|----------|
+| `vv-admin` | 749929395031 | AdministratorAccess | Terraform only |
+| `vv-dev` | 749929395031 | variant-viewer-developer | Day-to-day deployments (ECR push, ECS deploy, Lambda update, ECS Exec, logs) |
+
+The Terraform state bucket (`genomics-variant-viewer-tfstate`) and all infrastructure live in account **749929395031**.
+
 ### Prerequisites
 
 | Tool | Version |
 |------|---------|
 | Terraform | 1.7+ |
-| AWS CLI | 2.x, configured with appropriate credentials |
+| AWS CLI | 2.x, configured with `vv-admin` profile |
 | Docker | 24+ |
 | Node.js | 22+ |
-
-The deploying IAM identity needs permissions to create VPC, RDS, ECS, Lambda, S3, Secrets Manager, KMS, ALB, ECR, IAM, SQS, SNS, and CloudWatch resources.
+| session-manager-plugin | latest | Required for ECS Exec |
 
 ### First-time setup
 
@@ -141,7 +149,7 @@ aws dynamodb create-table \
 
 ```bash
 cd terraform
-terraform init
+AWS_PROFILE=vv-admin terraform init
 ```
 
 #### 3. Create a `terraform.tfvars` file
@@ -167,8 +175,8 @@ multi_az          = false
 #### 4. Plan and apply infrastructure
 
 ```bash
-terraform plan -out=tfplan
-terraform apply tfplan
+AWS_PROFILE=vv-admin terraform plan -var-file=terraform.tfvars
+AWS_PROFILE=vv-admin terraform apply -var-file=terraform.tfvars
 ```
 
 This creates all infrastructure but does not deploy any application code yet. Note the outputs:
@@ -194,97 +202,115 @@ ACM will validate the certificate automatically if the domain is in Route 53. Fo
 #### 6. Build and push the Next.js Docker image
 
 ```bash
-# Get ECR details from Terraform output
-ECR_URL=$(cd terraform && terraform output -raw ecr_repository_url)
-AWS_REGION=eu-west-2
-
 # Authenticate Docker to ECR
-aws ecr get-login-password --region $AWS_REGION \
-  | docker login --username AWS --password-stdin $ECR_URL
+AWS_PROFILE=vv-dev aws ecr get-login-password --region eu-west-2 \
+  | docker login --username AWS --password-stdin 749929395031.dkr.ecr.eu-west-2.amazonaws.com
 
 # Build and push
-docker build -t $ECR_URL:latest .
-docker push $ECR_URL:latest
+docker build -t variant-viewer .
+docker tag variant-viewer:latest 749929395031.dkr.ecr.eu-west-2.amazonaws.com/variant-viewer:latest
+docker push 749929395031.dkr.ecr.eu-west-2.amazonaws.com/variant-viewer:latest
 ```
 
-The ECS service will pull this image. Force a new deployment to pick it up immediately:
+Force a new ECS deployment to pick it up immediately:
 
 ```bash
-CLUSTER=$(cd terraform && terraform output -raw ecs_cluster_name)
-aws ecs update-service \
-  --cluster $CLUSTER \
-  --service genomics-variant-viewer \
+AWS_PROFILE=vv-dev aws ecs update-service \
+  --cluster variant-viewer \
+  --service variant-viewer \
   --force-new-deployment \
-  --region $AWS_REGION
+  --region eu-west-2
 ```
 
 #### 7. Build and push the Lambda Docker image
 
 ```bash
-LAMBDA_ECR_URL=$(cd terraform && terraform output -raw ecr_repository_url | sed 's/genomics-variant-viewer$/genomics-variant-viewer-lambda/')
-
 # Compile TypeScript for Lambda
-npx tsc --project tsconfig.lambda.json
+./node_modules/.bin/tsc --project tsconfig.lambda.json
 
 # Build and push Lambda image
-docker build -f lambda/Dockerfile -t $LAMBDA_ECR_URL:latest .
-docker push $LAMBDA_ECR_URL:latest
+docker build -f lambda/Dockerfile -t variant-viewer-lambda .
+docker tag variant-viewer-lambda:latest 749929395031.dkr.ecr.eu-west-2.amazonaws.com/variant-viewer-lambda:latest
+docker push 749929395031.dkr.ecr.eu-west-2.amazonaws.com/variant-viewer-lambda:latest
 
 # Update Lambda to use the new image
-LAMBDA_NAME=$(cd terraform && terraform output -raw lambda_function_name)
-aws lambda update-function-code \
-  --function-name $LAMBDA_NAME \
-  --image-uri $LAMBDA_ECR_URL:latest \
-  --region $AWS_REGION
+AWS_PROFILE=vv-dev aws lambda update-function-code \
+  --function-name variant-viewer-ingest \
+  --image-uri 749929395031.dkr.ecr.eu-west-2.amazonaws.com/variant-viewer-lambda:latest \
+  --region eu-west-2
 ```
 
 #### 8. Run database migrations
 
-The RDS instance is in a private subnet with no public access. Run migrations through a bastion or by using ECS Exec on a running task:
+The RDS instance is in a private subnet. Run migrations via ECS Exec:
 
 ```bash
-# Option A: ECS Exec (no bastion needed — requires ECS Exec enabled on the task definition)
-TASK_ARN=$(aws ecs list-tasks \
-  --cluster $CLUSTER \
-  --service-name genomics-variant-viewer \
+# Get a running task
+TASK_ARN=$(AWS_PROFILE=vv-dev aws ecs list-tasks \
+  --cluster variant-viewer \
   --query 'taskArns[0]' --output text \
-  --region $AWS_REGION)
+  --region eu-west-2)
 
-aws ecs execute-command \
-  --cluster $CLUSTER \
+# Open a shell
+AWS_PROFILE=vv-dev aws ecs execute-command \
+  --cluster variant-viewer \
   --task $TASK_ARN \
-  --container genomics-variant-viewer \
-  --command "node scripts/migrate.js" \
+  --container variant-viewer \
   --interactive \
-  --region $AWS_REGION
-
-# Option B: Run as a one-off ECS task with the same task definition
-# (useful for CI/CD pipelines)
+  --command "/bin/sh" \
+  --region eu-west-2
 ```
 
-The `DATABASE_URL` is resolved from Secrets Manager at runtime — the application reads `DB_SECRET_ARN` from its environment and fetches credentials on startup.
+Inside the container, build `DATABASE_URL` from the secret and run:
+
+```bash
+# Get credentials (run outside the container, then paste DATABASE_URL in)
+SECRET=$(AWS_PROFILE=vv-dev aws secretsmanager get-secret-value \
+  --secret-id variant-viewer/db-credentials \
+  --region eu-west-2 --query SecretString --output text)
+# Parse with: python3 -c "import sys,json; s=json.loads('$SECRET'); print(f\"postgresql://{s['username']}:{s['password']}@{s['host']}:5432/{s['dbname']}\")"
+
+# Then inside the container:
+NODE_TLS_REJECT_UNAUTHORIZED=0 DATABASE_URL="postgresql://..." node scripts/migrate.js
+```
+
+The `DB_SECRET_ARN` env var is set on the ECS task — the app resolves credentials from Secrets Manager at runtime.
 
 ---
 
 ### Subsequent deployments
 
-After the first deploy, updating the app is:
+After the first deploy, updating the app requires no Terraform:
 
 ```bash
-# Build and push new image
-docker build -t $ECR_URL:$GIT_SHA .
-docker push $ECR_URL:$GIT_SHA
+# 1. ECR login
+AWS_PROFILE=vv-dev aws ecr get-login-password --region eu-west-2 \
+  | docker login --username AWS --password-stdin 749929395031.dkr.ecr.eu-west-2.amazonaws.com
 
-# Update the task definition image tag and force redeploy
-# (or update ecr_image_tag in tfvars and run terraform apply)
-aws ecs update-service \
-  --cluster $CLUSTER \
-  --service genomics-variant-viewer \
+# 2. Build and push
+docker build -t variant-viewer .
+docker tag variant-viewer:latest 749929395031.dkr.ecr.eu-west-2.amazonaws.com/variant-viewer:latest
+docker push 749929395031.dkr.ecr.eu-west-2.amazonaws.com/variant-viewer:latest
+
+# 3. Redeploy
+AWS_PROFILE=vv-dev aws ecs update-service \
+  --cluster variant-viewer \
+  --service variant-viewer \
   --force-new-deployment \
-  --region $AWS_REGION
+  --region eu-west-2
 ```
 
-If there are new migrations, run them via ECS Exec before or immediately after deploying the new image.
+If there are new migrations, run them via ECS Exec after deploying.
+
+### DNS gotcha — negative cache TTL
+
+The Route 53 alias record for `devv.genomics-resources.uk` uses `EvaluateTargetHealth = true`. If the ALB is briefly unreachable (e.g. during a rename or replace), Route 53 returns NXDOMAIN and resolvers cache it.
+
+**Current mitigation:** SOA minimum TTL is set to 60 seconds so resolvers retry within a minute.
+
+**Before any Terraform change that destroys/replaces the ALB:**
+1. Temporarily set `EvaluateTargetHealth = false` on the Route 53 alias record, or
+2. Ensure the new ALB is ready before the old one is destroyed (blue/green approach)
 
 ---
 
