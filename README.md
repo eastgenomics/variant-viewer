@@ -1,4 +1,4 @@
-# Genomics Variant Viewer
+# Variant Viewer
 
 A web application for reviewing and classifying genomic variants from VCF files, built for diagnostic genomics workflows in a clinical laboratory setting.
 
@@ -68,6 +68,8 @@ Browser
 ```
 
 The web application and the ingest function share the same core library (`lib/ingest.ts`, `lib/vcf-parser.ts`). The Lambda is not a separate codebase — it is a thin entry point that calls the same logic the API route uses for manual re-ingestion.
+
+The VCF parser supports three annotation formats: standard VEP pipe-delimited `CSQ` (with `##INFO=<ID=CSQ,...,Format:>` header), flat `CSQ_*` INFO fields (as produced by the East Genomics pipeline), and SnpEff `ANN` fields. The appropriate format is detected automatically per-variant.
 
 ---
 
@@ -149,7 +151,7 @@ The implementation is a lightweight typed parser in `lib/fhir-manifest.ts` — n
 
 **NHS number validation**
 
-NHS numbers use a Luhn modulo-11 checksum. The parser validates the checksum before ingest begins and rejects manifests with an invalid NHS number. This prevents a transposition error in the upload form from silently associating variants with the wrong patient identity. The lab number is always present; the NHS number is optional.
+NHS numbers use a Luhn modulo-11 checksum. The parser validates the checksum before ingest begins and rejects manifests with an invalid NHS number. The lab number (MRN) is always required; the NHS number is optional and stored but not displayed in the UI — MRN is the primary identifier used throughout.
 
 ---
 
@@ -282,7 +284,7 @@ audit_log (append-only log of all mutations)
 
 **Key constraints:**
 
-- `patients.lab_number` — `UNIQUE NOT NULL`. The lab record number is the primary patient identifier. NHS number is optional (some referrals arrive without one).
+- `patients.lab_number` — `UNIQUE NOT NULL`. The MRN/lab record number is the primary patient identifier displayed throughout the UI. NHS number is stored if present in the manifest but is not displayed.
 - `samples.s3_key` — `UNIQUE NOT NULL`. Enforces one sample per VCF file. Also the key for idempotent re-ingest.
 - `variant_classification.deleted_at` — soft delete. Classifications are never hard-deleted; resets set `deleted_at` to preserve audit history.
 
@@ -336,7 +338,7 @@ app/                        Next.js App Router pages and API routes
 
 lib/                        Shared server-side logic
   db.ts                     PostgreSQL pool + transaction helpers
-  vcf-parser.ts             Streaming VCF parser (VEP CSQ + SnpEff ANN)
+  vcf-parser.ts             Streaming VCF parser (VEP CSQ pipe-delimited, flat CSQ_* fields, SnpEff ANN)
   fhir-manifest.ts          FHIR R4 Bundle read/write + NHS number validation
   ingest.ts                 Core ingest logic (shared by Lambda + API route)
   pipeline-config.ts        Pipeline preset loader
