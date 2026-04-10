@@ -213,7 +213,7 @@ The ECS service will pull this image. Force a new deployment to pick it up immed
 CLUSTER=$(cd terraform && terraform output -raw ecs_cluster_name)
 aws ecs update-service \
   --cluster $CLUSTER \
-  --service genomics-variant-viewer \
+  --service $CLUSTER \
   --force-new-deployment \
   --region $AWS_REGION
 ```
@@ -221,7 +221,7 @@ aws ecs update-service \
 #### 7. Build and push the Lambda Docker image
 
 ```bash
-LAMBDA_ECR_URL=$(cd terraform && terraform output -raw ecr_repository_url | sed 's/genomics-variant-viewer$/genomics-variant-viewer-lambda/')
+LAMBDA_ECR_URL="${ECR_URL}-lambda"
 
 # Compile TypeScript for Lambda
 npx tsc --project tsconfig.lambda.json
@@ -279,7 +279,7 @@ docker push $ECR_URL:$GIT_SHA
 # (or update ecr_image_tag in tfvars and run terraform apply)
 aws ecs update-service \
   --cluster $CLUSTER \
-  --service genomics-variant-viewer \
+  --service $CLUSTER \
   --force-new-deployment \
   --region $AWS_REGION
 ```

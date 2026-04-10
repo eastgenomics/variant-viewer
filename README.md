@@ -328,11 +328,18 @@ SVIG thresholds: identical, with Oncogenic/Likely Oncogenic replacing Pathogenic
 
 ```
 app/                        Next.js App Router pages and API routes
-  page.tsx                  Patient list
+  page.tsx                  Cases list (MRN / specimen / workflow overview)
   patients/[id]/            Patient detail + variant table
   patients/[id]/variants/   Classification panel
   upload/                   VCF upload form
   api/                      API routes (variants, classification, workflow, ingest)
+
+components/                 Shared presentational components
+  PatientListTable.tsx      Cases list table
+  PatientHeader.tsx         Patient detail header (MRN + YOB)
+  SpecimenCard.tsx          Per-specimen card with workflow controls + variant table
+  WorkflowBadge.tsx         Workflow status badge
+  ClassificationBadge.tsx   Classification status badge
 
 lib/                        Shared server-side logic
   db.ts                     PostgreSQL pool + transaction helpers
@@ -342,6 +349,7 @@ lib/                        Shared server-side logic
   pipeline-config.ts        Pipeline preset loader
   pre-compute-criteria.ts   Criteria suggestions from VCF annotations
   classification-engine.ts  Pure scoring functions (ACGS + SVIG)
+  display-utils.ts          UI formatting helpers (formatYearOfBirth etc.)
 
 lambda/
   ingest-handler.ts         Lambda entry point (calls lib/ingest.ts)
