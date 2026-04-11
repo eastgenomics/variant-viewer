@@ -20,7 +20,12 @@ uploads/<lab-number>/sample.vcf.gz
 uploads/<lab-number>/sample.manifest.json
 ```
 
-Lambda is triggered by the VCF upload (`ObjectCreated` event) and then fetches the manifest from the same prefix. Upload the manifest **before** the VCF so it is present when Lambda runs.
+> **Upload order is critical.** Lambda is triggered by the VCF upload
+> (`ObjectCreated` event) and immediately fetches the manifest from the same
+> prefix. **Always upload the manifest first.** If the VCF lands before the
+> manifest, Lambda cannot find the sidecar and the ingest fails — the event
+> is sent to the DLQ and variants will not appear in the application until
+> the VCF is re-uploaded.
 
 ## Examples
 
