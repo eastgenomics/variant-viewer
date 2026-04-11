@@ -24,7 +24,7 @@ provider "aws" {
   region = var.aws_region
   default_tags {
     tags = {
-      Project     = "genomics-variant-viewer"
+      Project     = "variant-viewer"
       Environment = var.environment
       ManagedBy   = "terraform"
     }
