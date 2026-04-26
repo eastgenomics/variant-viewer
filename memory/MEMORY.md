@@ -13,5 +13,6 @@
 - [Credit 2026-04-10](credit_2026-04-10.md) — Contribution matrix for Terraform fix, rename, VCF parser, deployment session
 - [Python migration assessment](project_python_migration_assessment.md) — Feasibility/effort assessment for converting to FastAPI; Option A (FastAPI + React SPA) recommended; published to Confluence
 - [Confluence format preference](feedback_confluence_format.md) — Use markdown format for Confluence pages; no page properties macros or ADF
+- [Credit 2026-04-25](credit_2026-04-25.md) — Contribution matrix for Python migration assessment session
 - [ECS debugging](project_debug_techniques.md) — DB queries via ECS Exec, connectivity checks, silent homepage empty state
 - [Common commands](reference_commands.md) — ECR push, Terraform, ECS redeploy, ECS Exec, migrations
