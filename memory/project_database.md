@@ -26,8 +26,16 @@ type: project
 - Runner is in `scripts/`; run via ECS Exec on the container.
 - Build DATABASE_URL manually from the secret: `aws secretsmanager get-secret-value --secret-id <ARN>`.
 - Use `NODE_TLS_REJECT_UNAUTHORIZED=0` for the migration run (RDS self-signed cert).
-- Migration files: `migrations/` directory (001_initial, 002_classification, 003_audit).
+- Migration files: `migrations/` directory (001_initial, 002_classification, 003_audit, 004_gms_concordance).
 
 **Why:** The Secrets Manager indirection and SSL quirks caused multiple connection failures during initial deployment.
 
 **How to apply:** Any DB-related changes must account for the runtime secret resolution pattern in lib/db.ts. Never hardcode DATABASE_URL.
+
+## Local development DB (docker-compose)
+
+- Start: `docker compose up -d`
+- Connection: `postgresql://variants_admin:password@localhost:5432/variants`
+- Data persists across `docker compose down` and reboots (named volume `pgdata`).
+- To wipe: `docker compose down -v`
+- pgAdmin connection: host=`localhost`, port=`5432`, database=`variants`, username=`variants_admin`, password=`password`, maintenance database=`variants` (cannot be blank).

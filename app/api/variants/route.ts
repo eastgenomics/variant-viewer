@@ -120,6 +120,7 @@ export async function GET(req: NextRequest) {
        v.id, v.chrom, v.pos, v.ref, v.alt, v.qual, v.filter,
        v.gene, v.consequence, v.hgvs_c, v.hgvs_p,
        v.gnomad_af, v.clinvar_sig, v.revel_score, v.spliceai_max,
+       v.gms_concordance,
        vc.id          AS classification_id,
        vc.framework   AS classification_framework,
        vc.score       AS classification_score,

@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import ClassificationBadge from "@/components/ClassificationBadge";
+import GmsConcordance from "@/components/GmsConcordance";
 import type { PipelineFilters } from "@/lib/pipeline-config";
 
 interface VariantRow {
@@ -32,6 +33,7 @@ interface VariantRow {
   classification: string | null;
   classification_id: number | null;
   classification_locked_at: string | null;
+  gms_concordance: [number, number, number] | null;
 }
 
 const col = createColumnHelper<VariantRow>();
@@ -93,6 +95,11 @@ const COLUMNS = [
       const cls = v >= 0.5 ? "text-orange-600" : "text-gray-700";
       return <span className={`font-mono text-xs ${cls}`}>{v.toFixed(3)}</span>;
     },
+  }),
+  col.accessor("gms_concordance", {
+    header: "GMS",
+    cell: (i) => <GmsConcordance value={i.getValue()} />,
+    enableSorting: false,
   }),
   col.accessor("clinvar_sig", {
     header: "ClinVar",

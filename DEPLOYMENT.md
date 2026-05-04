@@ -120,7 +120,7 @@ The Terraform state bucket (`genomics-variant-viewer-tfstate`) and all infrastru
 | AWS CLI | 2.x, configured with `vv-admin` profile |
 | Docker | 24+ |
 | Node.js | 22+ |
-| session-manager-plugin | latest | Required for ECS Exec |
+| session-manager-plugin | latest | Required for ECS Exec — if not available via package manager, extract to `~/bin`: `curl -sLo /tmp/sm.deb https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb && dpkg -x /tmp/sm.deb /tmp/smp && cp /tmp/smp/usr/local/sessionmanagerplugin/bin/session-manager-plugin ~/bin/` |
 
 ### First-time setup
 

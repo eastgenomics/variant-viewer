@@ -47,3 +47,11 @@ The homepage (`app/page.tsx`) has a try/catch — DB errors show a red banner bu
 3. Patient count directly via ECS Exec query above
 
 **Note:** 404s from `/patients/[id]` with non-numeric IDs (e.g. `.php`, `wp-admin`) are bots — not real issues.
+
+## ECS Exec output buffer limit
+
+- ECS Exec has a practical output limit of ~6 KB before it injects `Cannot perform start session: EOF` mid-JSON, corrupting it.
+- Keep node queries to `LIMIT 20` for variants (each row ~300 bytes) to stay safely under the limit.
+- Use `grep '^\['` to extract JSON lines from the mixed output.
+- Parse with Python `rfind(']')` walk-back to recover truncated JSON if needed.
+- The `Cannot perform start session: EOF` message is appended to stdout — strip it before JSON parsing.
