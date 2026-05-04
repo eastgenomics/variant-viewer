@@ -1,19 +1,32 @@
 services:
-  db:
-    image: postgres:16-alpine
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
     environment:
-      POSTGRES_DB: variants
-      POSTGRES_USER: variants_admin
-      POSTGRES_PASSWORD: password
+      DATABASE_URL: postgres://postgres:postgres@db:5432/variantviewer
+      AWS_REGION: eu-central-1
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: variantviewer
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U variants_admin -d variants"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - ./migrations:/docker-entrypoint-initdb.d
 
 volumes:
   pgdata:
