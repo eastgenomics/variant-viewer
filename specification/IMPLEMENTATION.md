@@ -547,6 +547,26 @@ def test_somatic_case_type():
     m = parse_manifest(somatic)
     assert m.specimen.case_type == "somatic"
 
+def test_missing_case_type_raises():
+    no_ext = {**_EXAMPLE, "entry": [
+        _EXAMPLE["entry"][0],
+        {"resource": {"resourceType": "Specimen", "identifier": [{"value": "S001"}]}},
+        _EXAMPLE["entry"][2],
+    ]}
+    with pytest.raises(ValueError, match="missing case-type"):
+        parse_manifest(no_ext)
+
+def test_invalid_case_type_raises():
+    bad_ext = {**_EXAMPLE, "entry": [
+        _EXAMPLE["entry"][0],
+        {"resource": {"resourceType": "Specimen",
+            "identifier": [{"value": "S001"}],
+            "extension": [{"url": "https://example.org/fhir/StructureDefinition/case-type", "valueCode": "unknown"}]}},
+        _EXAMPLE["entry"][2],
+    ]}
+    with pytest.raises(ValueError, match="Invalid case_type"):
+        parse_manifest(bad_ext)
+
 def test_build_and_roundtrip():
     patient = ManifestPatient(lab_number="LAB-999", name="Test User", dob="1990-01-01")
     specimen = ManifestSpecimen(sample_name="S001", case_type="germline", tissue=None, sequencing_date=None)
@@ -644,10 +664,14 @@ def parse_manifest(raw: Any) -> ParsedManifest:
 
     # Specimen
     case_type_ext = next(
-        (e for e in specimen_res.get("extension", []) if e.get("url") == CASE_TYPE_EXT), {}
+        (e for e in specimen_res.get("extension", []) if e.get("url") == CASE_TYPE_EXT), None
     )
-    case_type_raw = case_type_ext.get("valueCode", "germline")
-    case_type: Literal["germline", "somatic"] = "somatic" if case_type_raw == "somatic" else "germline"
+    if case_type_ext is None:
+        raise ValueError("Specimen manifest missing case-type extension")
+    case_type_raw = case_type_ext.get("valueCode")
+    if case_type_raw not in ("germline", "somatic"):
+        raise ValueError(f"Invalid case_type: {case_type_raw!r} (must be 'germline' or 'somatic')")
+    case_type: Literal["germline", "somatic"] = case_type_raw
 
     sample_id_val = (specimen_res.get("identifier") or [{}])[0]
     sample_name = sample_id_val.get("value", "unknown")

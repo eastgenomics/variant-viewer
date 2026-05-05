@@ -232,7 +232,7 @@ Used as sidecar `.manifest.json` for every VCF upload. The manifest parser
 | `patient.name` | `Patient.name[0].given + family` joined | `None` |
 | `patient.dob` | `Patient.birthDate` | `None` |
 | `specimen.sample_name` | `Specimen.identifier[0].value` | `"unknown"` |
-| `specimen.case_type` | `Specimen.extension[url=CASE_TYPE_EXT].valueCode` | `"germline"` |
+| `specimen.case_type` | `Specimen.extension[url=CASE_TYPE_EXT].valueCode` | `ValueError` if absent or not `"germline"`/`"somatic"` |
 | `specimen.tissue` | `Specimen.type.coding[0].display` or `.text` | `None` |
 | `specimen.sequencing_date` | `Specimen.collection.collectedDateTime` split on `T` | `None` |
 | `task.pipeline_key` | `Task.code.text` | `None` |

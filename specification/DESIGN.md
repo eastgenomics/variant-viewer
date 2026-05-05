@@ -220,9 +220,9 @@ def detect_pipeline_key(header_lines: list[str]) -> str | None: ...
 - Parses a FHIR R4 Bundle (as a Python dict) into a typed `ParsedManifest`.
 - Extracts `lab_number` from the `Patient.identifier` array preferring
   `system == NHS_LAB_SYSTEM`; falls back to the first identifier with no system.
-- Infers `case_type` from the `Specimen` extension
-  `https://example.org/fhir/StructureDefinition/case-type`; defaults to
-  `"germline"` if absent.
+- Reads `case_type` from the `Specimen` extension
+  `https://example.org/fhir/StructureDefinition/case-type`; raises `ValueError`
+  if the extension is absent or the `valueCode` is not `"germline"` or `"somatic"`.
 - Builds a FHIR R4 Bundle from typed fields via `build_manifest()`.
 
 **Public interface:**
@@ -557,6 +557,8 @@ class AuditEntry(BaseModel):
 | `ValueError("Manifest must be a FHIR R4 Bundle ...")` | fhir\_manifest.py | Wrong resourceType or type |
 | `ValueError("Manifest missing Patient resource")` | fhir\_manifest.py | Required FHIR resource absent |
 | `ValueError("Patient manifest missing lab number identifier")` | fhir\_manifest.py | No usable identifier on Patient |
+| `ValueError("Specimen manifest missing case-type extension")` | fhir\_manifest.py | `CASE_TYPE_EXT` extension absent on Specimen |
+| `ValueError("Invalid case_type: ...")` | fhir\_manifest.py | `valueCode` not `"germline"` or `"somatic"` |
 | `ValueError("Unsupported VCF key format: ...")` | (ingest, PR 5) | Key doesn't end `.vcf` or `.vcf.gz` |
 | `pydantic.ValidationError` | models.py | Invalid field value on construction |
 
