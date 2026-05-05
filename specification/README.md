@@ -13,7 +13,7 @@ database and the API routes:
    Manager resolution) and `models.py` (Pydantic v2 entities for every DB table).
 2. **PR 3 — VCF parser + FHIR manifest** — `vcf_parser.py` (multi-format VCF
    stream parser supporting VEP CSQ and flat CSQ\_\* annotations),
-   `fhir_manifest.py` (FHIR R4 Bundle parser/builder with NHS Luhn validation),
+   `fhir_manifest.py` (FHIR R4 Bundle parser/builder),
    and `pipeline_config.py` (YAML pipeline config loader and header-based
    pipeline detection).
 3. **PR 4 — Classification engine + pre-compute criteria** — `classification_engine.py`
@@ -66,7 +66,7 @@ variant-viewer/
 │   │   ├── test_models.py             PR 2 — Pydantic model validation
 │   │   ├── test_db.py                 PR 2 — pool + transaction (mocked psycopg2)
 │   │   ├── test_pipeline_config.py    PR 3 — YAML loader + pipeline detection
-│   │   ├── test_fhir_manifest.py      PR 3 — manifest parser + NHS validation
+│   │   ├── test_fhir_manifest.py      PR 3 — manifest parser
 │   │   ├── test_vcf_parser.py         PR 3 — VCF parsing (VEP CSQ/flat CSQ_*)
 │   │   ├── golden/
 │   │   │   ├── classify_acgs_cases.json   PR 4 — ACGS SNV golden I/O

@@ -136,7 +136,7 @@ Full schema is in `migrations/`. Key tables used by PRs 2–4 modules:
 
 | Table | Primary key | Notable columns | FK constraints |
 |---|---|---|---|
-| `patients` | `id` SERIAL | `lab_number` UNIQUE NOT NULL, `nhs_number` UNIQUE | — |
+| `patients` | `id` SERIAL | `lab_number` UNIQUE NOT NULL | — |
 | `samples` | `id` SERIAL | `s3_key` UNIQUE NOT NULL, `case_type` CHECK | → `patients(id)` |
 | `variants` | `id` SERIAL | `info_json` JSONB | → `samples(id)` |
 | `variant_classification` | `id` SERIAL | `framework` CHECK, partial unique on `(variant_id) WHERE deleted_at IS NULL` | → `variants(id)` |
@@ -163,11 +163,6 @@ Used as sidecar `.manifest.json` for every VCF upload. The manifest parser
           {
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2024-00123"     // primary key for upsert
-          },
-          {
-            "system": "https://fhir.nhs.uk/Id/nhs-number",
-            "value": "9434765919",        // optional; validated Luhn mod-11
-            "use": "official"
           }
         ],
         "name": [                         // optional
@@ -234,7 +229,6 @@ Used as sidecar `.manifest.json` for every VCF upload. The manifest parser
 | `ParsedManifest` field | FHIR path | Fallback |
 |---|---|---|
 | `patient.lab_number` | `Patient.identifier[system=NHS_LAB_SYSTEM].value` | First identifier without system |
-| `patient.nhs_number` | `Patient.identifier[system=NHS_NUMBER_SYSTEM].value` | `None` |
 | `patient.name` | `Patient.name[0].given + family` joined | `None` |
 | `patient.dob` | `Patient.birthDate` | `None` |
 | `specimen.sample_name` | `Specimen.identifier[0].value` | `"unknown"` |

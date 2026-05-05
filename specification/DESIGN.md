@@ -20,7 +20,7 @@ flowchart TD
     MODELS["models.py\nPydantic entities"]
     DB["db.py\npsycopg2 pool\nSecrets Manager"]
     PIPE["pipeline_config.py\nYAML loader\npipeline detection"]
-    FHIR["fhir_manifest.py\nFHIR R4 Bundle parser\nNHS Luhn validation"]
+    FHIR["fhir_manifest.py\nFHIR R4 Bundle parser"]
     VCF["vcf_parser.py\nVCF stream parser\nVEP CSQ / flat CSQ_*"]
     CE["classification_engine.py\nTavtigian scoring\nACGS SNV + SVIG-UK"]
     PC["pre_compute_criteria.py\ncriterion suggestions\nfrom VCF INFO fields"]
@@ -123,6 +123,60 @@ def _reset_pool() -> None: ...  # sets _pool = None, _secrets_resolved = False
   credential field.
 - Raise exceptions that include raw credential strings in their message.
 
+**Design rationale:**
+
+*ThreadedConnectionPool (minconn=1, maxconn=10)*
+
+Opening a PostgreSQL connection is expensive: TCP handshake, TLS negotiation,
+authentication, and session initialisation happen on every new connection.
+Doing this per-request would dominate query latency under load. A pool
+amortises that cost by reusing connections across requests.
+
+`ThreadedConnectionPool` is used rather than the plain `SimpleConnectionPool`
+because `db.py` uses psycopg2, which is a **synchronous, blocking** driver.
+All DB calls must be dispatched into a thread pool (`asyncio.to_thread`) in
+the route layer so they do not block the FastAPI event loop (see §7,
+limitation 1). Multiple OS threads will therefore call `getconn()` /
+`putconn()` concurrently. `ThreadedConnectionPool` protects these operations
+with a `threading.Lock`; `SimpleConnectionPool` has no thread safety and
+would produce race conditions here.
+
+- **`minconn=1`** — one connection is opened at initialisation and kept alive,
+  so the first real request does not pay the connection-establishment cost.
+  Pre-opening more connections at startup would waste RDS memory and connection
+  slots when the app is idle or restarts frequently after deployments.
+- **`maxconn=10`** — caps concurrent DB connections. uvicorn's default thread
+  pool uses `min(32, os.cpu_count() + 4)` threads; on a 1–2 vCPU Fargate task
+  that is roughly 5–6 threads, so 10 gives comfortable headroom. RDS
+  `db.t3.micro` allows ~80 connections; staying within 10 leaves room for
+  migrations, admin queries, the Lambda ingest function, and future task
+  replicas without risking connection exhaustion.
+- **Module-level singleton** — the pool is created once (guarded by `_pool is
+  None`) and shared for the lifetime of the process. `_reset_pool()` exists
+  only to clear module-level state between test cases.
+
+*sslmode=require in production*
+
+The application stores patient-identifiable data (lab numbers,
+dates of birth). NHS DSPT v8 and UK GDPR both require encryption in transit
+for data containing patient identifiers. Setting `sslmode=require` enforces
+this at the driver level: psycopg2 will refuse to connect unless the server
+presents a TLS certificate and all traffic is encrypted. Trusting that RDS
+defaults to encrypted traffic is not sufficient as an auditable control.
+
+The guard `APP_ENV == "production"` is necessary because the local development
+and CI environment uses a plain Docker PostgreSQL container (from
+`docker-compose.yml`) that has no TLS certificates configured. Setting
+`sslmode=require` unconditionally would break `docker compose up` and all
+unit/integration tests. No patient data is present in local or CI environments,
+so plaintext connections are acceptable there.
+
+Note: `sslmode=require` encrypts traffic but does not verify the server's
+certificate chain or hostname. `sslmode=verify-full` would provide stronger
+protection against a man-in-the-middle attack by validating RDS's AWS-issued
+certificate. This is a known gap; upgrading to `verify-full` (with the RDS CA
+bundle mounted into the container) is deferred to a later infrastructure PR.
+
 ---
 
 ### 3.3 `app/lib/pipeline_config.py`
@@ -164,7 +218,6 @@ def detect_pipeline_key(header_lines: list[str]) -> str | None: ...
 
 **Responsibilities:**
 - Parses a FHIR R4 Bundle (as a Python dict) into a typed `ParsedManifest`.
-- Validates NHS numbers using Luhn modulo-11 checksum (10-digit).
 - Extracts `lab_number` from the `Patient.identifier` array preferring
   `system == NHS_LAB_SYSTEM`; falls back to the first identifier with no system.
 - Infers `case_type` from the `Specimen` extension
@@ -172,25 +225,14 @@ def detect_pipeline_key(header_lines: list[str]) -> str | None: ...
   `"germline"` if absent.
 - Builds a FHIR R4 Bundle from typed fields via `build_manifest()`.
 
-**NHS number validation algorithm:**
-1. Strip whitespace; verify exactly 10 digits.
-2. Multiply digits 1–9 by weights 10, 9, 8, 7, 6, 5, 4, 3, 2.
-3. Compute `remainder = sum % 11`.
-4. `check_digit = 11 - remainder`.
-5. If `check_digit == 11`: digit 10 must be `0`.
-6. If `check_digit == 10`: number is always invalid.
-7. Otherwise: digit 10 must equal `check_digit`.
-
 **Public interface:**
 ```python
-NHS_LAB_SYSTEM    = "https://fhir.example-lab.org/Id/lab-number"
-NHS_NUMBER_SYSTEM = "https://fhir.nhs.uk/Id/nhs-number"
-CASE_TYPE_EXT     = "https://example.org/fhir/StructureDefinition/case-type"
+NHS_LAB_SYSTEM = "https://fhir.example-lab.org/Id/lab-number"
+CASE_TYPE_EXT  = "https://example.org/fhir/StructureDefinition/case-type"
 
 @dataclass
 class ManifestPatient:
     lab_number: str
-    nhs_number: str | None
     name: str | None
     dob: str | None   # "YYYY-MM-DD"
 
@@ -214,7 +256,6 @@ class ParsedManifest:
     specimen: ManifestSpecimen
     task: ManifestTask
 
-def validate_nhs_number(nhs: str) -> bool: ...
 def parse_manifest(raw: dict) -> ParsedManifest: ...
 def build_manifest(
     patient: ManifestPatient,
@@ -431,7 +472,6 @@ class Patient(BaseModel):
     name: str | None = None
     dob: date | None = None
     lab_number: str                   # unique key for upsert
-    nhs_number: str | None = None
     created_at: datetime | None = None
 
 class Sample(BaseModel):
@@ -517,7 +557,6 @@ class AuditEntry(BaseModel):
 | `ValueError("Manifest must be a FHIR R4 Bundle ...")` | fhir\_manifest.py | Wrong resourceType or type |
 | `ValueError("Manifest missing Patient resource")` | fhir\_manifest.py | Required FHIR resource absent |
 | `ValueError("Patient manifest missing lab number identifier")` | fhir\_manifest.py | No usable identifier on Patient |
-| `ValueError("Invalid NHS number: ...")` | fhir\_manifest.py | Luhn checksum failure |
 | `ValueError("Unsupported VCF key format: ...")` | (ingest, PR 5) | Key doesn't end `.vcf` or `.vcf.gz` |
 | `pydantic.ValidationError` | models.py | Invalid field value on construction |
 
@@ -550,8 +589,6 @@ specifically and lets the caller decide recovery strategy.
 - [ ] `db.with_transaction()` rollbacks on exception (mocked)
 - [ ] `detect_pipeline_key(["##source=DRAGEN..."])` returns `"dragen_germline"`
 - [ ] `parse_manifest(germline_example)` returns correct `ParsedManifest`
-- [ ] `validate_nhs_number("9434765919")` returns `True`
-- [ ] `validate_nhs_number("1234567890")` returns `False`
 - [ ] `parse_vcf()` with VEP CSQ lines extracts gene/consequence/gnomAD correctly
 - [ ] `parse_vcf()` handles multi-allelic ALT correctly (one variant per allele)
 - [ ] All ACGS SNV golden cases pass exactly
@@ -589,10 +626,8 @@ specifically and lets the caller decide recovery strategy.
 ### 8.1 Data protection (UK GDPR / NHS DSPT v8)
 
 The `fhir_manifest.py` module processes patient-identifiable data (lab number,
-NHS number, name, date of birth). The following controls apply:
+name, date of birth). The following controls apply:
 
-- **NHS numbers are validated** (Luhn mod-11) before storage; invalid numbers
-  raise `ValueError` and are rejected at the boundary.
 - **`db.py` must not log credential strings** — enforced by the invariant in
   §5 of `build-prompt.md`. No other module logs patient identifiers.
 - **`audit_log` table is append-only** — enforced by PostgreSQL trigger

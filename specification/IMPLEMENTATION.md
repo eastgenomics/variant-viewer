@@ -149,7 +149,6 @@ def test_patient_minimal():
     p = Patient(lab_number="LAB-001")
     assert p.lab_number == "LAB-001"
     assert p.id is None
-    assert p.nhs_number is None
 
 def test_patient_full():
     p = Patient(lab_number="LAB-001", name="Jane Smith", dob=date(1980, 1, 1))
@@ -225,7 +224,6 @@ class Patient(BaseModel):
     name: str | None = None
     dob: date | None = None
     lab_number: str
-    nhs_number: str | None = None
     created_at: datetime | None = None
 
 
@@ -466,7 +464,7 @@ import json
 from pathlib import Path
 import pytest
 from app.lib.fhir_manifest import (
-    validate_nhs_number, parse_manifest, build_manifest,
+    parse_manifest, build_manifest,
     ManifestPatient, ManifestSpecimen, ManifestTask, ParsedManifest,
 )
 
@@ -495,24 +493,6 @@ _EXAMPLE = json.loads(
             "output": [{"type": {"text": "vcf"}, "valueString": "germline-example.vcf.gz"}]}}
     ]
 }
-
-# NHS number test vectors (Luhn mod-11)
-# 9434765919 is a valid test NHS number
-_VALID_NHS = "9434765919"
-_INVALID_NHS = "1234567890"
-
-
-def test_valid_nhs_number():
-    assert validate_nhs_number(_VALID_NHS) is True
-
-def test_invalid_nhs_number():
-    assert validate_nhs_number(_INVALID_NHS) is False
-
-def test_nhs_number_too_short():
-    assert validate_nhs_number("123456789") is False
-
-def test_nhs_number_non_numeric():
-    assert validate_nhs_number("94347659AB") is False
 
 def test_parse_manifest_lab_number():
     m = parse_manifest(_EXAMPLE)
@@ -556,20 +536,6 @@ def test_parse_missing_patient():
     with pytest.raises(ValueError, match="missing Patient"):
         parse_manifest(bundle)
 
-def test_parse_invalid_nhs():
-    bad = dict(_EXAMPLE)
-    bad = {**_EXAMPLE, "entry": [
-        {"resource": {"resourceType": "Patient",
-            "identifier": [
-                {"system": "https://fhir.example-lab.org/Id/lab-number", "value": "LAB-X"},
-                {"system": "https://fhir.nhs.uk/Id/nhs-number", "value": "1234567890"},
-            ]}},
-        _EXAMPLE["entry"][1],
-        _EXAMPLE["entry"][2],
-    ]}
-    with pytest.raises(ValueError, match="Invalid NHS number"):
-        parse_manifest(bad)
-
 def test_somatic_case_type():
     somatic = {**_EXAMPLE, "entry": [
         _EXAMPLE["entry"][0],
@@ -582,7 +548,7 @@ def test_somatic_case_type():
     assert m.specimen.case_type == "somatic"
 
 def test_build_and_roundtrip():
-    patient = ManifestPatient(lab_number="LAB-999", nhs_number=None, name="Test User", dob="1990-01-01")
+    patient = ManifestPatient(lab_number="LAB-999", name="Test User", dob="1990-01-01")
     specimen = ManifestSpecimen(sample_name="S001", case_type="germline", tissue=None, sequencing_date=None)
     task = ManifestTask(pipeline_key="dragen_germline", pipeline_version="4.2", run_id="R1", vcf_filename=None)
     bundle = build_manifest(patient, specimen, task)
@@ -602,15 +568,13 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-NHS_LAB_SYSTEM    = "https://fhir.example-lab.org/Id/lab-number"
-NHS_NUMBER_SYSTEM = "https://fhir.nhs.uk/Id/nhs-number"
-CASE_TYPE_EXT     = "https://example.org/fhir/StructureDefinition/case-type"
+NHS_LAB_SYSTEM = "https://fhir.example-lab.org/Id/lab-number"
+CASE_TYPE_EXT  = "https://example.org/fhir/StructureDefinition/case-type"
 
 
 @dataclass
 class ManifestPatient:
     lab_number: str
-    nhs_number: str | None
     name: str | None
     dob: str | None   # "YYYY-MM-DD"
 
@@ -636,22 +600,6 @@ class ParsedManifest:
     patient: ManifestPatient
     specimen: ManifestSpecimen
     task: ManifestTask
-
-
-def validate_nhs_number(nhs: str) -> bool:
-    """Luhn modulo-11 checksum validation for UK NHS numbers."""
-    digits = re.sub(r"\s", "", nhs)
-    if not re.match(r"^\d{10}$", digits):
-        return False
-    weights = [10, 9, 8, 7, 6, 5, 4, 3, 2]
-    total = sum(int(digits[i]) * weights[i] for i in range(9))
-    remainder = total % 11
-    check = 11 - remainder
-    if check == 11:
-        return int(digits[9]) == 0
-    if check == 10:
-        return False
-    return int(digits[9]) == check
 
 
 def _find_resource(bundle: dict, rtype: str) -> dict | None:
@@ -682,15 +630,10 @@ def parse_manifest(raw: Any) -> ParsedManifest:
     # Patient identifiers
     identifiers: list[dict] = patient_res.get("identifier", [])
     lab_id  = next((i for i in identifiers if i.get("system") == NHS_LAB_SYSTEM), None)
-    nhs_id  = next((i for i in identifiers if i.get("system") == NHS_NUMBER_SYSTEM), None)
     no_sys  = next((i for i in identifiers if not i.get("system")), None)
     lab_number = (lab_id or no_sys or {}).get("value")
     if not lab_number:
         raise ValueError("Patient manifest missing lab number identifier")
-
-    nhs_number = nhs_id.get("value") if nhs_id else None
-    if nhs_number and not validate_nhs_number(nhs_number):
-        raise ValueError(f"Invalid NHS number: {nhs_number} (failed Luhn modulo-11 checksum)")
 
     # Name
     name_entry = (patient_res.get("name") or [{}])[0]
@@ -732,7 +675,6 @@ def parse_manifest(raw: Any) -> ParsedManifest:
     return ParsedManifest(
         patient=ManifestPatient(
             lab_number=lab_number,
-            nhs_number=nhs_number,
             name=name,
             dob=patient_res.get("birthDate"),
         ),
@@ -757,10 +699,6 @@ def build_manifest(
     task: ManifestTask,
 ) -> dict:
     patient_identifiers: list[dict] = [{"system": NHS_LAB_SYSTEM, "value": patient.lab_number}]
-    if patient.nhs_number:
-        patient_identifiers.append(
-            {"system": NHS_NUMBER_SYSTEM, "value": patient.nhs_number, "use": "official"}
-        )
 
     patient_resource: dict[str, Any] = {"resourceType": "Patient", "identifier": patient_identifiers}
     if patient.name:
