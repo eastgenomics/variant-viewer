@@ -2,9 +2,16 @@
 
 Genomic variant review and classification web app.
 
+## Deployed environments
+
+| URL | Description |
+|---|---|
+| https://dev.vv.genomics-resources.uk | Active development — currently serving the Next.js prototype; will serve the refactored FastAPI + React SPA after PR 12 |
+| https://devv.genomics-resources.uk | Legacy alias — same service as above; kept for continuity |
+
 ## Architecture
 
-**Option A: FastAPI backend + React SPA frontend**
+**Option A: FastAPI backend + React SPA frontend** (refactor in progress)
 
 ```
 backend/    Python/FastAPI — API routes, business logic, Lambda handler
@@ -17,7 +24,7 @@ terraform/  AWS infrastructure (ECS Fargate, RDS, S3, Lambda)
 
 | Branch | Description |
 |---|---|
-| `discovery/nextjs` | Original Next.js 15 + TypeScript implementation |
+| `discovery/nextjs` | Original Next.js 15 + TypeScript prototype — deployed reference during refactor |
 | `discovery/gms-concordance` | GMS concordance prototype |
 
 Original release tagged at `v0.1-discovery-nextjs`.

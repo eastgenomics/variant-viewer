@@ -1,5 +1,7 @@
 # Pre-work: add dev.vv.genomics-resources.uk
 
+> **Status: complete** — applied 2026-05-05. `https://dev.vv.genomics-resources.uk` is live.
+
 ## Context
 
 The discovery prototype is deployed and accessible at `devv.genomics-resources.uk`.
@@ -46,7 +48,7 @@ VPC resources are required.
 
 ## Steps
 
-### Step 1 — Terraform: new zone, cert, DNS records, cert attachment
+### Step 1 — ~~Terraform: new zone, cert, DNS records, cert attachment~~ ✅
 
 Add to `terraform/dns.tf` and `terraform/alb.tf`:
 
@@ -69,7 +71,7 @@ AWS_PROFILE=vv-admin terraform plan -var-file=terraform.tfvars
 AWS_PROFILE=vv-admin terraform apply -var-file=terraform.tfvars
 ```
 
-### Step 2 — Manual: NS delegation in parent account
+### Step 2 — ~~Manual: NS delegation in parent account~~ ✅
 
 After `terraform apply`, copy the four NS record values from the
 `vv_subdomain_name_servers` output into the `genomics-resources.uk` hosted zone
@@ -77,17 +79,13 @@ in the parent AWS account.
 
 This is the same process used when `devv.genomics-resources.uk` was first set up.
 
-### Step 3 — Wait for ACM validation
+### Step 3 — ~~Wait for ACM validation~~ ✅
 
-ACM certificate validation is DNS-based and depends on NS delegation propagating.
-Allow up to 30 minutes. The Terraform `aws_acm_certificate_validation` resource
-will block `apply` until the cert is issued — run `apply` again after delegation
-is confirmed if the first run times out.
+Validated in ~4 minutes after NS delegation.
 
-### Step 4 — Smoke test
+### Step 4 — ~~Smoke test~~ ✅
 
-- `https://dev.vv.genomics-resources.uk` — should serve the prototype (Next.js)
-- `https://devv.genomics-resources.uk` — must still serve the prototype unchanged
+`https://dev.vv.genomics-resources.uk` returned HTTP 200. `https://devv.genomics-resources.uk` unchanged.
 
 ---
 
