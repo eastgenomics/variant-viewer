@@ -1,0 +1,68 @@
+[
+  {
+    "description": "BA1 standalone — overrides all scoring, returns Benign",
+    "criteria": [{"criterion_code": "BA1", "applied": true, "strength": "standalone"}],
+    "combination_rules": [{"rule": "BA1_overrides_all", "codes": ["BA1"], "message": "BA1 is standalone Benign and overrides the point-based score. Other criteria are not needed."}],
+    "expected": {"score": -999, "classification": "Benign", "warnings": []}
+  },
+  {
+    "description": "PVS1 (very_strong=8) + PS1 (strong=4) = 12 → Pathogenic",
+    "criteria": [
+      {"criterion_code": "PVS1", "applied": true, "strength": "very_strong"},
+      {"criterion_code": "PS1",  "applied": true, "strength": "strong"}
+    ],
+    "combination_rules": [],
+    "expected": {"score": 12, "classification": "Pathogenic", "warnings": []}
+  },
+  {
+    "description": "PVS1 (very_strong=8) + PM2 (supporting=1) = 9 → Likely_Pathogenic",
+    "criteria": [
+      {"criterion_code": "PVS1", "applied": true, "strength": "very_strong"},
+      {"criterion_code": "PM2",  "applied": true, "strength": "supporting"}
+    ],
+    "combination_rules": [],
+    "expected": {"score": 9, "classification": "Likely_Pathogenic", "warnings": []}
+  },
+  {
+    "description": "PP3 (supporting=+1) + BP4 (supporting=-1) = 0 → VUS + conflict warning",
+    "criteria": [
+      {"criterion_code": "PP3", "applied": true, "strength": "supporting"},
+      {"criterion_code": "BP4", "applied": true, "strength": "supporting"}
+    ],
+    "combination_rules": [{"rule": "PP3_BP4_conflict", "codes": ["PP3", "BP4"], "message": "PP3 and BP4 should not both be applied \u2014 they are opposing computational evidence."}],
+    "expected": {"score": 0, "classification": "VUS", "warnings": ["PP3 and BP4 should not both be applied \u2014 they are opposing computational evidence."]}
+  },
+  {
+    "description": "BS1 (strong=-4) + BP7 (supporting=-1) = -5 → Likely_Benign",
+    "criteria": [
+      {"criterion_code": "BS1", "applied": true, "strength": "strong"},
+      {"criterion_code": "BP7", "applied": true, "strength": "supporting"}
+    ],
+    "combination_rules": [],
+    "expected": {"score": -5, "classification": "Likely_Benign", "warnings": []}
+  },
+  {
+    "description": "BS1 + BS2 + BS3 (strong=-4 each) = -12 → Benign",
+    "criteria": [
+      {"criterion_code": "BS1", "applied": true, "strength": "strong"},
+      {"criterion_code": "BS2", "applied": true, "strength": "strong"},
+      {"criterion_code": "BS3", "applied": true, "strength": "strong"}
+    ],
+    "combination_rules": [],
+    "expected": {"score": -12, "classification": "Benign", "warnings": []}
+  },
+  {
+    "description": "Single BP4 (supporting=-1) — minimum criteria warning, score=-1 → Likely_Benign",
+    "criteria": [
+      {"criterion_code": "BP4", "applied": true, "strength": "supporting"}
+    ],
+    "combination_rules": [],
+    "expected": {"score": -1, "classification": "Likely_Benign", "warnings": ["ACGS requires a minimum of 2 applied criteria for any non-VUS classification (except BA1)."]}
+  },
+  {
+    "description": "No criteria applied — score=0 → VUS",
+    "criteria": [],
+    "combination_rules": [],
+    "expected": {"score": 0, "classification": "VUS", "warnings": []}
+  }
+]

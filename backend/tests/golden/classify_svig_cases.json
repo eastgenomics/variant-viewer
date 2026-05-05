@@ -1,0 +1,47 @@
+[
+  {
+    "description": "O1 standalone → Oncogenic (sentinel 999)",
+    "criteria": [{"criterion_code": "O1", "applied": true, "strength": "standalone"}],
+    "combination_rules": [],
+    "expected": {"score": 999, "classification": "Oncogenic", "warnings": []}
+  },
+  {
+    "description": "B1 standalone → Benign (sentinel -999)",
+    "criteria": [{"criterion_code": "B1", "applied": true, "strength": "standalone"}],
+    "combination_rules": [],
+    "expected": {"score": -999, "classification": "Benign", "warnings": []}
+  },
+  {
+    "description": "B2 standalone → forces VUS",
+    "criteria": [{"criterion_code": "B2", "applied": true, "strength": "standalone"}],
+    "combination_rules": [],
+    "expected": {"score": 0, "classification": "VUS", "warnings": []}
+  },
+  {
+    "description": "O4 (strong=4) + O3 (moderate=2) = 6 → Likely_Oncogenic",
+    "criteria": [
+      {"criterion_code": "O4", "applied": true, "strength": "strong"},
+      {"criterion_code": "O3", "applied": true, "strength": "moderate"}
+    ],
+    "combination_rules": [],
+    "expected": {"score": 6, "classification": "Likely_Oncogenic", "warnings": []}
+  },
+  {
+    "description": "O4 (very_strong=8) + O3 (moderate=2) = 10 → Oncogenic",
+    "criteria": [
+      {"criterion_code": "O4", "applied": true, "strength": "very_strong"},
+      {"criterion_code": "O3", "applied": true, "strength": "moderate"}
+    ],
+    "combination_rules": [],
+    "expected": {"score": 10, "classification": "Oncogenic", "warnings": []}
+  },
+  {
+    "description": "B3 (supporting=-1) + B5 (supporting=-1) = -2 → Likely_Benign",
+    "criteria": [
+      {"criterion_code": "B3", "applied": true, "strength": "supporting"},
+      {"criterion_code": "B5", "applied": true, "strength": "supporting"}
+    ],
+    "combination_rules": [],
+    "expected": {"score": -2, "classification": "Likely_Benign", "warnings": []}
+  }
+]

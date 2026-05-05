@@ -1,0 +1,9 @@
+[
+  {"description": "somatic + TP53 → svig", "case_type": "somatic", "gene": "TP53", "expected": {"framework": "svig", "is_canvig": false}},
+  {"description": "germline + BRCA1 → acgs_snv + CanVIG", "case_type": "germline", "gene": "BRCA1", "expected": {"framework": "acgs_snv", "is_canvig": true}},
+  {"description": "germline + BRCA2 → acgs_snv + CanVIG", "case_type": "germline", "gene": "BRCA2", "expected": {"framework": "acgs_snv", "is_canvig": true}},
+  {"description": "germline + TP53 → acgs_snv + CanVIG (CanVIG gene)", "case_type": "germline", "gene": "TP53", "expected": {"framework": "acgs_snv", "is_canvig": true}},
+  {"description": "germline + UNKNOWN_GENE → acgs_snv, not CanVIG", "case_type": "germline", "gene": "UNKNOWN_GENE", "expected": {"framework": "acgs_snv", "is_canvig": false}},
+  {"description": "germline + null gene → acgs_snv, not CanVIG", "case_type": "germline", "gene": null, "expected": {"framework": "acgs_snv", "is_canvig": false}},
+  {"description": "germline + lowercase brca1 → case-insensitive match → CanVIG", "case_type": "germline", "gene": "brca1", "expected": {"framework": "acgs_snv", "is_canvig": true}}
+]
