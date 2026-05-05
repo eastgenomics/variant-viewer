@@ -98,3 +98,9 @@ resource "aws_lb_listener" "http_redirect" {
     }
   }
 }
+
+# Additional certificate for *.vv.genomics-resources.uk on the existing HTTPS listener
+resource "aws_lb_listener_certificate" "vv" {
+  listener_arn    = aws_lb_listener.https.arn
+  certificate_arn = aws_acm_certificate_validation.vv.certificate_arn
+}

@@ -15,7 +15,7 @@ output "s3_bucket_name" {
 }
 
 output "ecr_repository_url" {
-  description = "ECR repository URL for the Next.js image"
+  description = "ECR repository URL for the app image"
   value       = aws_ecr_repository.app.repository_url
 }
 
@@ -27,6 +27,11 @@ output "ecs_cluster_name" {
 output "lambda_function_name" {
   description = "Lambda ingest function name"
   value       = aws_lambda_function.ingest.function_name
+}
+
+output "vv_subdomain_name_servers" {
+  description = "NS records to add to genomics-resources.uk in the other account for vv.genomics-resources.uk delegation"
+  value       = aws_route53_zone.vv.name_servers
 }
 
 output "subdomain_name_servers" {
