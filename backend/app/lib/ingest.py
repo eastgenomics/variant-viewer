@@ -46,6 +46,13 @@ def check_idempotency(
 
     Raises:
         DuplicateSubmissionError: if either check finds a matching record.
+
+    Note:
+        This check has a TOCTOU race window. Two concurrent ingests of the
+        same file can both pass this check before either INSERT runs; one will
+        then receive ``psycopg2.errors.UniqueViolation`` from the DB.
+        Callers must also catch ``UniqueViolation`` and treat it as equivalent
+        to ``DuplicateSubmissionError(duplicate_type="exact")``.
     """
     with conn.cursor() as cur:
         # --- 1. Exact duplicate: same s3_key ---

@@ -80,3 +80,21 @@ def test_not_applied_criteria_ignored():
     result = classify(criteria, "acgs_snv", [])
     # Only PM2 applied (+1), single criterion → minimum warning; score=1 → VUS (0 ≤ 1 < 6)
     assert result.classification == "VUS"
+
+
+def test_classification_badge_class_all_known_values():
+    """Every canonical classification string must map to a non-empty CSS class."""
+    known = [
+        "Pathogenic", "Likely_Pathogenic", "VUS",
+        "Likely_Benign", "Benign", "Oncogenic", "Likely_Oncogenic",
+    ]
+    for cls in known:
+        badge = classification_badge_class(cls)
+        assert badge, f"badge class is empty for {cls!r}"
+        assert badge != "vus" or cls == "VUS", (
+            f"{cls!r} should not fall back to the 'vus' default"
+        )
+
+
+def test_classification_badge_class_unknown_falls_back_to_vus():
+    assert classification_badge_class("SomeFutureClass") == "vus"

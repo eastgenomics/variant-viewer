@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
+# TODO: Replace with the East Genomics canonical lab identifier system URI (agree with GLH)
 NHS_LAB_SYSTEM = "https://fhir.example-lab.org/Id/lab-number"
+# TODO: Replace with the canonical StructureDefinition URL agreed with East Genomics / GLH
 CASE_TYPE_EXT  = "https://example.org/fhir/StructureDefinition/case-type"
 
 

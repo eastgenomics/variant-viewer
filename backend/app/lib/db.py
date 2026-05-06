@@ -72,12 +72,15 @@ def _get_connection() -> Generator[psycopg2.extensions.connection, None, None]:
 def query(sql: str, params: tuple = ()) -> list[dict]:
     """Execute a SELECT query and return all rows as a list of dicts."""
     with _get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params)
-            if cur.description:
-                cols = [d[0] for d in cur.description]
-                return [dict(zip(cols, row)) for row in cur.fetchall()]
-            return []
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                if cur.description:
+                    cols = [d[0] for d in cur.description]
+                    return [dict(zip(cols, row)) for row in cur.fetchall()]
+                return []
+        finally:
+            conn.rollback()  # close implicit transaction; no-op when autocommit=True
 
 
 @contextmanager

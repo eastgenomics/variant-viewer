@@ -23,7 +23,8 @@ STRENGTH_POINTS: dict[str, int] = {
     "strong":      4,
     "moderate":    2,
     "supporting":  1,
-    "standalone":  8,  # pathogenic standalone treated as very_strong per spec
+    "standalone":  8,  # BA1/O1/B1/B2 are sentinel overrides and never reach this table;
+                       # kept as a fallback if a future standalone criterion uses point scoring.
 }
 BENIGN_POINTS: dict[str, int] = {
     "strong":     -4,

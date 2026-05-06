@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
 from app.lib.pipeline_config import detect_pipeline_key
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -58,7 +61,7 @@ def _spliceai_max(scores: list[str]) -> float | None:
         if s and s not in (".", ""):
             try:
                 v = float(s)
-                if v == v:  # exclude NaN
+                if v == v:  # NaN != NaN in IEEE 754 — intentionally filters NaN SpliceAI scores
                     vals.append(v)
             except ValueError:
                 pass
@@ -166,6 +169,12 @@ def parse_vcf(
         filter_str = cols[6]
         info_str   = cols[7]
 
+        try:
+            pos = int(pos_str)
+        except ValueError:
+            logger.warning("vcf_parser: skipping line with non-integer POS %r", pos_str)
+            continue
+
         qual: float | None       = None if qual_str == "." else _try_float(qual_str)
         filter_val: str | None   = None if filter_str == "." else filter_str
         info = _parse_info(info_str)
@@ -186,7 +195,7 @@ def parse_vcf(
 
             variant = VcfVariant(
                 chrom=chrom,
-                pos=int(pos_str),
+                pos=pos,
                 ref=ref,
                 alt=alt,
                 qual=qual,
