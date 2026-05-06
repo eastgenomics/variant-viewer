@@ -1,14 +1,17 @@
-# build-prompt — variant-viewer backend core (PRs 2–4)
+# build-prompt — variant-viewer backend core (PRs 2–5)
 
 You are building the Python backend core modules for the Variant Viewer FastAPI
 application. This is a port of an existing TypeScript implementation to Python.
 
 ## Your task
 
-Build PRs 2–4 of the Option A refactor (FastAPI + React SPA). The source of
-truth is the TypeScript implementation on the `discovery/nextjs` branch. The
-Python port must produce **identical** classification scores, labels, and
-warnings for the same inputs, verified by golden-output test fixtures.
+Build PRs 2–5 of the Option A refactor (FastAPI + React SPA). PRs 2–4 port the
+business-logic layer. PR 5 migrates the VCF parser to `cyvcf2`, adds the
+`ingest_sample()` orchestration function, and adds the Lambda handler.
+The source of truth for classification logic is the TypeScript implementation
+on the `discovery/nextjs` branch. The Python port must produce **identical**
+classification scores, labels, and warnings for the same inputs, verified by
+golden-output test fixtures.
 
 ## Before writing any code
 
@@ -51,6 +54,9 @@ After reading, show the current file tree of `backend/app/lib/` and
 | M8 | `cd backend && .venv/bin/pytest tests/test_classification_engine.py -v` | All golden cases passed |
 | M9 | `cd backend && .venv/bin/pytest tests/test_pre_compute_criteria.py -v` | All golden cases passed |
 | M10 | `cd backend && .venv/bin/pytest --cov=app --cov=classification_engine --cov=pre_compute_criteria --cov-fail-under=80` | All passed, coverage ≥80% |
+| M11 | `cd backend && .venv/bin/pytest tests/test_vcf_parser.py -v` | All 8 tests passed with cyvcf2 |
+| M12 | `cd backend && .venv/bin/pytest tests/test_ingest.py -v` | All ingest_sample tests passed |
+| M13 | `cd backend && .venv/bin/pytest -v --cov=app --cov-fail-under=80 && sg docker -c 'docker build -t vv-pr5 .'` | All passed, coverage ≥80%, Docker build succeeds |
 
 Also verify after M10 that the pre-existing config integrity tests still pass:
 ```bash
@@ -141,6 +147,26 @@ assert 'dragen_germline' in get_pipeline_keys()
 print('OK: path resolution works from any cwd')
 "
 ```
+
+### Invariant 6 — `ingest_sample()` must check idempotency before any DB write
+
+The idempotency check (`check_idempotency()`) must run **before** the first
+`INSERT INTO patients` statement. Any DB write that executes before the
+idempotency check creates a risk of leaving orphaned rows on failure.
+
+**Verification:** `test_ingest_exact_duplicate` and `test_ingest_near_duplicate`
+in `tests/test_ingest.py` both confirm that `DuplicateSubmissionError` is raised
+before any `INSERT` statement is executed on the mock cursor.
+
+### Invariant 7 — `ingest_sample()` must never swallow `jsonschema.ValidationError`
+
+If the manifest JSON does not satisfy `manifest-schema.json`, `jsonschema.validate()`
+raises `ValidationError`. This exception must propagate to the Lambda handler,
+which translates it to a `{"statusCode": 400}` response. Catching and hiding
+this error would allow malformed manifests into the DB.
+
+**Verification:** `test_ingest_schema_validation_failure` in `tests/test_ingest.py`
+confirms `jsonschema.ValidationError` is raised without being caught.
 
 ---
 

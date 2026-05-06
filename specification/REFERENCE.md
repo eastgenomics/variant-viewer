@@ -9,6 +9,14 @@
 | `AWS_REGION` | No | `eu-west-2` | AWS region for Secrets Manager client |
 | `APP_ENV` | No | — | Set to `production` to enable `sslmode=require` on the DB connection |
 
+**Additional environment variables used by the Lambda function (PR 5):**
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DB_SECRET_ARN` | Yes | — | Same as ECS task — Lambda resolves DB credentials via Secrets Manager |
+| `AWS_REGION` | No | `eu-west-2` | Region for S3 and Secrets Manager clients |
+| `APP_ENV` | No | — | Set to `production` to enable `sslmode=require` |
+
 **Secrets Manager secret format** (when `DB_SECRET_ARN` is set):
 
 ```json
@@ -35,6 +43,7 @@ Required fields: `username`, `password`, `host`, `dbname`. `port` is optional
 | `psycopg2-binary` | PostgreSQL driver | `>=2.9.0` |
 | `boto3` | AWS SDK — Secrets Manager, S3 (S3 used in PR 5) | `>=1.34.0` |
 | `cyvcf2` | htslib-backed VCF/BCF parser — **introduced in PR 5** | `>=0.30.0` |
+| `jsonschema` | Manifest JSON Schema validation — **introduced in PR 5** | `>=4.0.0` |
 | `pyyaml` | Parse `pipelines.yaml` | `>=6.0.0` |
 | `pytest` | Test runner | `>=8.0.0` |
 | `pytest-cov` | Coverage reporting | `>=5.0.0` |
@@ -140,9 +149,55 @@ Thresholds identical to ACGS SNV but use `oncogenic`/`likely_oncogenic` labels.
 
 ---
 
+### 3.5 `backend/config/manifest-schema.json` (PR 5)
+
+JSON Schema (Draft-07) used by `ingest_sample()` to validate the FHIR R4 Bundle
+before calling `parse_manifest()`. The schema enforces:
+
+- `resourceType` is `"Bundle"` and `type` is `"collection"`.
+- `entry` array has exactly 3 items, each with a `resource` object.
+- Resource types within `entry` must be `"Patient"`, `"Specimen"`, `"Task"`.
+- `Patient` must have `identifier` array with at least one item containing
+  a non-empty `value` string.
+- `Specimen` must have at least one identifier.
+- `Task` resource type must be present.
+
+Validation is performed with `jsonschema.validate(raw, _MANIFEST_SCHEMA)` where
+`_MANIFEST_SCHEMA` is loaded at module import time from the file path:
+```python
+_SCHEMA_PATH = Path(__file__).parent.parent.parent / "config" / "manifest-schema.json"
+```
+
+**Important:** the schema enforces structure; `parse_manifest()` enforces
+semantics (e.g. `case-type` extension present and valid). Both validations
+run in sequence in `ingest_sample()`.
+
+---
+
+### 3.6 S3 key naming convention (PR 5)
+
+Every VCF upload to the ingest bucket requires a sidecar manifest file in
+the same S3 prefix. The Lambda derives the manifest key automatically:
+
+```python
+import re
+manifest_key = re.sub(r'\.vcf(\.gz)?$', '.manifest.json', vcf_key)
+```
+
+| VCF key | Manifest key |
+|---|---|
+| `runs/2024-11-05/26041S0057.vcf.gz` | `runs/2024-11-05/26041S0057.manifest.json` |
+| `runs/2024-11-05/26041S0057.vcf` | `runs/2024-11-05/26041S0057.manifest.json` |
+
+VCF keys that do not end with `.vcf` or `.vcf.gz` (e.g. `.bam`) are rejected
+by `ingest_sample()` with `ValueError("Unsupported VCF key format: ...")` before
+any S3 download is attempted.
+
+---
+
 ## 4. Database schema reference
 
-Full schema is in `migrations/`. Key tables used by PRs 2–4 modules:
+Full schema is in `migrations/`. Key tables used by PRs 2–5 modules:
 
 | Table | Primary key | Notable columns | FK constraints |
 |---|---|---|---|
