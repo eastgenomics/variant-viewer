@@ -14,7 +14,10 @@ logger = logging.getLogger(__name__)
 
 def handler(event: dict, context: object) -> dict:
     """Lambda entry point — triggered by S3 ObjectCreated events."""
-    record    = event["Records"][0]["s3"]
+    records = event.get("Records", [])
+    if len(records) != 1:
+        raise RuntimeError(f"Expected exactly 1 S3 record, got {len(records)}")
+    record    = records[0]["s3"]
     bucket    = record["bucket"]["name"]
     vcf_key   = record["object"]["key"]
     manifest_key = re.sub(r"\.vcf(\.gz)?$", ".manifest.json", vcf_key)

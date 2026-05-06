@@ -130,30 +130,34 @@ def ingest_sample(
     if not (vcf_s3_key.endswith(".vcf") or vcf_s3_key.endswith(".vcf.gz")):
         raise ValueError(f"Unsupported VCF key format: {vcf_s3_key!r}")
 
-    # 2. Compute temp paths
-    tmp = Path(tempfile.gettempdir())
-    vcf_path      = tmp / Path(vcf_s3_key).name
-    manifest_path = tmp / Path(manifest_s3_key).name
+    # 2–8. Download, validate, parse, and idempotency-check inside an
+    # invocation-scoped temp directory — auto-cleaned on exit so warm Lambda
+    # containers don't accumulate files and exhaust /tmp storage.
+    with tempfile.TemporaryDirectory(prefix="ingest-") as tmp_dir:
+        tmp = Path(tmp_dir)
+        vcf_path      = tmp / Path(vcf_s3_key).name
+        manifest_path = tmp / Path(manifest_s3_key).name
 
-    # 3. Download from S3
-    s3_client.download_file(bucket, vcf_s3_key, str(vcf_path))
-    s3_client.download_file(bucket, manifest_s3_key, str(manifest_path))
+        # 3. Download from S3
+        s3_client.download_file(bucket, vcf_s3_key, str(vcf_path))
+        s3_client.download_file(bucket, manifest_s3_key, str(manifest_path))
 
-    # 4–6. Load, validate, and parse manifest
-    raw = json.loads(manifest_path.read_text())
-    jsonschema.validate(raw, _MANIFEST_SCHEMA)   # raises ValidationError on bad manifest
-    manifest = parse_manifest(raw)               # raises ValueError on structural errors
+        # 4–6. Load, validate, and parse manifest
+        raw = json.loads(manifest_path.read_text())
+        jsonschema.validate(raw, _MANIFEST_SCHEMA)   # raises ValidationError on bad manifest
+        manifest = parse_manifest(raw)               # raises ValueError on structural errors
 
-    lab_number  = manifest.patient.lab_number
-    sample_name = manifest.specimen.sample_name
-    case_type   = manifest.specimen.case_type
+        lab_number  = manifest.patient.lab_number
+        sample_name = manifest.specimen.sample_name
+        case_type   = manifest.specimen.case_type
 
-    # 7. Idempotency check — must run before any INSERT
-    check_idempotency(vcf_s3_key, lab_number, sample_name, conn)
+        # 7. Idempotency check — must run before any INSERT
+        check_idempotency(vcf_s3_key, lab_number, sample_name, conn)
 
-    # 8. Parse VCF (cyvcf2)
-    variants: list[VcfVariant] = []
-    meta = parse_vcf(vcf_path, on_variant=variants.append)
+        # 8. Parse VCF (cyvcf2) — file access ends here
+        variants: list[VcfVariant] = []
+        meta = parse_vcf(vcf_path, on_variant=variants.append)
+    # TemporaryDirectory cleaned up; variants + meta are plain Python objects
 
     logger.info(
         "ingest_sample: vcf=%s pipeline=%s variants=%d",

@@ -183,23 +183,20 @@ def _make_db_mock(patient_id=1, sample_id=2):
 # Happy path — no variants
 # ---------------------------------------------------------------------------
 
-@patch("app.lib.ingest.tempfile.gettempdir")
 @patch("app.lib.ingest.parse_vcf")
-def test_ingest_returns_sample_id(mock_parse_vcf, mock_gettempdir, tmp_path):
-    mock_gettempdir.return_value = str(tmp_path)
+def test_ingest_returns_sample_id(mock_parse_vcf):
     mock_parse_vcf.return_value = VcfMeta(pipeline_key="dragen_germline", header_lines=[])
     conn, _ = _make_db_mock(sample_id=42)
+    s3 = _make_s3_mock()
 
-    result = ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(), conn)
+    result = ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, s3, conn)
 
     assert result == 42
-    assert _make_s3_mock().download_file.call_count == 0  # just check we called ours
+    assert s3.download_file.call_count == 2
 
 
-@patch("app.lib.ingest.tempfile.gettempdir")
 @patch("app.lib.ingest.parse_vcf")
-def test_ingest_s3_downloads_both_files(mock_parse_vcf, mock_gettempdir, tmp_path):
-    mock_gettempdir.return_value = str(tmp_path)
+def test_ingest_s3_downloads_both_files(mock_parse_vcf):
     mock_parse_vcf.return_value = VcfMeta(pipeline_key=None, header_lines=[])
     conn, _ = _make_db_mock()
     s3 = _make_s3_mock()
@@ -212,10 +209,8 @@ def test_ingest_s3_downloads_both_files(mock_parse_vcf, mock_gettempdir, tmp_pat
     assert _MANIFEST_KEY in keys_downloaded
 
 
-@patch("app.lib.ingest.tempfile.gettempdir")
 @patch("app.lib.ingest.parse_vcf")
-def test_ingest_sql_rows_inserted(mock_parse_vcf, mock_gettempdir, tmp_path):
-    mock_gettempdir.return_value = str(tmp_path)
+def test_ingest_sql_rows_inserted(mock_parse_vcf):
     mock_parse_vcf.return_value = VcfMeta(pipeline_key="dragen_germline", header_lines=[])
     conn, cursor = _make_db_mock()
 
@@ -231,14 +226,9 @@ def test_ingest_sql_rows_inserted(mock_parse_vcf, mock_gettempdir, tmp_path):
 # Happy path — with one variant
 # ---------------------------------------------------------------------------
 
-@patch("app.lib.ingest.tempfile.gettempdir")
 @patch("app.lib.ingest.parse_vcf")
-def test_ingest_with_variant_inserts_classification_and_criteria(
-    mock_parse_vcf, mock_gettempdir, tmp_path
-):
+def test_ingest_with_variant_inserts_classification_and_criteria(mock_parse_vcf):
     from app.lib.vcf_parser import VcfVariant
-
-    mock_gettempdir.return_value = str(tmp_path)
 
     test_variant = VcfVariant(
         chrom="1", pos=100, ref="A", alt="G",
@@ -284,17 +274,13 @@ def test_ingest_invalid_key_format():
                       _BUCKET, MagicMock(), MagicMock())
 
 
-@patch("app.lib.ingest.tempfile.gettempdir")
-def test_ingest_schema_validation_failure(mock_gettempdir, tmp_path):
-    mock_gettempdir.return_value = str(tmp_path)
+def test_ingest_schema_validation_failure():
     bad_manifest = {"resourceType": "Bundle", "type": "collection"}  # missing 'entry'
     with pytest.raises(jsonschema.ValidationError):
         ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(bad_manifest), MagicMock())
 
 
-@patch("app.lib.ingest.tempfile.gettempdir")
-def test_ingest_manifest_parse_failure(mock_gettempdir, tmp_path):
-    mock_gettempdir.return_value = str(tmp_path)
+def test_ingest_manifest_parse_failure():
     # Passes JSON schema but parse_manifest raises ValueError (invalid case_type)
     bad_case_type = {
         "resourceType": "Bundle", "type": "collection",
@@ -316,10 +302,8 @@ def test_ingest_manifest_parse_failure(mock_gettempdir, tmp_path):
 # Duplicate submissions
 # ---------------------------------------------------------------------------
 
-@patch("app.lib.ingest.tempfile.gettempdir")
 @patch("app.lib.ingest.parse_vcf")
-def test_ingest_exact_duplicate(mock_parse_vcf, mock_gettempdir, tmp_path):
-    mock_gettempdir.return_value = str(tmp_path)
+def test_ingest_exact_duplicate(mock_parse_vcf):
     mock_parse_vcf.return_value = VcfMeta(pipeline_key=None, header_lines=[])
 
     mock_cursor = MagicMock()
@@ -334,10 +318,8 @@ def test_ingest_exact_duplicate(mock_parse_vcf, mock_gettempdir, tmp_path):
     assert exc_info.value.duplicate_type == "exact"
 
 
-@patch("app.lib.ingest.tempfile.gettempdir")
 @patch("app.lib.ingest.parse_vcf")
-def test_ingest_near_duplicate(mock_parse_vcf, mock_gettempdir, tmp_path):
-    mock_gettempdir.return_value = str(tmp_path)
+def test_ingest_near_duplicate(mock_parse_vcf):
     mock_parse_vcf.return_value = VcfMeta(pipeline_key=None, header_lines=[])
 
     mock_cursor = MagicMock()
