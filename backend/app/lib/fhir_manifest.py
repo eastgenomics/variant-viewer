@@ -90,7 +90,9 @@ def parse_manifest(raw: Any) -> ParsedManifest:
     case_type: Literal["germline", "somatic"] = case_type_raw
 
     # Specimen — sample name, tissue, sequencing date
-    sample_name = (specimen_res.get("identifier") or [{}])[0].get("value", "unknown")
+    sample_name = (specimen_res.get("identifier") or [{}])[0].get("value")
+    if not sample_name:
+        raise ValueError("Specimen manifest missing sample name identifier")
     tissue = (
         specimen_res.get("type", {}).get("coding", [{}])[0].get("display")
         or specimen_res.get("type", {}).get("text")

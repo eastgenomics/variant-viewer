@@ -110,10 +110,21 @@ def test_invalid_case_type_raises():
         parse_manifest(bad_ext)
 
 
+def test_missing_sample_name_raises():
+    no_id = {**_EXAMPLE, "entry": [
+        _EXAMPLE["entry"][0],
+        {"resource": {"resourceType": "Specimen",
+            "extension": [{"url": "https://example.org/fhir/StructureDefinition/case-type", "valueCode": "germline"}]}},
+        _EXAMPLE["entry"][2],
+    ]}
+    with pytest.raises(ValueError, match="missing sample name"):
+        parse_manifest(no_id)
+
+
 def test_build_and_roundtrip():
     patient = ManifestPatient(lab_number="LAB-999", name="Test User", dob="1990-01-01")
     specimen = ManifestSpecimen(sample_name="S001", case_type="germline", tissue=None, sequencing_date=None)
-    task = ManifestTask(pipeline_key="dragen_germline", pipeline_version="4.2", run_id="R1", vcf_filename=None)
+
     bundle = build_manifest(patient, specimen, task)
     m = parse_manifest(bundle)
     assert m.patient.lab_number == "LAB-999"
