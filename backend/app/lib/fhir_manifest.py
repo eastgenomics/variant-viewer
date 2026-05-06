@@ -38,6 +38,13 @@ class ParsedManifest:
     task: ManifestTask
 
 
+def _dict_items(value: Any) -> list[dict[str, Any]]:
+    """Return value as a filtered list of dicts; silently drops non-dict entries."""
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
 def _find_resource(bundle: dict, rtype: str) -> dict | None:
     entries = bundle.get("entry", [])
     if not isinstance(entries, list):
@@ -72,7 +79,7 @@ def parse_manifest(raw: Any, *, source: str | None = None) -> ParsedManifest:
         raise ValueError(f"{prefix}Manifest missing Task resource")
 
     # Patient — lab number
-    identifiers: list[dict] = patient_res.get("identifier", [])
+    identifiers = _dict_items(patient_res.get("identifier"))
     lab_id  = next((i for i in identifiers if i.get("system") == NHS_LAB_SYSTEM), None)
     no_sys  = next((i for i in identifiers if not i.get("system")), None)
     lab_number = (lab_id or no_sys or {}).get("value")
@@ -80,14 +87,14 @@ def parse_manifest(raw: Any, *, source: str | None = None) -> ParsedManifest:
         raise ValueError(f"{prefix}Patient manifest missing lab number identifier")
 
     # Patient — name
-    name_entry = (patient_res.get("name") or [{}])[0]
+    name_entry = next(iter(_dict_items(patient_res.get("name"))), {})
     given_names: list[str] = name_entry.get("given", [])
     family = name_entry.get("family", "")
     name = " ".join(p for p in [*given_names, family] if p).strip() or None
 
     # Specimen — case_type
     case_type_ext = next(
-        (e for e in specimen_res.get("extension", []) if e.get("url") == CASE_TYPE_EXT), None
+        (e for e in _dict_items(specimen_res.get("extension")) if e.get("url") == CASE_TYPE_EXT), None
     )
     if case_type_ext is None:
         raise ValueError(f"{prefix}Specimen manifest missing case-type extension")
@@ -98,28 +105,32 @@ def parse_manifest(raw: Any, *, source: str | None = None) -> ParsedManifest:
 
     # Specimen — sample name: fail loud rather than synthesising "unknown"
     sample_name = next(
-        (i.get("value") for i in specimen_res.get("identifier", []) if i.get("value")),
+        (i.get("value") for i in _dict_items(specimen_res.get("identifier")) if i.get("value")),
         None,
     )
     if not sample_name:
         raise ValueError(f"{prefix}Specimen manifest missing sample identifier")
-    tissue = (
-        specimen_res.get("type", {}).get("coding", [{}])[0].get("display")
-        or specimen_res.get("type", {}).get("text")
-    )
+    specimen_type = specimen_res.get("type")
+    if not isinstance(specimen_type, dict):
+        specimen_type = {}
+    coding = next(iter(_dict_items(specimen_type.get("coding"))), {})
+    tissue = coding.get("display") or specimen_type.get("text")
     collected = specimen_res.get("collection", {}).get("collectedDateTime", "")
     sequencing_date = collected.split("T")[0] if collected else None
 
     # Task
     pipeline_key: str | None = (task_res.get("code") or {}).get("text")
     pipeline_version = next(
-        (i.get("valueString") for i in task_res.get("input", [])
+        (i.get("valueString") for i in _dict_items(task_res.get("input"))
          if i.get("type", {}).get("text") == "pipeline_version"),
         None,
     )
-    run_id = (task_res.get("identifier") or [{}])[0].get("value")
+    run_id = next(
+        (i.get("value") for i in _dict_items(task_res.get("identifier")) if i.get("value")),
+        None,
+    )
     vcf_output = next(
-        (o.get("valueString") for o in task_res.get("output", [])
+        (o.get("valueString") for o in _dict_items(task_res.get("output"))
          if o.get("type", {}).get("text") == "vcf"),
         None,
     )

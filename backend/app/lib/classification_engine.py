@@ -56,11 +56,15 @@ class ClassificationResult:
 
 def _get_direction(code: str, framework: Framework) -> str | None:
     if framework == "acgs_snv":
-        if re.match(r"^(PVS|PS|PM|PP)", code): return "pathogenic"
-        if re.match(r"^(BA|BS|BP)", code):      return "benign"
+        if re.match(r"^(PVS|PS|PM|PP)", code):
+            return "pathogenic"
+        if re.match(r"^(BA|BS|BP)", code):
+            return "benign"
     else:
-        if re.match(r"^O", code): return "oncogenic"
-        if re.match(r"^B", code): return "benign"
+        if re.match(r"^O", code):
+            return "oncogenic"
+        if re.match(r"^B", code):
+            return "benign"
     return None
 
 
@@ -93,6 +97,10 @@ def classify(
         score = 0
         for c in applied:
             direction = _get_direction(c.criterion_code, framework)
+            if direction is None:
+                raise ValueError(
+                    f"Unknown criterion code {c.criterion_code!r} for framework {framework!r}"
+                )
             if direction == "pathogenic":
                 if c.strength not in STRENGTH_POINTS:
                     raise ValueError(
@@ -139,6 +147,10 @@ def classify(
         score = 0
         for c in applied:
             direction = _get_direction(c.criterion_code, framework)
+            if direction is None:
+                raise ValueError(
+                    f"Unknown criterion code {c.criterion_code!r} for framework {framework!r}"
+                )
             if direction == "oncogenic":
                 if c.strength not in STRENGTH_POINTS:
                     raise ValueError(

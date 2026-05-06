@@ -102,3 +102,17 @@ def test_not_applied_criteria_ignored():
     assert result.warnings == []
 
 
+def test_unknown_criterion_code_raises():
+    """A criterion code unrecognised by _get_direction must raise, not score as 0."""
+    criteria = [AppliedCriterion("XM2", applied=True, strength="supporting")]  # no known prefix
+    with pytest.raises(ValueError, match="Unknown criterion code"):
+        classify(criteria, "acgs_snv", [])
+
+
+def test_unknown_strength_raises():
+    """An unrecognised strength string must raise, not silently contribute 0 points."""
+    criteria = [AppliedCriterion("PM2", applied=True, strength="ultra_strong")]  # invalid
+    with pytest.raises(ValueError, match="Unknown strength"):
+        classify(criteria, "acgs_snv", [])
+
+
