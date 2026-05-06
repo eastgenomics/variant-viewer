@@ -92,4 +92,4 @@ def test_spanning_deletion_skipped():
 
 def test_header_lines_captured():
     _, meta = _collect(_VEP_HEADER)
-    assert any("fileformat" in l for l in meta.header_lines)
+    assert any("fileformat" in line for line in meta.header_lines)

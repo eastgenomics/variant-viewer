@@ -39,7 +39,8 @@ class PreComputedCriterion:
 
 def _gnomad_thresholds(gene: str | None) -> tuple[float, float]:
     if gene:
-        g = _CANVIG_GENES.get(gene) or _CANVIG_GENES.get(gene.upper())
+        normalised = gene.strip().upper()
+        g = _CANVIG_GENES.get(normalised)
         if g:
             return g["ba1_threshold"], g["bs1_threshold"]
     return _ACGS_DEFAULT_BA1, _ACGS_DEFAULT_BS1
@@ -77,6 +78,8 @@ def pre_compute_criteria(
             ))
 
         # PM2 — absent or very low AF
+        # Threshold 0.0001 per ACGS 2020 §5.2: variants absent from or at extremely low frequency
+        # in population databases. Clinicians may apply judgement for AD disorders with low penetrance.
         if gnomad is None or gnomad < 0.0001:
             af_label = "absent in gnomAD" if gnomad is None else f"gnomAD AF = {gnomad:.2e}"
             results.append(PreComputedCriterion(
@@ -86,23 +89,10 @@ def pre_compute_criteria(
                 suggested_strength="supporting",
             ))
 
-        # PVS1 — null variant (LOF consequence)
-        if csq and csq in _LOF_CONSEQUENCES:
-            results.append(PreComputedCriterion(
-                criterion_code="PVS1",
-                pre_computed_value=f"Consequence: {variant.consequence}",
-                framework=framework,
-                suggested_strength="very_strong",
-            ))
-
-        # PVS1_RNA — high SpliceAI max delta
-        if variant.spliceai_max is not None and variant.spliceai_max >= 0.8:
-            results.append(PreComputedCriterion(
-                criterion_code="PVS1_RNA",
-                pre_computed_value=f"SpliceAI max delta = {variant.spliceai_max:.3f}",
-                framework=framework,
-                suggested_strength="very_strong",
-            ))
+        # PVS1 and PVS1_RNA are intentionally excluded from pre-compute.
+        # The PVS1 decision tree (gene-specific LOF tolerance, transcript/exon position, NMD escape,
+        # multi-exon deletions etc.) is too complex to reduce to a simple pre-compute rule.
+        # Clinical scientists apply PVS1 manually using the full ACGS/VCEP decision tree.
 
         # PP3 — damaging REVEL
         if variant.revel_score is not None and variant.revel_score >= 0.7:

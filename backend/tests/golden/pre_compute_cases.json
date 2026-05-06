@@ -14,11 +14,11 @@
     "expected_strengths": {"BA1": "standalone"}
   },
   {
-    "description": "Unknown gene germline, frameshift + gnomAD very low → PVS1 + PM2",
+    "description": "Unknown gene germline, frameshift + gnomAD very low → PM2 only (PVS1 excluded from pre-compute)",
     "variant": {"gene": null, "consequence": "frameshift_variant", "gnomad_af": 0.000001, "revel_score": null, "spliceai_max": null, "clinvar_sig": null},
     "case_type": "germline",
-    "expected_codes": ["PVS1", "PM2"],
-    "expected_strengths": {"PVS1": "very_strong", "PM2": "supporting"}
+    "expected_codes": ["PM2"],
+    "expected_strengths": {"PM2": "supporting"}
   },
   {
     "description": "Germline, synonymous + spliceai=0.05 + revel=0.35 → BP4 + BP7 + PM2",

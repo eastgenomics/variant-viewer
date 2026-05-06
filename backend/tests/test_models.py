@@ -15,9 +15,8 @@ def test_patient_minimal():
 
 
 def test_patient_full():
-    p = Patient(lab_number="LAB-001", name="Jane Smith", dob=date(1980, 1, 1))
+    p = Patient(lab_number="LAB-001", name="Jane Smith")
     assert p.name == "Jane Smith"
-    assert p.dob == date(1980, 1, 1)
 
 
 def test_variant_defaults():

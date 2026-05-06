@@ -89,27 +89,42 @@ def classify(
         if any(c.criterion_code == "BA1" for c in applied):
             return ClassificationResult(score=-999, classification="Benign", warnings=warnings)
 
-        # Steps 4–5: sum points
+        # Steps 4–5: sum points — raise on unknown strength so typos fail loud
         score = 0
         for c in applied:
             direction = _get_direction(c.criterion_code, framework)
             if direction == "pathogenic":
-                score += STRENGTH_POINTS.get(c.strength, 0)
+                if c.strength not in STRENGTH_POINTS:
+                    raise ValueError(
+                        f"Unknown strength {c.strength!r} for pathogenic criterion {c.criterion_code!r}"
+                    )
+                score += STRENGTH_POINTS[c.strength]
             elif direction == "benign":
-                score += BENIGN_POINTS.get(c.strength, 0)
+                if c.strength not in BENIGN_POINTS:
+                    raise ValueError(
+                        f"Unknown strength {c.strength!r} for benign criterion {c.criterion_code!r}"
+                    )
+                score += BENIGN_POINTS[c.strength]
 
-        # Step 6: minimum criteria warning
-        if len(applied) < 2 and score != 0:
+        # Step 6: classify by score
+        if score >= 10:
+            classification = "Pathogenic"
+        elif score >= 6:
+            classification = "Likely_Pathogenic"
+        elif score >= 0:
+            classification = "VUS"
+        elif score >= -6:
+            classification = "Likely_Benign"
+        else:
+            classification = "Benign"
+
+        # Step 7: minimum criteria warning — only meaningful when verdict is non-VUS
+        if len(applied) < 2 and classification != "VUS":
             warnings.append(
                 "ACGS requires a minimum of 2 applied criteria for any non-VUS classification (except BA1)."
             )
 
-        # Step 7: classify by score
-        if score >= 10:  return ClassificationResult(score, "Pathogenic",        warnings)
-        if score >= 6:   return ClassificationResult(score, "Likely_Pathogenic",  warnings)
-        if score >= 0:   return ClassificationResult(score, "VUS",               warnings)
-        if score >= -6:  return ClassificationResult(score, "Likely_Benign",      warnings)
-        return ClassificationResult(score, "Benign", warnings)
+        return ClassificationResult(score, classification, warnings)
 
     else:  # svig
         # Steps 2–4: sentinel overrides
@@ -120,20 +135,32 @@ def classify(
         if any(c.criterion_code == "B2" for c in applied):
             return ClassificationResult(score=0,    classification="VUS",       warnings=warnings)
 
-        # Step 5: sum points
+        # Step 5: sum points — raise on unknown strength so typos fail loud
         score = 0
         for c in applied:
             direction = _get_direction(c.criterion_code, framework)
             if direction == "oncogenic":
-                score += STRENGTH_POINTS.get(c.strength, 0)
+                if c.strength not in STRENGTH_POINTS:
+                    raise ValueError(
+                        f"Unknown strength {c.strength!r} for oncogenic criterion {c.criterion_code!r}"
+                    )
+                score += STRENGTH_POINTS[c.strength]
             elif direction == "benign":
-                score += BENIGN_POINTS.get(c.strength, 0)
+                if c.strength not in BENIGN_POINTS:
+                    raise ValueError(
+                        f"Unknown strength {c.strength!r} for benign criterion {c.criterion_code!r}"
+                    )
+                score += BENIGN_POINTS[c.strength]
 
         # Step 6: classify
-        if score >= 10:  return ClassificationResult(score, "Oncogenic",        warnings)
-        if score >= 6:   return ClassificationResult(score, "Likely_Oncogenic",  warnings)
-        if score >= 0:   return ClassificationResult(score, "VUS",              warnings)
-        if score >= -6:  return ClassificationResult(score, "Likely_Benign",    warnings)
+        if score >= 10:
+            return ClassificationResult(score, "Oncogenic", warnings)
+        if score >= 6:
+            return ClassificationResult(score, "Likely_Oncogenic", warnings)
+        if score >= 0:
+            return ClassificationResult(score, "VUS", warnings)
+        if score >= -6:
+            return ClassificationResult(score, "Likely_Benign", warnings)
         return ClassificationResult(score, "Benign", warnings)
 
 

@@ -18,7 +18,6 @@ Classification = Literal[
 class Patient(BaseModel):
     id: int | None = None
     name: str | None = None
-    dob: date | None = None
     lab_number: str
     created_at: datetime | None = None
 

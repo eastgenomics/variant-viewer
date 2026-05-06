@@ -55,6 +55,12 @@ _SPLICE_KEYS = [
 _FLAT_SPLICE_KEYS = [f"CSQ_{k}" for k in _SPLICE_KEYS]
 
 
+def _csq_field(entry: str, idx: int) -> str:
+    """Safely return a pipe-separated field from a CSQ entry; returns '' if out of range."""
+    parts = entry.split("|")
+    return parts[idx] if 0 <= idx < len(parts) else ""
+
+
 def _spliceai_max(scores: list[str]) -> float | None:
     vals = []
     for s in scores:
@@ -88,10 +94,10 @@ def _extract_vep(info: dict, csq_header: list[str], alt: str) -> dict:
     allele_idx = csq_header.index("Allele")   if "Allele"    in csq_header else -1
     canon_idx  = csq_header.index("CANONICAL") if "CANONICAL" in csq_header else -1
 
-    matched = [e for e in entries if allele_idx >= 0 and e.split("|")[allele_idx] == alt]
+    matched = [e for e in entries if allele_idx >= 0 and _csq_field(e, allele_idx) == alt]
     pool = matched if matched else entries
     preferred = next(
-        (e for e in pool if canon_idx >= 0 and (e.split("|") + [""])[canon_idx] == "YES"),
+        (e for e in pool if canon_idx >= 0 and _csq_field(e, canon_idx) == "YES"),
         pool[0],
     )
 
@@ -141,6 +147,9 @@ def parse_vcf(
     lines: Iterable[str],
     on_variant: Callable[[VcfVariant], None] | None = None,
 ) -> VcfMeta:
+    # TODO: Replace this hand-rolled parser with pysam (cyvcf2) once the demo phase is complete.
+    # Agreed with rklocke — see PR #18 review. pysam handles edge cases (symbolic alleles,
+    # multi-sample FORMAT columns, BCF) that this parser does not.
     header_lines: list[str] = []
     csq_header: list[str] | None = None
 

@@ -29,11 +29,6 @@ def test_parse_manifest_lab_number():
     assert m.patient.lab_number == "LAB-2024-00123"
 
 
-def test_parse_manifest_dob():
-    m = parse_manifest(_EXAMPLE)
-    assert m.patient.dob == "1978-04-12"
-
-
 def test_parse_manifest_case_type():
     m = parse_manifest(_EXAMPLE)
     assert m.specimen.case_type == "germline"
@@ -111,7 +106,7 @@ def test_invalid_case_type_raises():
 
 
 def test_build_and_roundtrip():
-    patient = ManifestPatient(lab_number="LAB-999", name="Test User", dob="1990-01-01")
+    patient = ManifestPatient(lab_number="LAB-999", name="Test User")
     specimen = ManifestSpecimen(sample_name="S001", case_type="germline", tissue=None, sequencing_date=None)
     task = ManifestTask(pipeline_key="dragen_germline", pipeline_version="4.2", run_id="R1", vcf_filename=None)
     bundle = build_manifest(patient, specimen, task)
@@ -119,3 +114,20 @@ def test_build_and_roundtrip():
     assert m.patient.lab_number == "LAB-999"
     assert m.specimen.case_type == "germline"
     assert m.task.pipeline_key == "dragen_germline"
+
+
+def test_missing_sample_identifier_raises():
+    no_id = {**_EXAMPLE, "entry": [
+        _EXAMPLE["entry"][0],
+        {"resource": {"resourceType": "Specimen", "identifier": [],
+            "extension": [{"url": "https://example.org/fhir/StructureDefinition/case-type",
+                           "valueCode": "germline"}]}},
+        _EXAMPLE["entry"][2],
+    ]}
+    with pytest.raises(ValueError, match="missing sample identifier"):
+        parse_manifest(no_id)
+
+
+def test_parse_manifest_source_prefix_in_errors():
+    with pytest.raises(ValueError, match=r"\[sample\.vcf\.gz\]"):
+        parse_manifest({"resourceType": "Bundle", "type": "wrong"}, source="sample.vcf.gz")

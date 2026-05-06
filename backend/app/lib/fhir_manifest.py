@@ -13,7 +13,6 @@ CASE_TYPE_EXT  = "https://example.org/fhir/StructureDefinition/case-type"
 class ManifestPatient:
     lab_number: str
     name: str | None
-    dob: str | None   # "YYYY-MM-DD"
 
 
 @dataclass
@@ -40,29 +39,37 @@ class ParsedManifest:
 
 
 def _find_resource(bundle: dict, rtype: str) -> dict | None:
-    for entry in bundle.get("entry", []):
-        r = entry.get("resource", {})
+    entries = bundle.get("entry", [])
+    if not isinstance(entries, list):
+        return None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        r = entry.get("resource")
+        if not isinstance(r, dict):
+            continue
         if r.get("resourceType") == rtype:
             return r
     return None
 
 
-def parse_manifest(raw: Any) -> ParsedManifest:
+def parse_manifest(raw: Any, *, source: str | None = None) -> ParsedManifest:
+    prefix = f"[{source}] " if source else ""
     if not isinstance(raw, dict):
-        raise ValueError("Manifest must be a FHIR R4 Bundle (type: collection)")
+        raise ValueError(f"{prefix}Manifest must be a FHIR R4 Bundle (type: collection)")
     if raw.get("resourceType") != "Bundle" or raw.get("type") != "collection":
-        raise ValueError("Manifest must be a FHIR R4 Bundle (type: collection)")
+        raise ValueError(f"{prefix}Manifest must be a FHIR R4 Bundle (type: collection)")
 
     patient_res  = _find_resource(raw, "Patient")
     specimen_res = _find_resource(raw, "Specimen")
     task_res     = _find_resource(raw, "Task")
 
     if not patient_res:
-        raise ValueError("Manifest missing Patient resource")
+        raise ValueError(f"{prefix}Manifest missing Patient resource")
     if not specimen_res:
-        raise ValueError("Manifest missing Specimen resource")
+        raise ValueError(f"{prefix}Manifest missing Specimen resource")
     if not task_res:
-        raise ValueError("Manifest missing Task resource")
+        raise ValueError(f"{prefix}Manifest missing Task resource")
 
     # Patient — lab number
     identifiers: list[dict] = patient_res.get("identifier", [])
@@ -70,7 +77,7 @@ def parse_manifest(raw: Any) -> ParsedManifest:
     no_sys  = next((i for i in identifiers if not i.get("system")), None)
     lab_number = (lab_id or no_sys or {}).get("value")
     if not lab_number:
-        raise ValueError("Patient manifest missing lab number identifier")
+        raise ValueError(f"{prefix}Patient manifest missing lab number identifier")
 
     # Patient — name
     name_entry = (patient_res.get("name") or [{}])[0]
@@ -83,14 +90,19 @@ def parse_manifest(raw: Any) -> ParsedManifest:
         (e for e in specimen_res.get("extension", []) if e.get("url") == CASE_TYPE_EXT), None
     )
     if case_type_ext is None:
-        raise ValueError("Specimen manifest missing case-type extension")
+        raise ValueError(f"{prefix}Specimen manifest missing case-type extension")
     case_type_raw = case_type_ext.get("valueCode")
     if case_type_raw not in ("germline", "somatic"):
-        raise ValueError(f"Invalid case_type: {case_type_raw!r} (must be 'germline' or 'somatic')")
+        raise ValueError(f"{prefix}Invalid case_type: {case_type_raw!r} (must be 'germline' or 'somatic')")
     case_type: Literal["germline", "somatic"] = case_type_raw
 
-    # Specimen — sample name, tissue, sequencing date
-    sample_name = (specimen_res.get("identifier") or [{}])[0].get("value", "unknown")
+    # Specimen — sample name: fail loud rather than synthesising "unknown"
+    sample_name = next(
+        (i.get("value") for i in specimen_res.get("identifier", []) if i.get("value")),
+        None,
+    )
+    if not sample_name:
+        raise ValueError(f"{prefix}Specimen manifest missing sample identifier")
     tissue = (
         specimen_res.get("type", {}).get("coding", [{}])[0].get("display")
         or specimen_res.get("type", {}).get("text")
@@ -116,7 +128,6 @@ def parse_manifest(raw: Any) -> ParsedManifest:
         patient=ManifestPatient(
             lab_number=lab_number,
             name=name,
-            dob=patient_res.get("birthDate"),
         ),
         specimen=ManifestSpecimen(
             sample_name=sample_name,
@@ -147,8 +158,6 @@ def build_manifest(
         family = parts[-1] if parts else ""
         given = parts[:-1] if len(parts) > 1 else []
         patient_resource["name"] = [{"family": family, "given": given}]
-    if patient.dob:
-        patient_resource["birthDate"] = patient.dob
 
     specimen_resource: dict[str, Any] = {
         "resourceType": "Specimen",

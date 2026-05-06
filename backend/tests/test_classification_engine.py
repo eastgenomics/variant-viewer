@@ -64,13 +64,31 @@ def test_get_framework_version_svig():
     assert "SVIG" in get_framework_version("svig")
 
 
-def test_classification_label_vus():
-    assert classification_label("VUS") == "Variant of Uncertain Significance"
+@pytest.mark.parametrize("classification,expected_label", [
+    ("Pathogenic",        "Pathogenic"),
+    ("Likely_Pathogenic", "Likely Pathogenic"),
+    ("VUS",               "Variant of Uncertain Significance"),
+    ("Likely_Benign",     "Likely Benign"),
+    ("Benign",            "Benign"),
+    ("Oncogenic",         "Oncogenic"),
+    ("Likely_Oncogenic",  "Likely Oncogenic"),
+    ("Unknown",           "Unknown"),   # unknown value returns itself
+])
+def test_classification_label(classification, expected_label):
+    assert classification_label(classification) == expected_label
 
 
-def test_classification_label_likely_pathogenic():
-    assert classification_label("Likely_Pathogenic") == "Likely Pathogenic"
-
+@pytest.mark.parametrize("classification,expected_badge", [
+    ("Pathogenic",        "pathogenic"),
+    ("Likely_Pathogenic", "likely-pathogenic"),
+    ("VUS",               "vus"),
+    ("Likely_Benign",     "likely-benign"),
+    ("Benign",            "benign"),
+    ("Oncogenic",         "oncogenic"),
+    ("Likely_Oncogenic",  "likely-oncogenic"),
+])
+def test_classification_badge_class(classification, expected_badge):
+    assert classification_badge_class(classification) == expected_badge
 
 def test_not_applied_criteria_ignored():
     criteria = [
@@ -78,23 +96,9 @@ def test_not_applied_criteria_ignored():
         AppliedCriterion("PM2",  applied=True,  strength="supporting"),
     ]
     result = classify(criteria, "acgs_snv", [])
-    # Only PM2 applied (+1), single criterion → minimum warning; score=1 → VUS (0 ≤ 1 < 6)
+    # Only PM2 applied (+1); score=1 → VUS. Single criterion on a VUS verdict
+    # must NOT fire the minimum-criteria warning (warning is for non-VUS only).
     assert result.classification == "VUS"
+    assert result.warnings == []
 
 
-def test_classification_badge_class_all_known_values():
-    """Every canonical classification string must map to a non-empty CSS class."""
-    known = [
-        "Pathogenic", "Likely_Pathogenic", "VUS",
-        "Likely_Benign", "Benign", "Oncogenic", "Likely_Oncogenic",
-    ]
-    for cls in known:
-        badge = classification_badge_class(cls)
-        assert badge, f"badge class is empty for {cls!r}"
-        assert badge != "vus" or cls == "VUS", (
-            f"{cls!r} should not fall back to the 'vus' default"
-        )
-
-
-def test_classification_badge_class_unknown_falls_back_to_vus():
-    assert classification_badge_class("SomeFutureClass") == "vus"
