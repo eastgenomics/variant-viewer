@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
+
+import cyvcf2
 
 from app.lib.pipeline_config import detect_pipeline_key
 
@@ -144,51 +147,40 @@ def _extract_flat_csq(info: dict) -> dict:
 
 
 def parse_vcf(
-    lines: Iterable[str],
+    path: str | Path,
     on_variant: Callable[[VcfVariant], None] | None = None,
 ) -> VcfMeta:
-    # TODO: Replace this hand-rolled parser with pysam (cyvcf2) once the demo phase is complete.
-    # Agreed with rklocke — see PR #18 review. pysam handles edge cases (symbolic alleles,
-    # multi-sample FORMAT columns, BCF) that this parser does not.
-    header_lines: list[str] = []
+    """Parse a VCF or BCF file using cyvcf2 (htslib)."""
+    vcf = cyvcf2.VCF(str(path))
+
+    # Extract header lines for pipeline detection
+    header_lines = [
+        line for line in str(vcf.raw_header).splitlines()
+        if line.startswith("##")
+    ]
+
+    # Parse CSQ FORMAT from header
     csq_header: list[str] | None = None
+    for line in header_lines:
+        if "ID=CSQ" in line and "Format:" in line:
+            fmt = line.split("Format:")[1].replace('"', "").replace(">", "").strip()
+            csq_header = fmt.split("|")
+            break
 
-    for line in lines:
-        line = line.rstrip("\n\r")
-        if line.startswith("##"):
-            header_lines.append(line)
-            if "ID=CSQ" in line and "Format:" in line:
-                fmt = line.split("Format:")[1].replace('"', "").replace(">", "").strip()
-                csq_header = fmt.split("|")
-            continue
-        if line.startswith("#"):
-            continue  # column header row
-        if not line:
-            continue
+    for v in vcf:
+        qual: float | None = v.QUAL  # cyvcf2 returns None if "."
 
-        cols = line.split("\t")
-        if len(cols) < 8:
-            continue
+        # Build info dict from raw INFO string (reliable for declared AND
+        # undeclared fields such as flat CSQ_* fields from East Genomics pipelines).
+        # cyvcf2 v.INFO.keys() only enumerates header-declared keys, so we
+        # parse the raw VCF line for complete coverage.
+        raw_cols = str(v).rstrip("\n").split("\t")
+        filter_raw = raw_cols[6] if len(raw_cols) > 6 else "."
+        filter_val: str | None = None if filter_raw in (".", "") else filter_raw
+        info_str = raw_cols[7] if len(raw_cols) > 7 else "."
+        info: dict[str, Any] = _parse_info(info_str)
 
-        chrom      = cols[0]
-        pos_str    = cols[1]
-        ref        = cols[3]
-        alt_field  = cols[4]
-        qual_str   = cols[5]
-        filter_str = cols[6]
-        info_str   = cols[7]
-
-        try:
-            pos = int(pos_str)
-        except ValueError:
-            logger.warning("vcf_parser: skipping line with non-integer POS %r", pos_str)
-            continue
-
-        qual: float | None       = None if qual_str == "." else _try_float(qual_str)
-        filter_val: str | None   = None if filter_str == "." else filter_str
-        info = _parse_info(info_str)
-
-        for alt in alt_field.split(","):
+        for alt in v.ALT:
             if not alt or alt == "*":
                 continue
 
@@ -203,9 +195,9 @@ def parse_vcf(
                 ]}
 
             variant = VcfVariant(
-                chrom=chrom,
-                pos=pos,
-                ref=ref,
+                chrom=v.CHROM,
+                pos=v.POS,
+                ref=v.REF,
                 alt=alt,
                 qual=qual,
                 filter=filter_val,
@@ -215,5 +207,6 @@ def parse_vcf(
             if on_variant:
                 on_variant(variant)
 
+    vcf.close()
     pipeline_key = detect_pipeline_key(header_lines)
     return VcfMeta(pipeline_key=pipeline_key, header_lines=header_lines)

@@ -2,6 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        zlib1g-dev libbz2-dev liblzma-dev && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir --require-hashes --no-deps -r requirements.txt
 
