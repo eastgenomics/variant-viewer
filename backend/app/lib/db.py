@@ -1,3 +1,20 @@
+"""PostgreSQL connection pool and transaction helpers.
+
+Provides a module-level ``ThreadedConnectionPool`` (min 1, max 10
+connections) backed by psycopg2.  Database credentials are resolved
+either from the ``DATABASE_URL`` environment variable or, in
+production, from an AWS Secrets Manager secret identified by
+``DB_SECRET_ARN``.
+
+Public API
+----------
+query(sql, params)
+    Execute a SELECT-style statement and return rows as dicts.
+with_transaction()
+    Context manager providing a connection with automatic commit /
+    rollback semantics.
+"""
+
 from __future__ import annotations
 
 import json
@@ -19,6 +36,19 @@ _secrets_resolved: bool = False
 
 
 def _resolve_secrets() -> None:
+    """Resolve database credentials and write ``DATABASE_URL`` to the environment.
+
+    If ``DB_SECRET_ARN`` is set, fetches the secret from AWS Secrets
+    Manager, validates that ``username``, ``password``, ``host``, and
+    ``dbname`` are all present, and constructs a psycopg2 DSN.  If only
+    ``DATABASE_URL`` is already present the function is a no-op after
+    the first call.
+
+    Raises:
+        RuntimeError: If neither ``DATABASE_URL`` nor ``DB_SECRET_ARN``
+            is set, or if the Secrets Manager JSON is missing required
+            fields.
+    """
     global _secrets_resolved
     if _secrets_resolved:
         return
@@ -46,6 +76,10 @@ def _resolve_secrets() -> None:
 
 
 def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
+    """Return the module-level connection pool, initialising it on first call.
+
+    Sets ``sslmode=require`` when ``APP_ENV == "production"``.
+    """
     global _pool
     _resolve_secrets()
     if _pool is None:
@@ -61,6 +95,7 @@ def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
 
 @contextmanager
 def _get_connection() -> Generator[psycopg2.extensions.connection, None, None]:
+    """Yield a connection from the pool, returning it on exit."""
     p = _get_pool()
     conn = p.getconn()
     try:

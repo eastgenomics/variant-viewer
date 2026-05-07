@@ -1,3 +1,18 @@
+"""VCF / BCF parser backed by cyvcf2 (htslib).
+
+Parses a VCF or BCF file, extracts per-variant annotation from VEP CSQ
+or flat ``CSQ_*`` INFO fields, detects the originating sequencing
+pipeline from ``##source`` / ``##pipeline`` header lines, and invokes an
+optional callback for each parsed variant.
+
+Primary entry point
+-------------------
+parse_vcf(path, on_variant)
+    Parse *path* and call *on_variant* for each emitted ``VcfVariant``.
+    Returns a ``VcfMeta`` containing the detected pipeline key and raw
+    header lines.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -12,6 +27,13 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class VcfVariant:
+    """Parsed representation of a single ALT allele from a VCF data line.
+
+    Multi-allelic sites are split so that each ``VcfVariant`` carries
+    exactly one ALT allele.  Spanning deletions (``*``) are skipped.
+    Annotation fields are populated from VEP CSQ or flat ``CSQ_*`` INFO
+    fields; fields absent from the annotation are ``None``.
+    """
     chrom: str
     pos: int
     ref: str
@@ -31,11 +53,18 @@ class VcfVariant:
 
 @dataclass
 class VcfMeta:
+    """Metadata produced after a complete VCF file has been parsed."""
+
     pipeline_key: str | None
     header_lines: list[str]
 
 
 def _parse_info(info_str: str) -> dict[str, str | bool]:
+    """Parse a VCF INFO column string into a key-value dict.
+
+    Flag fields (no ``=`` sign) map to ``True``.  Returns an empty dict
+    for ``"."`` or an empty string.
+    """
     if not info_str or info_str == ".":
         return {}
     result: dict[str, str | bool] = {}
@@ -62,6 +91,10 @@ def _csq_field(entry: str, idx: int) -> str:
 
 
 def _spliceai_max(scores: list[str]) -> float | None:
+    """Return the maximum finite SpliceAI delta score from *scores*, or ``None``.
+
+    Skips empty strings, ``"."`` placeholders, and IEEE 754 NaN values.
+    """
     vals = []
     for s in scores:
         if s and s not in (".", ""):
@@ -75,6 +108,7 @@ def _spliceai_max(scores: list[str]) -> float | None:
 
 
 def _try_float(s: str) -> float | None:
+    """Return *s* parsed as a float, or ``None`` if conversion fails."""
     try:
         return float(s) if s else None
     except (ValueError, TypeError):
@@ -82,6 +116,23 @@ def _try_float(s: str) -> float | None:
 
 
 def _extract_vep(info: dict, csq_header: list[str], alt: str) -> dict:
+    """Extract annotation fields from a VEP CSQ INFO value.
+
+    Selects the most appropriate CSQ entry for *alt*: first filters to
+    allele-matching entries, then prefers the canonical transcript
+    (``CANONICAL=YES``), falling back to the first entry overall.
+
+    Args:
+        info: Parsed INFO dict containing a ``"CSQ"`` key.
+        csq_header: Ordered field names from the ``##INFO=<ID=CSQ,...Format:>``
+            header line.
+        alt: The ALT allele string to match against the ``Allele`` field.
+
+    Returns:
+        A dict with keys ``gene``, ``consequence``, ``hgvs_c``,
+        ``hgvs_p``, ``gnomad_af``, ``clinvar_sig``, ``revel_score``,
+        ``spliceai_max``, all typed as ``float | str | None``.
+    """
     empty: dict = {k: None for k in [
         "gene", "consequence", "hgvs_c", "hgvs_p",
         "gnomad_af", "clinvar_sig", "revel_score", "spliceai_max",
@@ -124,6 +175,10 @@ def _extract_vep(info: dict, csq_header: list[str], alt: str) -> dict:
 
 
 def _extract_flat_csq(info: dict) -> dict:
+    """Extract annotation fields from East Genomics flat ``CSQ_*`` INFO keys.
+
+    Returns the same dict shape as ``_extract_vep()``.
+    """
     def get(name: str) -> str:
         v = info.get(name, "")
         return v if isinstance(v, str) else ""
@@ -147,9 +202,19 @@ def parse_vcf(
     lines: Iterable[str],
     on_variant: Callable[[VcfVariant], None] | None = None,
 ) -> VcfMeta:
-    # TODO: Replace this hand-rolled parser with pysam (cyvcf2) once the demo phase is complete.
-    # Agreed with rklocke — see PR #18 review. pysam handles edge cases (symbolic alleles,
-    # multi-sample FORMAT columns, BCF) that this parser does not.
+    """Parse a VCF stream and emit one ``VcfVariant`` per ALT allele.
+
+    Args:
+        lines: Iterable of raw VCF text lines (with or without newlines).
+        on_variant: Optional callback invoked for each parsed variant.
+            If omitted the variants are silently consumed; callers that
+            want to collect them should pass ``variants.append``.
+
+    Returns:
+        A ``VcfMeta`` containing the detected pipeline key (or ``None``
+        if the header does not match any known pattern) and all
+        ``##``-prefixed header lines.
+    """
     header_lines: list[str] = []
     csq_header: list[str] | None = None
 

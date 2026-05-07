@@ -1,3 +1,19 @@
+"""Rule-based pre-computation of variant classification criteria.
+
+Derives candidate ACGS SNV (germline) and SVIG-UK (somatic) criteria
+suggestions from VCF INFO fields without any network calls.  All
+suggestions have ``applied=False``; the analyst must confirm each one
+before it contributes to the classification score.
+
+For CanVIG genes, gene-specific BA1/BS1 thresholds from
+``canvig-gene-mtaf.json`` are used in place of the ACGS defaults.
+
+Primary entry point
+-------------------
+pre_compute_criteria(variant, case_type)
+    Return a list of ``PreComputedCriterion`` suggestions.
+"""
+
 from __future__ import annotations
 
 import json
@@ -31,6 +47,11 @@ _ACGS_DEFAULT_BS1 = 0.001
 
 @dataclass
 class PreComputedCriterion:
+    """A single pre-computed criterion suggestion for analyst review.
+
+    ``applied`` is intentionally absent: all pre-computed criteria start
+    as suggestions and are only activated by explicit analyst action.
+    """
     criterion_code: str
     pre_computed_value: str
     framework: Framework
@@ -38,6 +59,12 @@ class PreComputedCriterion:
 
 
 def _gnomad_thresholds(gene: str | None) -> tuple[float, float]:
+    """Return ``(ba1_threshold, bs1_threshold)`` for *gene*.
+
+    Uses gene-specific CanVIG thresholds when *gene* is in
+    ``canvig-gene-mtaf.json`` (case-insensitive); falls back to ACGS
+    defaults (BA1=0.05, BS1=0.001) for all other genes.
+    """
     if gene:
         normalised = gene.strip().upper()
         g = _CANVIG_GENES.get(normalised)
@@ -50,6 +77,22 @@ def pre_compute_criteria(
     variant: VcfVariant,
     case_type: CaseType,
 ) -> list[PreComputedCriterion]:
+    """Derive criterion suggestions from VCF annotation fields.
+
+    Applies rule-based logic to ``gnomad_af``, ``revel_score``,
+    ``spliceai_max``, ``clinvar_sig``, and ``consequence`` to suggest
+    applicable ACGS SNV or SVIG-UK criteria.  No network calls are made.
+
+    Args:
+        variant: Parsed VCF variant with annotation fields populated.
+        case_type: ``"germline"`` (ACGS SNV rules) or
+            ``"somatic"`` (SVIG-UK rules).
+
+    Returns:
+        A list of ``PreComputedCriterion`` suggestions.  The list is
+        empty when no rules trigger.  All suggestions have
+        ``applied=False`` until confirmed by the analyst.
+    """
     results: list[PreComputedCriterion] = []
     framework, is_canvig = select_framework(case_type, variant.gene)
     gnomad = variant.gnomad_af

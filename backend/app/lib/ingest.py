@@ -1,3 +1,11 @@
+"""VCF ingest idempotency guard and duplicate-submission exception.
+
+Provides ``DuplicateSubmissionError`` and ``check_idempotency()``,
+which together prevent the same VCF file from being ingested more than
+once.  The full ingest pipeline (download → validate → parse → persist)
+resides in ``ingest_sample()`` in PR 5.
+"""
+
 from __future__ import annotations
 
 import psycopg2.extensions

@@ -1,3 +1,22 @@
+"""FHIR R4 Bundle manifest parser and builder for VCF sidecar files.
+
+Each VCF upload to the ingest S3 bucket is accompanied by a JSON sidecar
+manifest structured as a FHIR R4 Bundle (type: collection) containing
+exactly one Patient, one Specimen, and one Task resource.  This module
+parses that bundle into a typed ``ParsedManifest`` and can reconstruct a
+minimal bundle from typed fields via ``build_manifest()``.
+
+Constants
+---------
+NHS_LAB_SYSTEM
+    Placeholder system URI for Patient lab-number identifiers.  Must be
+    replaced with the canonical GLH URI before go-live.
+CASE_TYPE_EXT
+    Placeholder extension URL for the Specimen case-type extension.
+    Must be replaced with the canonical StructureDefinition URL agreed
+    with East Genomics / GLH.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,12 +30,16 @@ CASE_TYPE_EXT  = "https://example.org/fhir/StructureDefinition/case-type"
 
 @dataclass
 class ManifestPatient:
+    """Patient fields extracted from the FHIR Patient resource."""
+
     lab_number: str
     name: str | None
 
 
 @dataclass
 class ManifestSpecimen:
+    """Specimen fields extracted from the FHIR Specimen resource."""
+
     sample_name: str
     case_type: Literal["germline", "somatic"]
     tissue: str | None
@@ -25,6 +48,8 @@ class ManifestSpecimen:
 
 @dataclass
 class ManifestTask:
+    """Pipeline task fields extracted from the FHIR Task resource."""
+
     pipeline_key: str | None
     pipeline_version: str | None
     run_id: str | None
@@ -33,6 +58,8 @@ class ManifestTask:
 
 @dataclass
 class ParsedManifest:
+    """Typed result of parsing a FHIR R4 Bundle sidecar manifest."""
+
     patient: ManifestPatient
     specimen: ManifestSpecimen
     task: ManifestTask
@@ -46,6 +73,11 @@ def _dict_items(value: Any) -> list[dict[str, Any]]:
 
 
 def _find_resource(bundle: dict, rtype: str) -> dict | None:
+    """Return the first FHIR resource of *rtype* from *bundle*, or ``None``.
+
+    Skips any ``entry`` items that are not dicts or whose ``resource``
+    value is not a dict, rather than raising on malformed input.
+    """
     entries = bundle.get("entry", [])
     if not isinstance(entries, list):
         return None
@@ -61,6 +93,22 @@ def _find_resource(bundle: dict, rtype: str) -> dict | None:
 
 
 def parse_manifest(raw: Any, *, source: str | None = None) -> ParsedManifest:
+    """Parse a FHIR R4 Bundle dict into a typed ``ParsedManifest``.
+
+    Args:
+        raw: The decoded JSON object (must be a FHIR R4 Bundle of type
+            ``"collection"``).
+        source: Optional label (e.g. an S3 key) prepended to error
+            messages to aid debugging.
+
+    Returns:
+        A ``ParsedManifest`` with patient, specimen, and task fields
+        populated from the bundle.
+
+    Raises:
+        ValueError: If *raw* is not a valid Bundle, or if any required
+            identifier / extension is absent or invalid.
+    """
     prefix = f"[{source}] " if source else ""
     if not isinstance(raw, dict):
         raise ValueError(f"{prefix}Manifest must be a FHIR R4 Bundle (type: collection)")
@@ -160,6 +208,12 @@ def build_manifest(
     specimen: ManifestSpecimen,
     task: ManifestTask,
 ) -> dict:
+    """Build a minimal FHIR R4 Bundle dict from typed manifest fields.
+
+    The returned bundle passes ``parse_manifest()`` round-trip validation
+    but is intentionally minimal — only fields present in the typed
+    dataclasses are included.
+    """
     patient_resource: dict[str, Any] = {
         "resourceType": "Patient",
         "identifier": [{"system": NHS_LAB_SYSTEM, "value": patient.lab_number}],

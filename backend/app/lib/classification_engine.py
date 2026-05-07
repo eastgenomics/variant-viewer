@@ -1,3 +1,19 @@
+"""Tavtigian point-based variant classification engine.
+
+Implements the ACGS SNV (germline) and SVIG-UK (somatic) scoring
+algorithms.  The engine is a pure function over analyst-applied criteria
+and pre-loaded config; it performs no I/O and mutates no state.
+
+Key functions
+-------------
+classify(criteria, framework, combination_rules)
+    Score criteria and return a ``ClassificationResult``.
+select_framework(case_type, gene)
+    Return the applicable framework and CanVIG membership flag.
+classification_label(classification)
+    Human-readable display label for a classification string.
+"""
+
 from __future__ import annotations
 
 import json
@@ -35,6 +51,8 @@ BENIGN_POINTS: dict[str, int] = {
 
 @dataclass
 class AppliedCriterion:
+    """A single classification criterion with its applied state and strength."""
+
     criterion_code: str
     applied: bool
     strength: str
@@ -42,6 +60,12 @@ class AppliedCriterion:
 
 @dataclass
 class CombinationRule:
+    """A pairwise conflict rule loaded from the criteria JSON config.
+
+    Triggers a warning when two or more codes from ``codes`` are
+    simultaneously applied.
+    """
+
     rule: str
     codes: list[str]
     message: str
@@ -49,12 +73,19 @@ class CombinationRule:
 
 @dataclass
 class ClassificationResult:
+    """Result of scoring a set of applied criteria."""
+
     score: int
     classification: str
     warnings: list[str] = field(default_factory=list)
 
 
 def _get_direction(code: str, framework: Framework) -> str | None:
+    """Return the scoring direction for *code* within *framework*.
+
+    Returns ``"pathogenic"``, ``"benign"``, or ``"oncogenic"`` based on
+    the criterion code prefix, or ``None`` if the code is unrecognised.
+    """
     if framework == "acgs_snv":
         if re.match(r"^(PVS|PS|PM|PP)", code):
             return "pathogenic"
@@ -72,6 +103,12 @@ def _check_combination_rules(
     applied: list[AppliedCriterion],
     rules: list[CombinationRule],
 ) -> list[str]:
+    """Return warning messages for any pairwise criterion conflicts.
+
+    A rule fires when two or more of its ``codes`` appear in *applied*.
+    Single-code sentinel rules (BA1, O1, B1, B2) are handled as
+    explicit overrides in ``classify()`` and are never passed here.
+    """
     warnings: list[str] = []
     applied_codes = {c.criterion_code for c in applied}
     for rule in rules:
@@ -85,6 +122,27 @@ def classify(
     framework: Framework,
     combination_rules: list[CombinationRule],
 ) -> ClassificationResult:
+    """Score applied criteria and return a classification result.
+
+    Implements Tavtigian point-based scoring for ACGS SNV (germline) and
+    SVIG-UK (somatic) frameworks.  Only criteria with ``applied=True``
+    contribute to the score; unapplied (pre-computed suggestion) rows are
+    silently ignored.
+
+    Args:
+        criteria: All criteria for the variant (applied and unapplied).
+        framework: ``"acgs_snv"`` for germline or ``"svig"`` for somatic.
+        combination_rules: Pairwise conflict rules loaded from config;
+            pass an empty list if no conflict detection is needed.
+
+    Returns:
+        A ``ClassificationResult`` with integer score, classification
+        label, and any combination-rule or minimum-criteria warnings.
+
+    Raises:
+        ValueError: If a criterion code or strength value is not
+            recognised for the given framework.
+    """
     applied = [c for c in criteria if c.applied]
     warnings = _check_combination_rules(applied, combination_rules)
 
@@ -177,6 +235,19 @@ def classify(
 
 
 def select_framework(case_type: CaseType, gene: str | None) -> tuple[Framework, bool]:
+    """Return the appropriate framework and CanVIG membership flag.
+
+    Somatic variants always use SVIG-UK.  Germline variants use ACGS SNV;
+    the CanVIG flag is ``True`` when *gene* (case-insensitive) is in the
+    CanVIG gene list, triggering gene-specific AF thresholds.
+
+    Args:
+        case_type: ``"germline"`` or ``"somatic"``.
+        gene: HGNC gene symbol, or ``None`` if not annotated.
+
+    Returns:
+        A tuple ``(framework, is_canvig)``.
+    """
     if case_type == "somatic":
         return "svig", False
     normalised = gene.strip().upper() if gene else None
@@ -185,10 +256,12 @@ def select_framework(case_type: CaseType, gene: str | None) -> tuple[Framework, 
 
 
 def get_framework_version(framework: Framework) -> str:
+    """Return the version string for *framework*."""
     return ACGS_VERSION if framework == "acgs_snv" else SVIG_VERSION
 
 
 def classification_label(classification: str) -> str:
+    """Return a human-readable display label for a classification string."""
     labels = {
         "Pathogenic":        "Pathogenic",
         "Likely_Pathogenic": "Likely Pathogenic",
@@ -202,6 +275,7 @@ def classification_label(classification: str) -> str:
 
 
 def classification_badge_class(classification: str) -> str:
+    """Return the CSS badge class name for a classification string."""
     badge = {
         "Pathogenic":        "pathogenic",
         "Likely_Pathogenic": "likely-pathogenic",
