@@ -130,8 +130,8 @@ def ingest_sample(
     if not (vcf_s3_key.endswith(".vcf") or vcf_s3_key.endswith(".vcf.gz")):
         raise ValueError(f"Unsupported VCF key format: {vcf_s3_key!r}")
 
-    # 2–8. Download, validate, parse, and idempotency-check inside an
-    # invocation-scoped temp directory — auto-cleaned on exit so warm Lambda
+    # 2-8. Download, validate, parse, and idempotency-check inside an
+    # invocation-scoped temp directory - auto-cleaned on exit so warm Lambda
     # containers don't accumulate files and exhaust /tmp storage.
     with tempfile.TemporaryDirectory(prefix="ingest-") as tmp_dir:
         tmp = Path(tmp_dir)
@@ -142,7 +142,7 @@ def ingest_sample(
         s3_client.download_file(bucket, vcf_s3_key, str(vcf_path))
         s3_client.download_file(bucket, manifest_s3_key, str(manifest_path))
 
-        # 4–6. Load, validate, and parse manifest
+        # 4-6. Load, validate, and parse manifest
         raw = json.loads(manifest_path.read_text())
         jsonschema.validate(raw, _MANIFEST_SCHEMA)   # raises ValidationError on bad manifest
         manifest = parse_manifest(raw)               # raises ValueError on structural errors
@@ -154,7 +154,7 @@ def ingest_sample(
         # 7. Idempotency check — must run before any INSERT
         check_idempotency(vcf_s3_key, lab_number, sample_name, conn)
 
-        # 8. Parse VCF (cyvcf2) — file access ends here
+        # 8. Parse VCF (cyvcf2) - file access ends here
         variants: list[VcfVariant] = []
         meta = parse_vcf(vcf_path, on_variant=variants.append)
     # TemporaryDirectory cleaned up; variants + meta are plain Python objects
@@ -165,103 +165,114 @@ def ingest_sample(
     )
 
     # 9. DB writes (conn is already inside a transaction from caller)
-    with conn.cursor() as cur:
-        # 9a. Upsert patient by lab_number
-        cur.execute(
-            """
-            INSERT INTO patients (lab_number, name, dob)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (lab_number) DO UPDATE
-              SET name = COALESCE(EXCLUDED.name, patients.name),
-                  dob  = COALESCE(EXCLUDED.dob,  patients.dob)
-            RETURNING id
-            """,
-            (lab_number, manifest.patient.name, None),
-        )
-        patient_id: int = cur.fetchone()[0]
-
-        # 9b. Insert sample
-        pipeline_key = meta.pipeline_key or manifest.task.pipeline_key
-        cur.execute(
-            """
-            INSERT INTO samples
-              (patient_id, name, vcf_filename, s3_key, pipeline_key,
-               case_type, tissue, sequencing_date)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id
-            """,
-            (
-                patient_id,
-                sample_name,
-                manifest.task.vcf_filename or Path(vcf_s3_key).name,
-                vcf_s3_key,
-                pipeline_key,
-                case_type,
-                manifest.specimen.tissue,
-                manifest.specimen.sequencing_date,
-            ),
-        )
-        sample_id: int = cur.fetchone()[0]
-
-        # 9c. Insert variants + pre-computed criteria
-        for variant in variants:
+    # Catch UniqueViolation to handle the TOCTOU race documented in
+    # check_idempotency(): two concurrent ingests can both pass the pre-check
+    # before either INSERT runs; the loser gets UniqueViolation from the DB.
+    try:
+        with conn.cursor() as cur:
+            # 9a. Upsert patient by lab_number
             cur.execute(
                 """
-                INSERT INTO variants
-                  (sample_id, chrom, pos, ref, alt, qual, filter, gene,
-                   consequence, hgvs_c, hgvs_p, gnomad_af, clinvar_sig,
-                   revel_score, spliceai_max, info_json)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO patients (lab_number, name, dob)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (lab_number) DO UPDATE
+                  SET name = COALESCE(EXCLUDED.name, patients.name),
+                      dob  = COALESCE(EXCLUDED.dob,  patients.dob)
+                RETURNING id
+                """,
+                (lab_number, manifest.patient.name, None),
+            )
+            patient_id: int = cur.fetchone()[0]
+
+            # 9b. Insert sample
+            pipeline_key = meta.pipeline_key or manifest.task.pipeline_key
+            cur.execute(
+                """
+                INSERT INTO samples
+                  (patient_id, name, vcf_filename, s3_key, pipeline_key,
+                   case_type, tissue, sequencing_date)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
-                    sample_id,
-                    variant.chrom, variant.pos, variant.ref, variant.alt,
-                    variant.qual, variant.filter, variant.gene,
-                    variant.consequence, variant.hgvs_c, variant.hgvs_p,
-                    variant.gnomad_af, variant.clinvar_sig,
-                    variant.revel_score, variant.spliceai_max,
-                    json.dumps(variant.info_json),
+                    patient_id,
+                    sample_name,
+                    manifest.task.vcf_filename or Path(vcf_s3_key).name,
+                    vcf_s3_key,
+                    pipeline_key,
+                    case_type,
+                    manifest.specimen.tissue,
+                    manifest.specimen.sequencing_date,
                 ),
             )
-            variant_id: int = cur.fetchone()[0]
+            sample_id: int = cur.fetchone()[0]
 
-            # Create pending classification shell for pre-computed criteria
-            framework, _ = select_framework(case_type, variant.gene)
-            framework_version = get_framework_version(framework)
-            cur.execute(
-                """
-                INSERT INTO variant_classification
-                  (variant_id, framework, framework_version)
-                VALUES (%s, %s, %s)
-                RETURNING id
-                """,
-                (variant_id, framework, framework_version),
-            )
-            classification_id: int = cur.fetchone()[0]
-
-            suggestions = pre_compute_criteria(variant, case_type)
-            for suggestion in suggestions:
+            # 9c. Insert variants + pre-computed criteria
+            for variant in variants:
                 cur.execute(
                     """
-                    INSERT INTO classification_criterion
-                      (classification_id, criterion_code, applied,
-                       strength, pre_computed, pre_computed_value)
-                    VALUES (%s, %s, FALSE, %s, TRUE, %s)
+                    INSERT INTO variants
+                      (sample_id, chrom, pos, ref, alt, qual, filter, gene,
+                       consequence, hgvs_c, hgvs_p, gnomad_af, clinvar_sig,
+                       revel_score, spliceai_max, info_json)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
                     """,
                     (
-                        classification_id,
-                        suggestion.criterion_code,
-                        suggestion.suggested_strength,
-                        suggestion.pre_computed_value,
+                        sample_id,
+                        variant.chrom, variant.pos, variant.ref, variant.alt,
+                        variant.qual, variant.filter, variant.gene,
+                        variant.consequence, variant.hgvs_c, variant.hgvs_p,
+                        variant.gnomad_af, variant.clinvar_sig,
+                        variant.revel_score, variant.spliceai_max,
+                        json.dumps(variant.info_json),
                     ),
                 )
+                variant_id: int = cur.fetchone()[0]
 
-        # 9d. Insert workflow record
-        cur.execute(
-            "INSERT INTO workflow (sample_id) VALUES (%s)",
-            (sample_id,),
-        )
+                # Create pending classification shell for pre-computed criteria
+                framework, _ = select_framework(case_type, variant.gene)
+                framework_version = get_framework_version(framework)
+                cur.execute(
+                    """
+                    INSERT INTO variant_classification
+                      (variant_id, framework, framework_version)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                    """,
+                    (variant_id, framework, framework_version),
+                )
+                classification_id: int = cur.fetchone()[0]
+
+                suggestions = pre_compute_criteria(variant, case_type)
+                for suggestion in suggestions:
+                    cur.execute(
+                        """
+                        INSERT INTO classification_criterion
+                          (classification_id, criterion_code, applied,
+                           strength, pre_computed, pre_computed_value)
+                        VALUES (%s, %s, FALSE, %s, TRUE, %s)
+                        """,
+                        (
+                            classification_id,
+                            suggestion.criterion_code,
+                            suggestion.suggested_strength,
+                            suggestion.pre_computed_value,
+                        ),
+                    )
+
+            # 9d. Insert workflow record
+            cur.execute(
+                "INSERT INTO workflow (sample_id) VALUES (%s)",
+                (sample_id,),
+            )
+
+    except psycopg2.errors.UniqueViolation as exc:
+        raise DuplicateSubmissionError(
+            f"VCF already ingested (concurrent ingest race): s3_key={vcf_s3_key!r}",
+            existing_sample_id=-1,
+            duplicate_type="exact",
+        ) from exc
 
     return sample_id

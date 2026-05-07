@@ -332,3 +332,32 @@ def test_ingest_near_duplicate(mock_parse_vcf):
     with pytest.raises(DuplicateSubmissionError) as exc_info:
         ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(), mock_conn)
     assert exc_info.value.duplicate_type == "near"
+
+
+@patch("app.lib.ingest.parse_vcf")
+def test_ingest_unique_violation_toctou(mock_parse_vcf):
+    """UniqueViolation from a concurrent ingest race is converted to
+    DuplicateSubmissionError(duplicate_type='exact') so the Lambda
+    handler returns 409 rather than retrying.
+    """
+    import psycopg2.errors
+
+    mock_parse_vcf.return_value = VcfMeta(pipeline_key=None, header_lines=[])
+
+    mock_cursor = MagicMock()
+    mock_cursor.__enter__ = lambda s: s
+    mock_cursor.__exit__ = MagicMock(return_value=False)
+    # Idempotency checks pass (None, None), then the INSERT raises UniqueViolation
+    mock_cursor.fetchone.side_effect = [None, None]
+    mock_cursor.execute.side_effect = [
+        None,  # exact idempotency SELECT
+        None,  # near idempotency SELECT
+        psycopg2.errors.UniqueViolation("duplicate key value"),  # patients INSERT
+    ]
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+
+    with pytest.raises(DuplicateSubmissionError) as exc_info:
+        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(), mock_conn)
+
+    assert exc_info.value.duplicate_type == "exact"
