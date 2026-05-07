@@ -2421,7 +2421,7 @@ All I/O (S3, DB) must be mocked. Key test cases:
 |---|---|
 | `test_ingest_clean_submission` | End-to-end happy path; asserts sample and variants inserted |
 | `test_ingest_exact_duplicate` | `DuplicateSubmissionError(duplicate_type="exact")` raised |
-| `test_ingest_near_duplicate` | `DuplicateSubmissionError(duplicate_type="near")` raised |
+| `test_ingest_multiple_vcfs_same_specimen` | second VCF for same patient+specimen is **allowed** (multi-panel RD workflow) |
 | `test_ingest_invalid_manifest` | `ValueError` raised on bad FHIR bundle |
 | `test_ingest_schema_validation_failure` | `jsonschema.ValidationError` propagates |
 | `test_ingest_unique_violation_toctou` | `psycopg2.errors.UniqueViolation` caught and re-raised |

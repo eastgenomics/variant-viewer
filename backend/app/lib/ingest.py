@@ -7,9 +7,13 @@ class DuplicateSubmissionError(Exception):
     """Raised when a VCF submission would duplicate an existing ingest record.
 
     Attributes:
-        duplicate_type: "exact"  — same s3_key already in samples table.
-                        "near"   — same lab_number + sample_name, different VCF.
-        existing_sample_id: primary key of the conflicting samples row.
+        duplicate_type: always ``"exact"`` — the same ``s3_key`` is already
+            present in the ``samples`` table.  Multiple VCFs for the same
+            patient + specimen are permitted (e.g. different gene panels); only
+            re-uploading the identical VCF file is rejected.
+        existing_sample_id: primary key of the conflicting ``samples`` row,
+            or ``-1`` when the conflict was detected via a DB
+            ``UniqueViolation`` (TOCTOU race) and the row ID is unavailable.
     """
 
     def __init__(
@@ -29,33 +33,37 @@ def check_idempotency(
     sample_name: str,
     conn: psycopg2.extensions.connection,
 ) -> None:
-    """Verify that a proposed ingest is not a duplicate of an existing record.
+    """Verify that a proposed ingest is not a re-upload of an existing VCF.
 
-    Checks in order:
+    Checks for an **exact duplicate**: a ``samples`` row whose ``s3_key``
+    matches the proposed key.  The ``samples.s3_key`` column has a UNIQUE
+    constraint, so the DB would raise ``UniqueViolation`` regardless; this
+    check surfaces a richer error message before any INSERT is attempted.
 
-    1. **Exact duplicate** — a Sample with this ``s3_key`` already exists.
-       The ``samples.s3_key`` column has a UNIQUE constraint, so the DB would
-       raise ``UniqueViolation`` anyway; this check surfaces a richer error
-       message before any INSERT is attempted.
+    Multiple VCFs for the same patient and specimen (e.g. different gene
+    panels) are explicitly *allowed* — the ``samples`` table intentionally has
+    no unique constraint on ``(patient_id, name)``.
 
-    2. **Near-duplicate** — a Sample with the same ``lab_number`` and
-       ``sample_name`` (but a *different* VCF) was already ingested.  This
-       catches reprocessed or re-uploaded cases where the operator may not
-       realise a previous ingest exists.  The existing record must be
-       explicitly superseded (out of scope here) before a new ingest proceeds.
+    Args:
+        s3_key:      S3 object key of the VCF being ingested.
+        lab_number:  Patient lab number (unused in the check; kept in the
+                     signature so callers don't need to change when context
+                     is logged in future).
+        sample_name: Specimen name (unused in the check; same reason).
+        conn:        Active psycopg2 connection.
 
     Raises:
-        DuplicateSubmissionError: if either check finds a matching record.
+        DuplicateSubmissionError: if a ``samples`` row with this ``s3_key``
+            already exists.
 
     Note:
-        This check has a TOCTOU race window. Two concurrent ingests of the
-        same file can both pass this check before either INSERT runs; one will
-        then receive ``psycopg2.errors.UniqueViolation`` from the DB.
-        Callers must also catch ``UniqueViolation`` and treat it as equivalent
-        to ``DuplicateSubmissionError(duplicate_type="exact")``.
+        This check has a TOCTOU race window.  Two concurrent ingests of the
+        same file can both pass before either INSERT runs; the loser receives
+        ``psycopg2.errors.UniqueViolation`` from the DB.  Callers must catch
+        ``UniqueViolation`` and treat it as
+        ``DuplicateSubmissionError(duplicate_type="exact")``.
     """
     with conn.cursor() as cur:
-        # --- 1. Exact duplicate: same s3_key ---
         cur.execute(
             "SELECT id FROM samples WHERE s3_key = %s",
             (s3_key,),
@@ -67,26 +75,4 @@ def check_idempotency(
                 f"sample id={row[0]}. Each VCF file may only be ingested once.",
                 existing_sample_id=row[0],
                 duplicate_type="exact",
-            )
-
-        # --- 2. Near-duplicate: same patient + sample, different VCF ---
-        cur.execute(
-            """
-            SELECT s.id, s.s3_key
-              FROM samples s
-              JOIN patients p ON s.patient_id = p.id
-             WHERE p.lab_number = %s
-               AND s.name = %s
-            """,
-            (lab_number, sample_name),
-        )
-        row = cur.fetchone()
-        if row:
-            raise DuplicateSubmissionError(
-                f"A VCF for lab_number={lab_number!r}, sample={sample_name!r} "
-                f"was already ingested as sample id={row[0]} "
-                f"(s3_key={row[1]!r}). To reprocess this case, the existing "
-                f"record must be explicitly superseded before a new ingest.",
-                existing_sample_id=row[0],
-                duplicate_type="near",
             )
