@@ -25,7 +25,7 @@ def _make_conn(fetchone_side_effect):
 
 def test_exact_duplicate_raises():
     """An s3_key that already exists must raise DuplicateSubmissionError."""
-    conn, cursor = _make_conn([(42,)])   # fetchone returns existing sample row
+    conn, _ = _make_conn([(42,)])   # fetchone returns existing sample row
     with pytest.raises(DuplicateSubmissionError) as exc_info:
         check_idempotency(
             s3_key="path/to/sample.vcf.gz",

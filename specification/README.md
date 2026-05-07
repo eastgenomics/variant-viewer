@@ -42,7 +42,7 @@ Read in this order:
 
 ## Project layout (target after PRs 2–5)
 
-```
+```text
 variant-viewer/
 ├── backend/
 │   ├── app/

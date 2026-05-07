@@ -93,7 +93,7 @@ def classify(
         if any(c.criterion_code == "BA1" for c in applied):
             return ClassificationResult(score=-999, classification="Benign", warnings=warnings)
 
-        # Steps 4–5: sum points — raise on unknown strength so typos fail loud
+        # Steps 4-5: sum points - raise on unknown strength so typos fail loud
         score = 0
         for c in applied:
             direction = _get_direction(c.criterion_code, framework)
@@ -135,7 +135,7 @@ def classify(
         return ClassificationResult(score, classification, warnings)
 
     else:  # svig
-        # Steps 2–4: sentinel overrides
+        # Steps 2-4: sentinel overrides
         if any(c.criterion_code == "O1" for c in applied):
             return ClassificationResult(score=999,  classification="Oncogenic", warnings=warnings)
         if any(c.criterion_code == "B1" for c in applied):
@@ -143,7 +143,7 @@ def classify(
         if any(c.criterion_code == "B2" for c in applied):
             return ClassificationResult(score=0,    classification="VUS",       warnings=warnings)
 
-        # Step 5: sum points — raise on unknown strength so typos fail loud
+        # Step 5: sum points - raise on unknown strength so typos fail loud
         score = 0
         for c in applied:
             direction = _get_direction(c.criterion_code, framework)
