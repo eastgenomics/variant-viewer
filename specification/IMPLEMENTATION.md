@@ -1863,7 +1863,7 @@ _LOF_CONSEQUENCES = {
 _CANONICAL_SPLICE = {"splice_donor_variant", "splice_acceptor_variant"}
 
 _ACGS_DEFAULT_BA1 = 0.05
-_ACGS_DEFAULT_BS1 = 0.01
+_ACGS_DEFAULT_BS1 = 0.001
 
 
 @dataclass

@@ -361,7 +361,7 @@ INFO keys: `CSQ_SYMBOL`, `CSQ_Consequence`, `CSQ_HGVSc`, `CSQ_HGVSp`,
 ### CanVIG gene-specific AF thresholds
 
 All 33 CanVIG genes have `ba1_threshold = 0.001` and `bs1_threshold = 0.0003`
-(versus ACGS defaults of 0.05 / 0.01). Check `canvig-gene-mtaf.json` for the
+(versus ACGS defaults of 0.05 / 0.001). Check `canvig-gene-mtaf.json` for the
 full gene list.
 
 **LOF consequence set** (shared by ACGS PVS1 and SVIG O2):
