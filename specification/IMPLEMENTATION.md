@@ -2355,81 +2355,506 @@ print('OK: parse_vcf signature correct')
 
 ## 15. Milestone 12 — `ingest.py` + Lambda handler (PR 5)
 
-### Scope
-
-`app/lib/ingest.py` is the orchestration layer called by the Lambda function.
-It:
-1. Downloads the VCF and manifest JSON from S3 to `/tmp/`.
-2. Validates the manifest against `config/manifest-schema.json` (jsonschema).
-3. Parses the manifest with `fhir_manifest.parse_manifest(raw, source=s3_key)`.
-4. Calls `check_idempotency()` — already built (PR #18 ingest guard).
-5. Calls `parse_vcf(path)` — cyvcf2 version (M11).
-6. For each variant: calls `pre_compute_criteria()`, inserts into DB.
-7. Creates `WorkflowRecord(status="pending")` for the sample.
-8. Raises `DuplicateSubmissionError` or `ValueError` on validation failures;
-   caller catches `UniqueViolation` from psycopg2 as a TOCTOU guard.
-
-### Additional dependency
+### Pre-work: add dependencies
 
 ```bash
+# Add to requirements.in
 echo 'jsonschema>=4.0.0' >> backend/requirements.in
+
+# Regenerate pinned requirements
+cd backend
 .venv/bin/pip-compile --generate-hashes --allow-unsafe requirements.in -o requirements.txt
+.venv/bin/pip install --require-hashes --no-deps -r requirements.txt
 ```
 
-### Public interface
+### Red: write `test_ingest.py` additions for `ingest_sample`
+
+The existing `test_ingest.py` already covers `check_idempotency`. Add
+the `ingest_sample` tests below the existing tests in the same file.
 
 ```python
+# tests/test_ingest.py  — additions for ingest_sample (append to existing file)
+
+import json
+import re
+from pathlib import Path
+from unittest.mock import MagicMock, patch, call
+
+import jsonschema
+import pytest
+
+from app.lib.vcf_parser import VcfMeta
+from app.lib.ingest import ingest_sample
+
+# ---------------------------------------------------------------------------
+# Shared fixtures
+# ---------------------------------------------------------------------------
+
+_VALID_MANIFEST = {
+    "resourceType": "Bundle",
+    "type": "collection",
+    "entry": [
+        {"resource": {
+            "resourceType": "Patient",
+            "identifier": [{"system": "https://fhir.example-lab.org/Id/lab-number",
+                             "value": "LAB-001"}],
+            "birthDate": "1980-01-01",
+        }},
+        {"resource": {
+            "resourceType": "Specimen",
+            "identifier": [{"value": "26041S0057"}],
+            "extension": [{"url": "https://example.org/fhir/StructureDefinition/case-type",
+                            "valueCode": "germline"}],
+        }},
+        {"resource": {
+            "resourceType": "Task",
+            "status": "completed",
+            "code": {"text": "dragen_germline"},
+        }},
+    ],
+}
+
+_VCF_KEY      = "runs/2024/26041S0057.vcf.gz"
+_MANIFEST_KEY = "runs/2024/26041S0057.manifest.json"
+_BUCKET       = "variant-viewer-vcf-749929395031"
+
+
+def _make_s3_mock(manifest: dict | None = None) -> MagicMock:
+    """S3 mock that writes manifest JSON to the manifest dest path."""
+    manifest_content = json.dumps(manifest or _VALID_MANIFEST)
+
+    def download_side_effect(bucket, key, dest):
+        if key.endswith(".manifest.json"):
+            Path(dest).write_text(manifest_content)
+        else:
+            # Minimal VCF header — parse_vcf is patched so content doesn't matter
+            Path(dest).write_text("##fileformat=VCFv4.2\n")
+
+    mock_s3 = MagicMock()
+    mock_s3.download_file.side_effect = download_side_effect
+    return mock_s3
+
+
+def _make_db_mock(patient_id: int = 1, sample_id: int = 2) -> tuple:
+    """DB connection mock returning patient_id then sample_id from fetchone."""
+    mock_cursor = MagicMock()
+    mock_cursor.__enter__ = lambda s: s
+    mock_cursor.__exit__ = MagicMock(return_value=False)
+    mock_cursor.fetchone.side_effect = [(patient_id,), (sample_id,)]
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+    return mock_conn, mock_cursor
+
+
+# ---------------------------------------------------------------------------
+# Happy path — no variants (empty VCF)
+# ---------------------------------------------------------------------------
+
+@patch("app.lib.ingest.tempfile.gettempdir")
+@patch("app.lib.ingest.parse_vcf")
+def test_ingest_returns_sample_id(mock_parse_vcf, mock_gettempdir, tmp_path):
+    """Happy path: valid VCF + manifest, no variants — returns sample_id."""
+    mock_gettempdir.return_value = str(tmp_path)
+    mock_parse_vcf.return_value = VcfMeta(pipeline_key="dragen_germline", header_lines=[])
+
+    s3 = _make_s3_mock()
+    conn, cursor = _make_db_mock(patient_id=1, sample_id=42)
+
+    result = ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, s3, conn)
+
+    assert result == 42
+    assert s3.download_file.call_count == 2
+
+
+@patch("app.lib.ingest.tempfile.gettempdir")
+@patch("app.lib.ingest.parse_vcf")
+def test_ingest_sql_rows_inserted(mock_parse_vcf, mock_gettempdir, tmp_path):
+    """Verifies INSERT INTO patients, samples, and workflow are executed."""
+    mock_gettempdir.return_value = str(tmp_path)
+    mock_parse_vcf.return_value = VcfMeta(pipeline_key="dragen_germline", header_lines=[])
+
+    s3 = _make_s3_mock()
+    conn, cursor = _make_db_mock()
+
+    ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, s3, conn)
+
+    executed_sqls = [c[0][0].lower() for c in cursor.execute.call_args_list]
+    assert any("insert into patients" in sql for sql in executed_sqls)
+    assert any("insert into samples" in sql for sql in executed_sqls)
+    assert any("insert into workflow" in sql for sql in executed_sqls)
+
+
+# ---------------------------------------------------------------------------
+# Happy path — with one variant + pre-computed criterion
+# ---------------------------------------------------------------------------
+
+@patch("app.lib.ingest.tempfile.gettempdir")
+@patch("app.lib.ingest.parse_vcf")
+def test_ingest_with_variant_inserts_classification_and_criteria(
+    mock_parse_vcf, mock_gettempdir, tmp_path
+):
+    """One variant — verifies variant, classification, and criterion rows inserted."""
+    from app.lib.vcf_parser import VcfVariant
+
+    mock_gettempdir.return_value = str(tmp_path)
+    test_variant = VcfVariant(
+        chrom="1", pos=100, ref="A", alt="G",
+        qual=50.0, filter="PASS",
+        gene="BRCA1", consequence="missense_variant",
+        hgvs_c="c.100A>G", hgvs_p=None,
+        gnomad_af=0.000001, clinvar_sig=None,
+        revel_score=0.75, spliceai_max=None,
+        info_json={},
+    )
+
+    def fake_parse_vcf(path, on_variant=None):
+        if on_variant:
+            on_variant(test_variant)
+        return VcfMeta(pipeline_key="dragen_germline", header_lines=[])
+
+    mock_parse_vcf.side_effect = fake_parse_vcf
+
+    # fetchone sequence: patient_id, sample_id, variant_id, classification_id
+    mock_cursor = MagicMock()
+    mock_cursor.__enter__ = lambda s: s
+    mock_cursor.__exit__ = MagicMock(return_value=False)
+    mock_cursor.fetchone.side_effect = [(1,), (2,), (3,), (4,)]
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+
+    result = ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(), mock_conn)
+
+    assert result == 2
+    executed_sqls = [c[0][0].lower() for c in mock_cursor.execute.call_args_list]
+    assert any("insert into variants" in sql for sql in executed_sqls)
+    assert any("insert into variant_classification" in sql for sql in executed_sqls)
+    assert any("insert into classification_criterion" in sql for sql in executed_sqls)
+
+
+# ---------------------------------------------------------------------------
+# Validation failures — raised before any DB write
+# ---------------------------------------------------------------------------
+
+def test_ingest_invalid_key_format(tmp_path):
+    """A key that does not end with .vcf or .vcf.gz must raise ValueError."""
+    with pytest.raises(ValueError, match="Unsupported VCF key format"):
+        ingest_sample("runs/sample.bam", "runs/sample.manifest.json",
+                      _BUCKET, MagicMock(), MagicMock())
+
+
+@patch("app.lib.ingest.tempfile.gettempdir")
+def test_ingest_schema_validation_failure(mock_gettempdir, tmp_path):
+    """A manifest that fails JSON Schema must raise jsonschema.ValidationError."""
+    mock_gettempdir.return_value = str(tmp_path)
+    bad_manifest = {"resourceType": "Bundle", "type": "collection"}  # missing 'entry'
+    s3 = _make_s3_mock(manifest=bad_manifest)
+    with pytest.raises(jsonschema.ValidationError):
+        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, s3, MagicMock())
+
+
+@patch("app.lib.ingest.tempfile.gettempdir")
+def test_ingest_manifest_parse_failure(mock_gettempdir, tmp_path):
+    """A structurally invalid FHIR bundle (missing Patient) must raise ValueError."""
+    mock_gettempdir.return_value = str(tmp_path)
+    # Schema-valid but parse_manifest will reject it (missing Patient identifier)
+    no_patient = {
+        "resourceType": "Bundle", "type": "collection",
+        "entry": [
+            {"resource": {"resourceType": "Patient", "identifier": []}},
+            {"resource": {"resourceType": "Specimen",
+                          "identifier": [{"value": "S001"}],
+                          "extension": [{"url": "https://example.org/fhir/StructureDefinition/case-type",
+                                         "valueCode": "germline"}]}},
+            {"resource": {"resourceType": "Task", "status": "completed"}},
+        ],
+    }
+    s3 = _make_s3_mock(manifest=no_patient)
+    with pytest.raises(ValueError):
+        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, s3, MagicMock())
+
+
+# ---------------------------------------------------------------------------
+# Idempotency failures — duplicate submission (uses check_idempotency internally)
+# ---------------------------------------------------------------------------
+
+@patch("app.lib.ingest.tempfile.gettempdir")
+@patch("app.lib.ingest.parse_vcf")
+def test_ingest_exact_duplicate(mock_parse_vcf, mock_gettempdir, tmp_path):
+    """Exact duplicate s3_key raises DuplicateSubmissionError."""
+    from app.lib.ingest import DuplicateSubmissionError
+
+    mock_gettempdir.return_value = str(tmp_path)
+    mock_parse_vcf.return_value = VcfMeta(pipeline_key=None, header_lines=[])
+
+    mock_cursor = MagicMock()
+    mock_cursor.__enter__ = lambda s: s
+    mock_cursor.__exit__ = MagicMock(return_value=False)
+    # First fetchone = idempotency exact-check finds existing row
+    mock_cursor.fetchone.return_value = (99,)
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+
+    with pytest.raises(DuplicateSubmissionError) as exc_info:
+        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(), mock_conn)
+    assert exc_info.value.duplicate_type == "exact"
+
+
+@patch("app.lib.ingest.tempfile.gettempdir")
+@patch("app.lib.ingest.parse_vcf")
+def test_ingest_near_duplicate(mock_parse_vcf, mock_gettempdir, tmp_path):
+    """Near duplicate (same lab+sample, different VCF) raises DuplicateSubmissionError."""
+    from app.lib.ingest import DuplicateSubmissionError
+
+    mock_gettempdir.return_value = str(tmp_path)
+    mock_parse_vcf.return_value = VcfMeta(pipeline_key=None, header_lines=[])
+
+    mock_cursor = MagicMock()
+    mock_cursor.__enter__ = lambda s: s
+    mock_cursor.__exit__ = MagicMock(return_value=False)
+    # None for exact check; hit on near-duplicate check
+    mock_cursor.fetchone.side_effect = [None, (55, "old/path.vcf.gz")]
+    mock_conn = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+
+    with pytest.raises(DuplicateSubmissionError) as exc_info:
+        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(), mock_conn)
+    assert exc_info.value.duplicate_type == "near"
+```
+
+Run to confirm red: `cd backend && .venv/bin/pytest tests/test_ingest.py -v -k ingest_sample`
+→ `ImportError: cannot import name 'ingest_sample'` (or `AttributeError`).
+
+### Green: implement `ingest_sample()` in `ingest.py`
+
+Add the following to the existing `app/lib/ingest.py` (after the existing
+`check_idempotency` function):
+
+```python
+# app/lib/ingest.py  — additions for PR 5
+from __future__ import annotations
+
+import json
+import logging
+import tempfile
+from pathlib import Path
+from typing import Any
+
+import jsonschema
+import psycopg2.extensions
+
+from app.lib.classification_engine import get_framework_version, select_framework
+from app.lib.fhir_manifest import parse_manifest
+from app.lib.pre_compute_criteria import pre_compute_criteria
+from app.lib.vcf_parser import VcfVariant, parse_vcf
+
+logger = logging.getLogger(__name__)
+
+_SCHEMA_PATH = Path(__file__).parent.parent.parent / "config" / "manifest-schema.json"
+_MANIFEST_SCHEMA: dict = json.loads(_SCHEMA_PATH.read_text())
+
+
 def ingest_sample(
     vcf_s3_key: str,
     manifest_s3_key: str,
     bucket: str,
-    s3_client,            # boto3 S3 client — injected for testability
-    conn,                 # psycopg2 connection — injected for testability
+    s3_client: Any,
+    conn: psycopg2.extensions.connection,
 ) -> int:
     """Download, validate, parse, and persist a VCF + manifest from S3.
 
     Returns the new sample_id (int) on success.
-    Raises DuplicateSubmissionError, ValueError, or psycopg2 exceptions.
+    Raises:
+        ValueError: key format invalid, or FHIR manifest structurally wrong.
+        jsonschema.ValidationError: manifest JSON does not match the schema.
+        DuplicateSubmissionError: submission would duplicate an existing record.
+        psycopg2.OperationalError: DB failure.
     """
+    # 1. Validate VCF key format
+    if not (vcf_s3_key.endswith(".vcf") or vcf_s3_key.endswith(".vcf.gz")):
+        raise ValueError(f"Unsupported VCF key format: {vcf_s3_key!r}")
+
+    # 2. Compute temp paths
+    tmp = Path(tempfile.gettempdir())
+    vcf_path      = tmp / Path(vcf_s3_key).name
+    manifest_path = tmp / Path(manifest_s3_key).name
+
+    # 3. Download from S3
+    s3_client.download_file(bucket, vcf_s3_key, str(vcf_path))
+    s3_client.download_file(bucket, manifest_s3_key, str(manifest_path))
+
+    # 4–6. Load, validate, and parse manifest
+    raw = json.loads(manifest_path.read_text())
+    jsonschema.validate(raw, _MANIFEST_SCHEMA)   # raises ValidationError on bad manifest
+    manifest = parse_manifest(raw)               # raises ValueError on structural errors
+
+    lab_number  = manifest.patient.lab_number
+    sample_name = manifest.specimen.sample_name
+    case_type   = manifest.specimen.case_type
+
+    # 7. Idempotency check — must run before any INSERT
+    check_idempotency(vcf_s3_key, lab_number, sample_name, conn)
+
+    # 8. Parse VCF (cyvcf2)
+    variants: list[VcfVariant] = []
+    meta = parse_vcf(vcf_path, on_variant=variants.append)
+
+    logger.info(
+        "ingest_sample: vcf=%s pipeline=%s variants=%d",
+        vcf_s3_key, meta.pipeline_key, len(variants),
+    )
+
+    # 9. DB writes (conn is already inside a transaction from caller)
+    with conn.cursor() as cur:
+        # 9a. Upsert patient by lab_number
+        cur.execute(
+            """
+            INSERT INTO patients (lab_number, name, dob)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (lab_number) DO UPDATE
+              SET name = COALESCE(EXCLUDED.name, patients.name),
+                  dob  = COALESCE(EXCLUDED.dob,  patients.dob)
+            RETURNING id
+            """,
+            (lab_number, manifest.patient.name, manifest.patient.dob),
+        )
+        patient_id: int = cur.fetchone()[0]
+
+        # 9b. Insert sample
+        pipeline_key = meta.pipeline_key or manifest.task.pipeline_key
+        cur.execute(
+            """
+            INSERT INTO samples
+              (patient_id, name, vcf_filename, s3_key, pipeline_key,
+               case_type, tissue, sequencing_date)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (
+                patient_id,
+                sample_name,
+                manifest.task.vcf_filename or Path(vcf_s3_key).name,
+                vcf_s3_key,
+                pipeline_key,
+                case_type,
+                manifest.specimen.tissue,
+                manifest.specimen.sequencing_date,
+            ),
+        )
+        sample_id: int = cur.fetchone()[0]
+
+        # 9c. Insert variants + pre-computed criteria
+        for variant in variants:
+            cur.execute(
+                """
+                INSERT INTO variants
+                  (sample_id, chrom, pos, ref, alt, qual, filter, gene,
+                   consequence, hgvs_c, hgvs_p, gnomad_af, clinvar_sig,
+                   revel_score, spliceai_max, info_json)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    sample_id,
+                    variant.chrom, variant.pos, variant.ref, variant.alt,
+                    variant.qual, variant.filter, variant.gene,
+                    variant.consequence, variant.hgvs_c, variant.hgvs_p,
+                    variant.gnomad_af, variant.clinvar_sig,
+                    variant.revel_score, variant.spliceai_max,
+                    json.dumps(variant.info_json),
+                ),
+            )
+            variant_id: int = cur.fetchone()[0]
+
+            # Create pending classification shell for pre-computed criteria
+            framework, _ = select_framework(case_type, variant.gene)
+            framework_version = get_framework_version(framework)
+            cur.execute(
+                """
+                INSERT INTO variant_classification
+                  (variant_id, framework, framework_version)
+                VALUES (%s, %s, %s)
+                RETURNING id
+                """,
+                (variant_id, framework, framework_version),
+            )
+            classification_id: int = cur.fetchone()[0]
+
+            suggestions = pre_compute_criteria(variant, case_type)
+            for suggestion in suggestions:
+                cur.execute(
+                    """
+                    INSERT INTO classification_criterion
+                      (classification_id, criterion_code, applied,
+                       strength, pre_computed, pre_computed_value)
+                    VALUES (%s, %s, FALSE, %s, TRUE, %s)
+                    """,
+                    (
+                        classification_id,
+                        suggestion.criterion_code,
+                        suggestion.suggested_strength,
+                        suggestion.pre_computed_value,
+                    ),
+                )
+
+        # 9d. Insert workflow record
+        cur.execute(
+            "INSERT INTO workflow (sample_id) VALUES (%s)",
+            (sample_id,),
+        )
+
+    return sample_id
 ```
 
-### Lambda handler skeleton
+### Green: implement `app/lambda_handler.py`
 
 ```python
 # app/lambda_handler.py
-import json, boto3
-from app.lib.ingest import ingest_sample
-from app.lib.db import with_transaction
+from __future__ import annotations
 
-def handler(event, context):
-    record = event["Records"][0]["s3"]
+import json
+import logging
+import re
+
+import boto3
+import jsonschema
+
+from app.lib.db import with_transaction
+from app.lib.ingest import DuplicateSubmissionError, ingest_sample
+
+logger = logging.getLogger(__name__)
+
+
+def handler(event: dict, context: object) -> dict:
+    """Lambda entry point — triggered by S3 ObjectCreated events."""
+    record    = event["Records"][0]["s3"]
     bucket    = record["bucket"]["name"]
     vcf_key   = record["object"]["key"]
-    # Derive manifest key from VCF key (see DESIGN naming convention)
-    manifest_key = vcf_key.replace(".vcf.gz", ".manifest.json")
+    manifest_key = re.sub(r"\.vcf(\.gz)?$", ".manifest.json", vcf_key)
+
+    logger.info("ingest triggered: bucket=%s key=%s", bucket, vcf_key)
+
     s3 = boto3.client("s3", region_name="eu-west-2")
-    with with_transaction() as conn:
-        sample_id = ingest_sample(vcf_key, manifest_key, bucket, s3, conn)
-    return {"statusCode": 200, "sample_id": sample_id}
+    try:
+        with with_transaction() as conn:
+            sample_id = ingest_sample(vcf_key, manifest_key, bucket, s3, conn)
+        logger.info("ingest complete: sample_id=%d", sample_id)
+        return {"statusCode": 200, "sample_id": sample_id}
+
+    except DuplicateSubmissionError as exc:
+        logger.warning("duplicate submission: %s", exc)
+        return {"statusCode": 409, "error": str(exc)}
+
+    except (ValueError, jsonschema.ValidationError) as exc:
+        logger.error("invalid submission: %s", exc)
+        return {"statusCode": 400, "error": str(exc)}
+    # All other exceptions propagate — Lambda will retry.
 ```
-
-### Tests
-
-All I/O (S3, DB) must be mocked. Key test cases:
-
-| Test | What it asserts |
-|---|---|
-| `test_ingest_clean_submission` | End-to-end happy path; asserts sample and variants inserted |
-| `test_ingest_exact_duplicate` | `DuplicateSubmissionError(duplicate_type="exact")` raised |
-| `test_ingest_multiple_vcfs_same_specimen` | second VCF for same patient+specimen is **allowed** (multi-panel RD workflow) |
-| `test_ingest_invalid_manifest` | `ValueError` raised on bad FHIR bundle |
-| `test_ingest_schema_validation_failure` | `jsonschema.ValidationError` propagates |
-| `test_ingest_unique_violation_toctou` | `psycopg2.errors.UniqueViolation` caught and re-raised |
 
 **Verification:**
 ```bash
 cd backend && .venv/bin/pytest tests/test_ingest.py -v
-# Expected: 6+ passed
+# Expected: all existing check_idempotency tests + new ingest_sample tests pass
 ```
 
 ---
