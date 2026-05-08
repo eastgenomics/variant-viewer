@@ -147,8 +147,8 @@ def pre_compute_criteria(
                 suggested_strength="supporting",
             ))
 
-        # BP4 — benign REVEL
-        if variant.revel_score is not None and variant.revel_score <= 0.4:
+        # BP4 — benign REVEL (ACGS 2024: REVEL < 0.4, strictly less than)
+        if variant.revel_score is not None and variant.revel_score < 0.4:
             results.append(PreComputedCriterion(
                 criterion_code="BP4",
                 pre_computed_value=f"REVEL score = {variant.revel_score:.3f}",
@@ -217,9 +217,9 @@ def pre_compute_criteria(
                 suggested_strength="supporting",
             ))
 
-        # B3 — computational benign evidence (REVEL ≤ 0.4 takes priority over SpliceAI)
+        # B3 — computational benign evidence (REVEL < 0.4 takes priority over SpliceAI)
         b3_added = False
-        if variant.revel_score is not None and variant.revel_score <= 0.4:
+        if variant.revel_score is not None and variant.revel_score < 0.4:
             results.append(PreComputedCriterion(
                 criterion_code="B3",
                 pre_computed_value=f"REVEL score = {variant.revel_score:.3f}",
