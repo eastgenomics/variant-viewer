@@ -272,12 +272,13 @@ def parse_vcf(
         for v in vcf:
             qual: float | None = v.QUAL  # cyvcf2 returns None if "."
 
-            # Build info dict via _raw_info_str() — see that helper's docstring
-            # for why str(v) is used instead of v.INFO.keys().
+            # Single str(v) call per variant — see _raw_info_str docstring for
+            # why we parse the raw VCF line instead of v.INFO.keys().
             raw_cols = str(v).rstrip("\n\r").split("\t")
             filter_raw = raw_cols[6] if len(raw_cols) > 6 else "."
             filter_val: str | None = None if filter_raw in (".", "") else filter_raw
-            info: dict[str, str | bool] = _parse_info(_raw_info_str(v))
+            info_raw = raw_cols[7] if len(raw_cols) > 7 else "."
+            info: dict[str, str | bool] = _parse_info(info_raw)
 
             for alt in v.ALT:
                 if not alt or alt == "*":
