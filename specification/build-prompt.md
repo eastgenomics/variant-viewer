@@ -178,5 +178,5 @@ confirms `jsonschema.ValidationError` is raised without being caught.
    ```
 2. Show the content of `backend/app/lib/__init__.py` (if it exists).
 3. Confirm all four spec documents have been read.
-4. Proceed through milestones M1 → M10 in order. Do not skip the red
+4. Proceed through milestones M1 → M13 in order. Do not skip the red
    (failing test) step for any milestone.
