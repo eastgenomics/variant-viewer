@@ -42,7 +42,8 @@ _LOF_CONSEQUENCES = {
 }
 
 _ACGS_DEFAULT_BA1 = 0.05
-_ACGS_DEFAULT_BS1 = 0.001
+_ACGS_DEFAULT_BS1 = 0.01
+_ACGS_DEFAULT_PM2 = 0.001  # ACGS 2024 PM2_Supporting threshold
 
 
 @dataclass
@@ -121,9 +122,9 @@ def pre_compute_criteria(
             ))
 
         # PM2 — absent or very low AF
-        # Threshold 0.0001 per ACGS 2020 §5.2: variants absent from or at extremely low frequency
-        # in population databases. Clinicians may apply judgement for AD disorders with low penetrance.
-        if gnomad is None or gnomad < 0.0001:
+        # ACGS 2024 PM2_Supporting threshold: variants absent from or below 0.1%
+        # frequency in gnomAD. Update _ACGS_DEFAULT_PM2 when lab policy changes.
+        if gnomad is None or gnomad < _ACGS_DEFAULT_PM2:
             af_label = "absent in gnomAD" if gnomad is None else f"gnomAD AF = {gnomad:.2e}"
             results.append(PreComputedCriterion(
                 criterion_code="PM2",

@@ -468,7 +468,7 @@ def classification_badge_class(classification: str) -> str: ...
   calls; entirely based on VCF INFO fields).
 - Uses `select_framework()` to choose ACGS SNV or SVIG-UK rules.
 - For CanVIG genes, reads gene-specific BA1/BS1 thresholds from
-  `canvig-gene-mtaf.json`; falls back to ACGS defaults (BA1=0.05, BS1=0.001)
+  `canvig-gene-mtaf.json`; falls back to ACGS defaults (BA1=0.05, BS1=0.01)
   for all other genes.
 - Returns a list of `PreComputedCriterion` suggestions — the analyst must still
   confirm each one.

@@ -339,7 +339,7 @@ INFO keys: `CSQ_SYMBOL`, `CSQ_Consequence`, `CSQ_HGVSc`, `CSQ_HGVSp`,
 |---|---|---|
 | BA1 | gnomAD AF > ba1\_threshold (gene-specific or 0.05) | standalone |
 | BS1 | bs1\_threshold < gnomAD AF ≤ ba1\_threshold | strong |
-| PM2 | gnomAD AF absent or < 0.0001 | supporting |
+| PM2 | gnomAD AF absent or < 0.001 | supporting |
 | PVS1 | consequence ∈ LOF set | very\_strong |
 | PVS1\_RNA | SpliceAI max ≥ 0.8 | very\_strong |
 | PP3 | REVEL ≥ 0.7 | supporting |
@@ -361,7 +361,7 @@ INFO keys: `CSQ_SYMBOL`, `CSQ_Consequence`, `CSQ_HGVSc`, `CSQ_HGVSp`,
 ### CanVIG gene-specific AF thresholds
 
 All 33 CanVIG genes have `ba1_threshold = 0.001` and `bs1_threshold = 0.0003`
-(versus ACGS defaults of 0.05 / 0.001). Check `canvig-gene-mtaf.json` for the
+(versus ACGS defaults of 0.05 / 0.01). Check `canvig-gene-mtaf.json` for the
 full gene list.
 
 **LOF consequence set** (shared by ACGS PVS1 and SVIG O2):

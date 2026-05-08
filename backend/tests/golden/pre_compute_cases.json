@@ -1,44 +1,120 @@
 [
   {
-    "description": "BRCA1 germline, gnomAD=0.0005 (> bs1=0.0003, < ba1=0.001) → BS1 only",
-    "variant": {"gene": "BRCA1", "consequence": null, "gnomad_af": 0.0005, "revel_score": null, "spliceai_max": null, "clinvar_sig": null},
+    "description": "BRCA1 germline, gnomAD=0.0005 (> bs1=0.0003, < ba1=0.001) \u2014 BS1 (elevated AF) + PM2 (below 0.001 PM2 threshold)",
+    "variant": {
+      "gene": "BRCA1",
+      "consequence": null,
+      "gnomad_af": 0.0005,
+      "revel_score": null,
+      "spliceai_max": null,
+      "clinvar_sig": null
+    },
     "case_type": "germline",
-    "expected_codes": ["BS1"],
-    "expected_strengths": {"BS1": "strong"}
+    "expected_codes": [
+      "BS1",
+      "PM2"
+    ],
+    "expected_strengths": {
+      "BS1": "strong",
+      "PM2": "supporting"
+    }
   },
   {
-    "description": "BRCA1 germline, gnomAD=0.0015 (> ba1=0.001) → BA1 only",
-    "variant": {"gene": "BRCA1", "consequence": null, "gnomad_af": 0.0015, "revel_score": null, "spliceai_max": null, "clinvar_sig": null},
+    "description": "BRCA1 germline, gnomAD=0.0015 (> ba1=0.001) \u2192 BA1 only",
+    "variant": {
+      "gene": "BRCA1",
+      "consequence": null,
+      "gnomad_af": 0.0015,
+      "revel_score": null,
+      "spliceai_max": null,
+      "clinvar_sig": null
+    },
     "case_type": "germline",
-    "expected_codes": ["BA1"],
-    "expected_strengths": {"BA1": "standalone"}
+    "expected_codes": [
+      "BA1"
+    ],
+    "expected_strengths": {
+      "BA1": "standalone"
+    }
   },
   {
-    "description": "Unknown gene germline, frameshift + gnomAD very low → PM2 only (PVS1 excluded from pre-compute)",
-    "variant": {"gene": null, "consequence": "frameshift_variant", "gnomad_af": 0.000001, "revel_score": null, "spliceai_max": null, "clinvar_sig": null},
+    "description": "Unknown gene germline, frameshift + gnomAD very low \u2192 PM2 only (PVS1 excluded from pre-compute)",
+    "variant": {
+      "gene": null,
+      "consequence": "frameshift_variant",
+      "gnomad_af": 1e-06,
+      "revel_score": null,
+      "spliceai_max": null,
+      "clinvar_sig": null
+    },
     "case_type": "germline",
-    "expected_codes": ["PM2"],
-    "expected_strengths": {"PM2": "supporting"}
+    "expected_codes": [
+      "PM2"
+    ],
+    "expected_strengths": {
+      "PM2": "supporting"
+    }
   },
   {
-    "description": "Germline, synonymous + spliceai=0.05 + revel=0.35 → BP4 + BP7 + PM2",
-    "variant": {"gene": null, "consequence": "synonymous_variant", "gnomad_af": null, "revel_score": 0.35, "spliceai_max": 0.05, "clinvar_sig": null},
+    "description": "Germline, synonymous + spliceai=0.05 + revel=0.35 \u2192 BP4 + BP7 + PM2",
+    "variant": {
+      "gene": null,
+      "consequence": "synonymous_variant",
+      "gnomad_af": null,
+      "revel_score": 0.35,
+      "spliceai_max": 0.05,
+      "clinvar_sig": null
+    },
     "case_type": "germline",
-    "expected_codes": ["PM2", "BP4", "BP7"],
-    "expected_strengths": {"BP4": "supporting", "BP7": "supporting", "PM2": "supporting"}
+    "expected_codes": [
+      "PM2",
+      "BP4",
+      "BP7"
+    ],
+    "expected_strengths": {
+      "BP4": "supporting",
+      "BP7": "supporting",
+      "PM2": "supporting"
+    }
   },
   {
-    "description": "Somatic TP53, gnomAD absent → O3 (moderate)",
-    "variant": {"gene": "TP53", "consequence": null, "gnomad_af": null, "revel_score": null, "spliceai_max": null, "clinvar_sig": null},
+    "description": "Somatic TP53, gnomAD absent \u2192 O3 (moderate)",
+    "variant": {
+      "gene": "TP53",
+      "consequence": null,
+      "gnomad_af": null,
+      "revel_score": null,
+      "spliceai_max": null,
+      "clinvar_sig": null
+    },
     "case_type": "somatic",
-    "expected_codes": ["O3"],
-    "expected_strengths": {"O3": "moderate"}
+    "expected_codes": [
+      "O3"
+    ],
+    "expected_strengths": {
+      "O3": "moderate"
+    }
   },
   {
-    "description": "Somatic, stop_gained + high REVEL → O3 + O2 + O6",
-    "variant": {"gene": null, "consequence": "stop_gained", "gnomad_af": null, "revel_score": 0.85, "spliceai_max": null, "clinvar_sig": null},
+    "description": "Somatic, stop_gained + high REVEL \u2192 O3 + O2 + O6",
+    "variant": {
+      "gene": null,
+      "consequence": "stop_gained",
+      "gnomad_af": null,
+      "revel_score": 0.85,
+      "spliceai_max": null,
+      "clinvar_sig": null
+    },
     "case_type": "somatic",
-    "expected_codes": ["O3", "O2", "O6"],
-    "expected_strengths": {"O2": "very_strong", "O3": "moderate", "O6": "supporting"}
+    "expected_codes": [
+      "O3",
+      "O2",
+      "O6"
+    ],
+    "expected_strengths": {
+      "O2": "very_strong",
+      "O3": "moderate",
+      "O6": "supporting"
+    }
   }
 ]
