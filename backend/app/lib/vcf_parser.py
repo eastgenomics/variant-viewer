@@ -69,6 +69,19 @@ class VcfMeta:
     header_lines: list[str]
 
 
+def _raw_info_str(v: "cyvcf2.Variant") -> str:
+    """Return the raw INFO column string for *v*.
+
+    ``cyvcf2`` ``v.INFO.keys()`` silently omits undeclared INFO keys such as
+    the flat ``CSQ_*`` fields produced by East Genomics pipelines.
+    ``str(v)`` returns the verbatim VCF line as a workaround; this helper
+    encapsulates that coupling so it is independently testable and easy
+    to audit if the cyvcf2 ``__str__`` contract ever changes.
+    """
+    cols = str(v).rstrip("\n\r").split("\t")
+    return cols[7] if len(cols) > 7 else "."
+
+
 def _parse_info(info_str: str) -> dict[str, str | bool]:
     """Parse a VCF INFO column string into a key-value dict.
 
@@ -226,67 +239,72 @@ def parse_vcf(
             Callers that want to collect variants should pass
             ``variants.append``.
 
+    Raises:
+        ValueError: If *path* does not exist, is not a valid VCF / BCF
+            file, or cannot be opened by htslib.  The exception message
+            includes *path* for context.
+
     Returns:
         A ``VcfMeta`` containing the detected pipeline key (or ``None``
         if the header does not match any known pattern) and all
         ``##``-prefixed header lines.
     """
-    vcf = cyvcf2.VCF(str(path))
+    try:
+        vcf = cyvcf2.VCF(str(path))
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"vcf_parser: cannot open {path!r}: {exc}") from exc
 
-    # Extract header lines for pipeline detection
-    header_lines = [
-        line for line in str(vcf.raw_header).splitlines()
-        if line.startswith("##")
-    ]
+    with vcf:
+        # Extract header lines for pipeline detection
+        header_lines = [
+            line for line in str(vcf.raw_header).splitlines()
+            if line.startswith("##")
+        ]
 
-    # Parse CSQ FORMAT from header
-    csq_header: list[str] | None = None
-    for line in header_lines:
-        if "ID=CSQ" in line and "Format:" in line:
-            fmt = line.split("Format:")[1].replace('"', "").replace(">", "").strip()
-            csq_header = fmt.split("|")
-            break
+        # Parse CSQ FORMAT from header
+        csq_header: list[str] | None = None
+        for line in header_lines:
+            if "ID=CSQ" in line and "Format:" in line:
+                fmt = line.split("Format:")[1].replace('"', "").replace(">", "").strip()
+                csq_header = fmt.split("|")
+                break
 
-    for v in vcf:
-        qual: float | None = v.QUAL  # cyvcf2 returns None if "."
+        for v in vcf:
+            qual: float | None = v.QUAL  # cyvcf2 returns None if "."
 
-        # Build info dict from raw INFO string (reliable for declared AND
-        # undeclared fields such as flat CSQ_* fields from East Genomics pipelines).
-        # cyvcf2 v.INFO.keys() only enumerates header-declared keys, so we
-        # parse the raw VCF line for complete coverage.
-        raw_cols = str(v).rstrip("\n").split("\t")
-        filter_raw = raw_cols[6] if len(raw_cols) > 6 else "."
-        filter_val: str | None = None if filter_raw in (".", "") else filter_raw
-        info_str = raw_cols[7] if len(raw_cols) > 7 else "."
-        info: dict[str, Any] = _parse_info(info_str)
+            # Build info dict via _raw_info_str() — see that helper's docstring
+            # for why str(v) is used instead of v.INFO.keys().
+            raw_cols = str(v).rstrip("\n\r").split("\t")
+            filter_raw = raw_cols[6] if len(raw_cols) > 6 else "."
+            filter_val: str | None = None if filter_raw in (".", "") else filter_raw
+            info: dict[str, str | bool] = _parse_info(_raw_info_str(v))
 
-        for alt in v.ALT:
-            if not alt or alt == "*":
-                continue
+            for alt in v.ALT:
+                if not alt or alt == "*":
+                    continue
 
-            if csq_header is not None and "CSQ" in info:
-                annotations = _extract_vep(info, csq_header, alt)
-            elif "CSQ_SYMBOL" in info or "CSQ_Consequence" in info:
-                annotations = _extract_flat_csq(info)
-            else:
-                annotations = {k: None for k in [
-                    "gene", "consequence", "hgvs_c", "hgvs_p",
-                    "gnomad_af", "clinvar_sig", "revel_score", "spliceai_max",
-                ]}
+                if csq_header is not None and "CSQ" in info:
+                    annotations = _extract_vep(info, csq_header, alt)
+                elif "CSQ_SYMBOL" in info or "CSQ_Consequence" in info:
+                    annotations = _extract_flat_csq(info)
+                else:
+                    annotations = {k: None for k in [
+                        "gene", "consequence", "hgvs_c", "hgvs_p",
+                        "gnomad_af", "clinvar_sig", "revel_score", "spliceai_max",
+                    ]}
 
-            variant = VcfVariant(
-                chrom=v.CHROM,
-                pos=v.POS,
-                ref=v.REF,
-                alt=alt,
-                qual=qual,
-                filter=filter_val,
-                info_json=dict(info),
-                **annotations,
-            )
-            if on_variant:
-                on_variant(variant)
+                variant = VcfVariant(
+                    chrom=v.CHROM,
+                    pos=v.POS,
+                    ref=v.REF,
+                    alt=alt,
+                    qual=qual,
+                    filter=filter_val,
+                    info_json=dict(info),
+                    **annotations,
+                )
+                if on_variant:
+                    on_variant(variant)
 
-    vcf.close()
-    pipeline_key = detect_pipeline_key(header_lines)
+        pipeline_key = detect_pipeline_key(header_lines)
     return VcfMeta(pipeline_key=pipeline_key, header_lines=header_lines)

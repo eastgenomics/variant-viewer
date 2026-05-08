@@ -57,13 +57,19 @@ def _collect(path: Path) -> tuple[list[VcfVariant], VcfMeta]:
     return variants, meta
 
 
+# Shared fixture: written once, reused by all VEP annotation tests
+@pytest.fixture
+def vep_vcf(tmp_path: Path) -> Path:
+    """Write _VEP_CONTENT to a temp file and return its path."""
+    return _write(tmp_path, "vep.vcf", _VEP_CONTENT)
+
+
 # ---------------------------------------------------------------------------
 # VEP CSQ annotation
 # ---------------------------------------------------------------------------
 
-def test_vep_basic_fields(tmp_path):
-    p = _write(tmp_path, "vep.vcf", _VEP_CONTENT)
-    variants, _ = _collect(p)
+def test_vep_basic_fields(vep_vcf):
+    variants, _ = _collect(vep_vcf)
     assert len(variants) == 1
     v = variants[0]
     assert v.chrom == "1"
@@ -81,16 +87,14 @@ def test_vep_basic_fields(tmp_path):
     assert v.clinvar_sig == "Pathogenic"
 
 
-def test_vep_spliceai_max(tmp_path):
+def test_vep_spliceai_max(vep_vcf):
     # DS_AG=0.1, DS_AL=0.2, DS_DG=0.05, DS_DL=0.3 → max=0.3
-    p = _write(tmp_path, "vep.vcf", _VEP_CONTENT)
-    variants, _ = _collect(p)
+    variants, _ = _collect(vep_vcf)
     assert abs(variants[0].spliceai_max - 0.3) < 1e-9
 
 
-def test_pipeline_detected_from_header(tmp_path):
-    p = _write(tmp_path, "vep.vcf", _VEP_CONTENT)
-    _, meta = _collect(p)
+def test_pipeline_detected_from_header(vep_vcf):
+    _, meta = _collect(vep_vcf)
     assert meta.pipeline_key == "dragen_germline"
 
 
@@ -142,7 +146,28 @@ def test_spanning_deletion_skipped(tmp_path):
 # Header lines captured in VcfMeta
 # ---------------------------------------------------------------------------
 
-def test_header_lines_captured(tmp_path):
-    p = _write(tmp_path, "vep.vcf", _VEP_CONTENT)
-    _, meta = _collect(p)
+def test_header_lines_captured(vep_vcf):
+    _, meta = _collect(vep_vcf)
     assert any("fileformat" in line for line in meta.header_lines)
+
+
+# ---------------------------------------------------------------------------
+# Error paths
+# ---------------------------------------------------------------------------
+
+def test_file_not_found(tmp_path):
+    """parse_vcf must raise for a missing file, not silently return empty."""
+    with pytest.raises((OSError, ValueError)):
+        parse_vcf(tmp_path / "nonexistent.vcf")
+
+
+def test_ref_only_site_produces_no_variants(tmp_path):
+    """gVCF ref-blocks (ALT='.') should yield no VcfVariant."""
+    content = (
+        "##fileformat=VCFv4.2\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "1\t100\t.\tA\t.\t.\t.\t.\n"
+    )
+    p = _write(tmp_path, "gvcf.vcf", content)
+    variants, _ = _collect(p)
+    assert variants == []
