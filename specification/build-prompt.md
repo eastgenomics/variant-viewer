@@ -154,9 +154,9 @@ The idempotency check (`check_idempotency()`) must run **before** the first
 `INSERT INTO patients` statement. Any DB write that executes before the
 idempotency check creates a risk of leaving orphaned rows on failure.
 
-**Verification:** `test_ingest_exact_duplicate` and `test_ingest_near_duplicate`
-in `tests/test_ingest.py` both confirm that `DuplicateSubmissionError` is raised
-before any `INSERT` statement is executed on the mock cursor.
+**Verification:** `test_ingest_exact_duplicate` in `tests/test_ingest.py` confirms
+that `DuplicateSubmissionError` is raised before any `INSERT` statement is executed
+on the mock cursor.
 
 ### Invariant 7 — `ingest_sample()` must never swallow `jsonschema.ValidationError`
 
