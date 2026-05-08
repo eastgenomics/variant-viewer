@@ -32,7 +32,26 @@ from app.lib.vcf_parser import VcfVariant, parse_vcf
 logger = logging.getLogger(__name__)
 
 _SCHEMA_PATH = Path(__file__).parent.parent.parent / "config" / "manifest-schema.json"
-_MANIFEST_SCHEMA: dict = json.loads(_SCHEMA_PATH.read_text())
+_MANIFEST_SCHEMA: dict | None = None
+
+
+def _get_manifest_schema() -> dict:
+    """Return the manifest JSON Schema, loading it on first call.
+
+    Lazy-loading avoids a ``FileNotFoundError`` at module import time
+    (which would crash every Lambda invocation before ``handler()`` is
+    reached) and instead raises a ``RuntimeError`` with a clear message
+    the first time ``ingest_sample()`` is called.
+    """
+    global _MANIFEST_SCHEMA
+    if _MANIFEST_SCHEMA is None:
+        try:
+            _MANIFEST_SCHEMA = json.loads(_SCHEMA_PATH.read_text())
+        except FileNotFoundError as exc:
+            raise RuntimeError(
+                f"Schema file missing from deployment package: {_SCHEMA_PATH}"
+            ) from exc
+    return _MANIFEST_SCHEMA
 
 
 class DuplicateSubmissionError(Exception):
@@ -179,7 +198,7 @@ def ingest_sample(
 
         # 4-6. Load, validate, and parse manifest
         raw = json.loads(manifest_path.read_text())
-        jsonschema.validate(raw, _MANIFEST_SCHEMA)   # raises ValidationError on bad manifest
+        jsonschema.validate(raw, _get_manifest_schema())   # raises ValidationError on bad manifest
         manifest = parse_manifest(raw)               # raises ValueError on structural errors
 
         lab_number  = manifest.patient.lab_number
@@ -215,7 +234,12 @@ def ingest_sample(
                       dob  = COALESCE(EXCLUDED.dob,  patients.dob)
                 RETURNING id
                 """,
-                (lab_number, manifest.patient.name, None),
+                (lab_number, manifest.patient.name,
+                 # TODO: pass manifest.patient.dob once ManifestPatient exposes birthDate.
+                 # DOB was intentionally removed from ManifestPatient in PR #18 review
+                 # (round 2). Re-enable by adding a dob field to ManifestPatient and
+                 # extracting patient.birthDate in parse_manifest().
+                 None),
             )
             patient_id: int = cur.fetchone()[0]
 
@@ -304,6 +328,12 @@ def ingest_sample(
             )
 
     except psycopg2.errors.UniqueViolation as exc:
+        # Only the INSERT INTO samples statement carries a UNIQUE constraint on
+        # s3_key that can fire in the TOCTOU race.  The patients upsert uses
+        # ON CONFLICT DO UPDATE and will never raise UniqueViolation.  Re-raise
+        # any violation from a different constraint so bugs aren't swallowed.
+        if exc.diag.constraint_name != "samples_s3_key_key":
+            raise
         raise DuplicateSubmissionError(
             f"VCF already ingested (concurrent ingest race): s3_key={vcf_s3_key!r}",
             existing_sample_id=-1,
