@@ -1,9 +1,16 @@
-"""VCF ingest idempotency guard and duplicate-submission exception.
+"""VCF ingest pipeline: idempotency guard, orchestration, and DB persistence.
 
-Provides ``DuplicateSubmissionError`` and ``check_idempotency()``,
-which together prevent the same VCF file from being ingested more than
-once.  The full ingest pipeline (download → validate → parse → persist)
-resides in ``ingest_sample()`` in PR 5.
+Provides three public symbols:
+
+``DuplicateSubmissionError``
+    Structured exception raised when a re-upload of an existing VCF is
+    detected, either by the pre-check or by a DB ``UniqueViolation``.
+
+``check_idempotency(s3_key, lab_number, sample_name, conn)``
+    Lightweight s3_key uniqueness check run before any DB writes.
+
+``ingest_sample(vcf_s3_key, manifest_s3_key, bucket, s3_client, conn)``
+    Full ingest pipeline: download → validate → parse → persist.
 """
 
 from __future__ import annotations
@@ -47,6 +54,14 @@ class DuplicateSubmissionError(Exception):
         existing_sample_id: int,
         duplicate_type: str,
     ) -> None:
+        """Initialise with a human-readable message and structured metadata.
+
+        Args:
+            message: Human-readable description of the conflict.
+            existing_sample_id: Primary key of the conflicting ``samples``
+                row, or ``-1`` when the row ID is unavailable (TOCTOU race).
+            duplicate_type: ``"exact"`` — the only currently raised type.
+        """
         super().__init__(message)
         self.existing_sample_id = existing_sample_id
         self.duplicate_type = duplicate_type
@@ -111,13 +126,40 @@ def ingest_sample(
 ) -> int:
     """Download, validate, parse, and persist a VCF + manifest from S3.
 
-    Returns the new sample_id (int) on success.
+    Downloads the VCF and manifest to an invocation-scoped temporary
+    directory (auto-deleted on exit), validates the manifest against
+    ``config/manifest-schema.json``, parses the FHIR R4 Bundle, checks
+    idempotency, parses the VCF, and atomically inserts patient, sample,
+    variant, classification-shell, pre-computed criteria, and workflow
+    rows into the database.
+
+    Multiple VCFs for the same patient and specimen name are explicitly
+    permitted (e.g. different gene panels from one specimen barcode);
+    only re-uploading the identical VCF file (same ``s3_key``) is
+    rejected.
+
+    Args:
+        vcf_s3_key: S3 object key of the VCF file.  Must end with
+            ``.vcf`` or ``.vcf.gz``.
+        manifest_s3_key: S3 object key of the FHIR R4 Bundle sidecar
+            manifest (JSON).
+        bucket: Name of the S3 bucket containing both files.
+        s3_client: Boto3 S3 client — injected for testability.
+        conn: Active psycopg2 connection already inside a transaction
+            (caller wraps with ``db.with_transaction()``).
+
+    Returns:
+        The ``id`` (integer) of the newly inserted ``samples`` row.
 
     Raises:
-        ValueError: key format invalid or FHIR manifest structurally wrong.
-        jsonschema.ValidationError: manifest JSON does not match the schema.
-        DuplicateSubmissionError: submission would duplicate an existing record.
-        psycopg2.OperationalError: DB failure.
+        ValueError: VCF key format is not ``.vcf`` / ``.vcf.gz``, or
+            the FHIR manifest is structurally invalid.
+        jsonschema.ValidationError: Manifest JSON does not satisfy
+            ``config/manifest-schema.json``.
+        DuplicateSubmissionError: The same ``s3_key`` is already present
+            in the ``samples`` table, or a concurrent ingest caused a DB
+            ``UniqueViolation`` (TOCTOU race).
+        psycopg2.OperationalError: A database operation failed.
     """
     # 1. Validate VCF key format
     if not (vcf_s3_key.endswith(".vcf") or vcf_s3_key.endswith(".vcf.gz")):
