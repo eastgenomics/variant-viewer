@@ -1,3 +1,15 @@
+"""AWS Lambda entry point for S3-triggered VCF ingest.
+
+Triggered by ``s3:ObjectCreated`` events on the VCF upload bucket.
+Derives the companion manifest S3 key from the VCF key, downloads
+both files, validates the manifest, and persists the VCF data via
+``ingest_sample()``.
+
+HTTP-style status codes are used in the return value so that
+infrastructure-level monitoring can distinguish success (200) from
+expected errors (400 / 409) without inspecting log output.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -13,7 +25,32 @@ logger = logging.getLogger(__name__)
 
 
 def handler(event: dict, context: object) -> dict:
-    """Lambda entry point — triggered by S3 ObjectCreated events."""
+    """Handle an S3 ObjectCreated event and ingest the uploaded VCF.
+
+    Derives the manifest S3 key by replacing the ``.vcf`` / ``.vcf.gz``
+    suffix of the VCF key with ``.manifest.json``.  The entire ingest
+    pipeline runs inside a single database transaction.
+
+    Args:
+        event: Lambda event payload.  Must contain exactly one S3 record
+            in ``event["Records"]``; raises ``RuntimeError`` otherwise to
+            trigger Lambda retry / DLQ handling.
+        context: Lambda runtime context (unused).
+
+    Returns:
+        A dict with ``statusCode`` and either ``sample_id`` (success) or
+        ``error`` (failure)::
+
+            {"statusCode": 200, "sample_id": <int>}   # success
+            {"statusCode": 409, "error": <str>}        # duplicate VCF
+            {"statusCode": 400, "error": <str>}        # bad manifest / key
+
+    Raises:
+        RuntimeError: If the event contains a number of S3 records other
+            than exactly one (triggers Lambda retry).
+        Any exception not caught by the inner ``try`` block propagates to
+        Lambda, which retries the invocation according to its retry policy.
+    """
     records = event.get("Records", [])
     if len(records) != 1:
         raise RuntimeError(f"Expected exactly 1 S3 record, got {len(records)}")
