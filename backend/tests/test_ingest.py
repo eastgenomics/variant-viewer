@@ -149,7 +149,6 @@ def _make_db_mock(patient_id=1, sample_id=2):
     mock_cursor = MagicMock()
     mock_cursor.__enter__ = lambda s: s
     mock_cursor.__exit__ = MagicMock(return_value=False)
-    # check_idempotency calls fetchone twice (exact, near) before the INSERT RETURNINGs
     # check_idempotency calls fetchone once (s3_key check) before INSERT RETURNINGs
     mock_cursor.fetchone.side_effect = [None, (patient_id,), (sample_id,)]
     mock_conn = MagicMock()
@@ -299,22 +298,36 @@ def test_ingest_exact_duplicate(mock_parse_vcf):
 
 @patch("app.lib.ingest.parse_vcf")
 def test_ingest_unique_violation_toctou(mock_parse_vcf):
-    """UniqueViolation from a concurrent ingest race is converted to
-    DuplicateSubmissionError(duplicate_type='exact') so the Lambda
-    handler returns 409 rather than retrying.
+    """UniqueViolation from the samples INSERT (TOCTOU race) is converted to
+    DuplicateSubmissionError(duplicate_type='exact') so the Lambda handler
+    returns 409 rather than retrying.
+
+    The patients upsert uses ON CONFLICT DO UPDATE and will never raise
+    UniqueViolation; only the INSERT INTO samples can fire it.
     """
     import psycopg2.errors
+
+    # Subclass to provide the constraint_name that the tightened catch checks.
+    class _SamplesKeyUniqueViolation(psycopg2.errors.UniqueViolation):
+        @property
+        def diag(self):
+            m = MagicMock()
+            m.constraint_name = "samples_s3_key_key"
+            return m
 
     mock_parse_vcf.return_value = VcfMeta(pipeline_key=None, header_lines=[])
 
     mock_cursor = MagicMock()
     mock_cursor.__enter__ = lambda s: s
     mock_cursor.__exit__ = MagicMock(return_value=False)
-    # Idempotency check passes (None for the s3_key SELECT), then INSERT raises
-    mock_cursor.fetchone.side_effect = [None]
+    mock_cursor.fetchone.side_effect = [
+        None,   # check_idempotency: SELECT id FROM samples WHERE s3_key → not found
+        (1,),   # INSERT INTO patients RETURNING id
+    ]
     mock_cursor.execute.side_effect = [
-        None,  # exact idempotency SELECT
-        psycopg2.errors.UniqueViolation("duplicate key value"),  # patients INSERT
+        None,  # check_idempotency: SELECT id FROM samples WHERE s3_key
+        None,  # INSERT INTO patients ON CONFLICT DO UPDATE — never raises UniqueViolation
+        _SamplesKeyUniqueViolation("duplicate key value"),  # INSERT INTO samples
     ]
     mock_conn = MagicMock()
     mock_conn.cursor.return_value = mock_cursor

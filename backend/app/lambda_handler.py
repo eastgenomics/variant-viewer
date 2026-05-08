@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import re
+import urllib.parse
 
 import boto3
 import jsonschema
@@ -56,12 +57,14 @@ def handler(event: dict, context: object) -> dict:
         raise RuntimeError(f"Expected exactly 1 S3 record, got {len(records)}")
     record    = records[0]["s3"]
     bucket    = record["bucket"]["name"]
-    vcf_key   = record["object"]["key"]
+    # S3 event keys are URL-encoded (spaces as '+', special chars percent-encoded).
+    # unquote_plus must be used — plain unquote does not decode '+' as a space.
+    vcf_key   = urllib.parse.unquote_plus(record["object"]["key"])
     manifest_key = re.sub(r"\.vcf(\.gz)?$", ".manifest.json", vcf_key)
 
     logger.info("ingest triggered: bucket=%s key=%s", bucket, vcf_key)
 
-    s3 = boto3.client("s3", region_name="eu-west-2")
+    s3 = boto3.client("s3")  # boto3 reads AWS_REGION from the Lambda runtime environment
     try:
         with with_transaction() as conn:
             sample_id = ingest_sample(vcf_key, manifest_key, bucket, s3, conn)
