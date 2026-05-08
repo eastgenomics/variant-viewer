@@ -10,15 +10,16 @@
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2025-00234"
           }
-        ],
-        "birthDate": "1990-11-22"
+        ]
       }
     },
     {
       "resource": {
         "resourceType": "Specimen",
         "identifier": [
-          { "value": "26055S0201" }
+          {
+            "value": "26055S0201"
+          }
         ],
         "extension": [
           {
@@ -43,24 +44,32 @@
         "resourceType": "Task",
         "status": "completed",
         "identifier": [
-          { "value": "RUN-20250203-014" }
+          {
+            "value": "RUN-20250203-014"
+          }
         ],
         "code": {
           "text": "dragen_germline"
         },
         "input": [
           {
-            "type": { "text": "pipeline_version" },
+            "type": {
+              "text": "pipeline_version"
+            },
             "valueString": "4.2.4"
           },
           {
-            "type": { "text": "panel" },
+            "type": {
+              "text": "panel"
+            },
             "valueString": "BRCA1_BRCA2_v3"
           }
         ],
         "output": [
           {
-            "type": { "text": "vcf" },
+            "type": {
+              "text": "vcf"
+            },
             "valueString": "germline-panel-example.vcf.gz"
           }
         ]

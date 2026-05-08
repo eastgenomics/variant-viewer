@@ -8,8 +8,7 @@ _EXAMPLE = {
     "resourceType": "Bundle", "type": "collection",
     "entry": [
         {"resource": {"resourceType": "Patient",
-            "identifier": [{"system": "https://fhir.example-lab.org/Id/lab-number", "value": "LAB-2024-00123"}],
-            "birthDate": "1978-04-12"}},
+            "identifier": [{"system": "https://fhir.example-lab.org/Id/lab-number", "value": "LAB-2024-00123"}]}},
         {"resource": {"resourceType": "Specimen",
             "identifier": [{"value": "26041S0057"}],
             "extension": [{"url": "https://example.org/fhir/StructureDefinition/case-type", "valueCode": "germline"}],

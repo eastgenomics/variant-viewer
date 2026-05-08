@@ -110,7 +110,6 @@ _VALID_MANIFEST = {
             "resourceType": "Patient",
             "identifier": [{"system": "https://fhir.example-lab.org/Id/lab-number",
                              "value": "LAB-001"}],
-            "birthDate": "1980-01-01",
         }},
         {"resource": {
             "resourceType": "Specimen",

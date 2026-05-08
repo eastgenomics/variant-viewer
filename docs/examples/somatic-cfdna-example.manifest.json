@@ -10,15 +10,16 @@
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2025-00501"
           }
-        ],
-        "birthDate": "1958-07-30"
+        ]
       }
     },
     {
       "resource": {
         "resourceType": "Specimen",
         "identifier": [
-          { "value": "26055S0334-L" }
+          {
+            "value": "26055S0334-L"
+          }
         ],
         "extension": [
           {
@@ -29,7 +30,7 @@
         "type": {
           "coding": [
             {
-              "display": "Liquid biopsy — cfDNA"
+              "display": "Liquid biopsy \u2014 cfDNA"
             }
           ]
         },
@@ -43,24 +44,32 @@
         "resourceType": "Task",
         "status": "completed",
         "identifier": [
-          { "value": "RUN-20250218-022" }
+          {
+            "value": "RUN-20250218-022"
+          }
         ],
         "code": {
           "text": "mutect2"
         },
         "input": [
           {
-            "type": { "text": "pipeline_version" },
+            "type": {
+              "text": "pipeline_version"
+            },
             "valueString": "4.4.0.0"
           },
           {
-            "type": { "text": "mode" },
+            "type": {
+              "text": "mode"
+            },
             "valueString": "tumor_only"
           }
         ],
         "output": [
           {
-            "type": { "text": "vcf" },
+            "type": {
+              "text": "vcf"
+            },
             "valueString": "somatic-cfdna-example.vcf.gz"
           }
         ]
