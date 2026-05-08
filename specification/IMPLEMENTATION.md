@@ -2815,6 +2815,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import urllib.parse
 
 import boto3
 import jsonschema
@@ -2827,14 +2828,18 @@ logger = logging.getLogger(__name__)
 
 def handler(event: dict, context: object) -> dict:
     """Lambda entry point — triggered by S3 ObjectCreated events."""
-    record    = event["Records"][0]["s3"]
+    records = event.get("Records", [])
+    if len(records) != 1:
+        raise RuntimeError(f"Expected exactly 1 S3 record, got {len(records)}")
+    record    = records[0]["s3"]
     bucket    = record["bucket"]["name"]
-    vcf_key   = record["object"]["key"]
+    # S3 event keys are URL-encoded; unquote_plus decodes '+' as space.
+    vcf_key   = urllib.parse.unquote_plus(record["object"]["key"])
     manifest_key = re.sub(r"\.vcf(\.gz)?$", ".manifest.json", vcf_key)
 
     logger.info("ingest triggered: bucket=%s key=%s", bucket, vcf_key)
 
-    s3 = boto3.client("s3", region_name="eu-west-2")
+    s3 = boto3.client("s3")   # reads AWS_REGION from Lambda runtime
     try:
         with with_transaction() as conn:
             sample_id = ingest_sample(vcf_key, manifest_key, bucket, s3, conn)

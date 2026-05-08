@@ -252,8 +252,9 @@ def test_ingest_invalid_key_format():
 
 def test_ingest_schema_validation_failure():
     bad_manifest = {"resourceType": "Bundle", "type": "collection"}  # missing 'entry'
+    conn, _ = _make_db_mock()  # fetchone returns None → idempotency check passes
     with pytest.raises(jsonschema.ValidationError):
-        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(bad_manifest), MagicMock())
+        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(bad_manifest), conn)
 
 
 def test_ingest_manifest_parse_failure():
@@ -270,8 +271,9 @@ def test_ingest_manifest_parse_failure():
             {"resource": {"resourceType": "Task", "status": "completed"}},
         ],
     }
+    conn, _ = _make_db_mock()  # fetchone returns None → idempotency check passes
     with pytest.raises(ValueError):
-        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(bad_case_type), MagicMock())
+        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(bad_case_type), conn)
 
 
 # ---------------------------------------------------------------------------
@@ -335,3 +337,31 @@ def test_ingest_unique_violation_toctou(mock_parse_vcf):
         ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(), mock_conn)
 
     assert exc_info.value.duplicate_type == "exact"
+
+
+# ---------------------------------------------------------------------------
+# Filename mismatch
+# ---------------------------------------------------------------------------
+
+@patch("app.lib.ingest.parse_vcf")
+def test_ingest_manifest_vcf_filename_mismatch(mock_parse_vcf):
+    """If manifest.task.vcf_filename is set and its basename doesn't match
+    the S3 key basename, ingest_sample must raise ValueError before any DB write.
+    """
+    mock_parse_vcf.return_value = VcfMeta(pipeline_key=None, header_lines=[])
+    mismatched = {
+        "resourceType": "Bundle", "type": "collection",
+        "entry": [
+            _VALID_MANIFEST["entry"][0],  # Patient
+            _VALID_MANIFEST["entry"][1],  # Specimen
+            {"resource": {
+                "resourceType": "Task",
+                "status": "completed",
+                "code": {"text": "dragen_germline"},
+                "output": [{"type": {"text": "vcf"}, "valueString": "different_sample.vcf.gz"}],
+            }},
+        ],
+    }
+    conn, _ = _make_db_mock()
+    with pytest.raises(ValueError, match="vcf_filename.*does not match"):
+        ingest_sample(_VCF_KEY, _MANIFEST_KEY, _BUCKET, _make_s3_mock(mismatched), conn)

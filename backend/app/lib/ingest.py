@@ -184,9 +184,15 @@ def ingest_sample(
     if not (vcf_s3_key.endswith(".vcf") or vcf_s3_key.endswith(".vcf.gz")):
         raise ValueError(f"Unsupported VCF key format: {vcf_s3_key!r}")
 
-    # 2-8. Download, validate, parse, and idempotency-check inside an
-    # invocation-scoped temp directory - auto-cleaned on exit so warm Lambda
-    # containers don't accumulate files and exhaust /tmp storage.
+    # 2. Idempotency pre-check — run before S3 downloads to short-circuit wasted
+    # I/O for already-ingested keys.  lab_number and sample_name are not yet
+    # known here; the underlying query uses only s3_key (the other parameters
+    # are kept in the signature for future logging context).
+    check_idempotency(vcf_s3_key, "", "", conn)
+
+    # 3-8. Download, validate, parse inside an invocation-scoped temp directory.
+    # Auto-cleaned on exit so warm Lambda containers don't accumulate files and
+    # exhaust /tmp storage.
     with tempfile.TemporaryDirectory(prefix="ingest-") as tmp_dir:
         tmp = Path(tmp_dir)
         vcf_path      = tmp / Path(vcf_s3_key).name
@@ -205,8 +211,15 @@ def ingest_sample(
         sample_name = manifest.specimen.sample_name
         case_type   = manifest.specimen.case_type
 
-        # 7. Idempotency check — must run before any INSERT
-        check_idempotency(vcf_s3_key, lab_number, sample_name, conn)
+        # 7. Cross-check manifest vcf_filename against the S3 key basename.
+        # A mismatch means the manifest was paired with the wrong VCF upload.
+        if manifest.task.vcf_filename and (
+            Path(manifest.task.vcf_filename).name != Path(vcf_s3_key).name
+        ):
+            raise ValueError(
+                f"Manifest vcf_filename {manifest.task.vcf_filename!r} does not "
+                f"match uploaded VCF basename {Path(vcf_s3_key).name!r}"
+            )
 
         # 8. Parse VCF (cyvcf2) - file access ends here
         variants: list[VcfVariant] = []

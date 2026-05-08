@@ -234,7 +234,6 @@ CASE_TYPE_EXT  = "https://example.org/fhir/StructureDefinition/case-type"
 class ManifestPatient:
     lab_number: str
     name: str | None
-    dob: str | None   # "YYYY-MM-DD"
 
 @dataclass
 class ManifestSpecimen:
@@ -499,7 +498,7 @@ def pre_compute_criteria(
 
 **Responsibilities:**
 - Defines `DuplicateSubmissionError` — structured exception carrying
-  `duplicate_type` (`"exact"` | `"near"`) and `existing_sample_id`.
+  `duplicate_type` (always `"exact"`) and `existing_sample_id`.
 - Provides `check_idempotency()` — pre-insert guard that raises
   `DuplicateSubmissionError` if the proposed VCF has already been ingested.
 - Provides `ingest_sample()` — orchestrates the full ingest pipeline from an
@@ -508,22 +507,23 @@ def pre_compute_criteria(
 **`ingest_sample()` algorithm (steps must execute in order):**
 1. Validate VCF key format: must end with `.vcf` or `.vcf.gz`; raise
    `ValueError("Unsupported VCF key format: ...")` otherwise.
-2. Compute temp paths: `vcf_path = Path(tempfile.gettempdir()) / Path(vcf_s3_key).name`;
-   likewise for manifest.
-3. Download both files from S3 via `s3_client.download_file(bucket, key, dest)`.
+2. Idempotency pre-check: call `check_idempotency(vcf_s3_key, "", "", conn)` before
+   any S3 work to short-circuit wasted downloads for duplicate keys.
+3. Download both files from S3 via `s3_client.download_file(bucket, key, dest)` into a
+   `tempfile.TemporaryDirectory` (auto-deleted on exit to avoid /tmp accumulation in warm Lambdas).
 4. Load manifest JSON: `raw = json.loads(manifest_path.read_text())`.
 5. Validate against `config/manifest-schema.json` using
-   `jsonschema.validate(raw, _MANIFEST_SCHEMA)` — propagate
+   `jsonschema.validate(raw, _get_manifest_schema())` — propagate
    `jsonschema.ValidationError`; do not catch.
 6. Parse manifest: `manifest = parse_manifest(raw)` — raises `ValueError` on
    structural errors.
-7. Call `check_idempotency(vcf_s3_key, lab_number, sample_name, conn)` — raises
-   `DuplicateSubmissionError` if a duplicate is found.
+7. Cross-check filename: if `manifest.task.vcf_filename` is set and its basename
+   differs from `Path(vcf_s3_key).name`, raise `ValueError`.
 8. Parse VCF: `meta = parse_vcf(vcf_path, on_variant=variants.append)` using
    the `cyvcf2`-backed parser (PR 5+).
 9. DB writes (inside caller-provided `conn`, already in a transaction):
    - a. Upsert `patients` by `lab_number`
-     (`ON CONFLICT (lab_number) DO UPDATE SET name, dob`) → `patient_id`.
+     (`ON CONFLICT (lab_number) DO UPDATE SET name`) → `patient_id`.
    - b. Insert `samples` row (`s3_key`, `pipeline_key` from `meta` or manifest
      task, `case_type`, `tissue`, `sequencing_date`) → `sample_id`.
    - c. For each `VcfVariant`:
@@ -618,7 +618,6 @@ def ingest_sample(
 class Patient(BaseModel):
     id: int | None = None
     name: str | None = None
-    dob: date | None = None
     lab_number: str                   # unique key for upsert
     created_at: datetime | None = None
 
@@ -708,8 +707,8 @@ class AuditEntry(BaseModel):
 | `ValueError("Specimen manifest missing case-type extension")` | fhir\_manifest.py | `CASE_TYPE_EXT` extension absent on Specimen |
 | `ValueError("Invalid case_type: ...")` | fhir\_manifest.py | `valueCode` not `"germline"` or `"somatic"` |
 | `ValueError("Unsupported VCF key format: ...")` | ingest.py | Key doesn't end `.vcf` or `.vcf.gz` |
+| `ValueError("Manifest vcf\_filename ... does not match ...")` | ingest.py | Manifest `vcf_filename` basename differs from S3 key basename |
 | `DuplicateSubmissionError(duplicate_type="exact", ...)` | ingest.py | `s3_key` already in `samples` |
-| `DuplicateSubmissionError(duplicate_type="near", ...)` | ingest.py | Same `lab_number` + `sample_name`, different VCF |
 | `jsonschema.ValidationError` | ingest.py | Manifest JSON fails `manifest-schema.json` |
 | `pydantic.ValidationError` | models.py | Invalid field value on construction |
 
