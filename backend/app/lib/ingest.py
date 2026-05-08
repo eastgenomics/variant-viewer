@@ -227,19 +227,13 @@ def ingest_sample(
             # 9a. Upsert patient by lab_number
             cur.execute(
                 """
-                INSERT INTO patients (lab_number, name, dob)
-                VALUES (%s, %s, %s)
+                INSERT INTO patients (lab_number, name)
+                VALUES (%s, %s)
                 ON CONFLICT (lab_number) DO UPDATE
-                  SET name = COALESCE(EXCLUDED.name, patients.name),
-                      dob  = COALESCE(EXCLUDED.dob,  patients.dob)
+                  SET name = COALESCE(EXCLUDED.name, patients.name)
                 RETURNING id
                 """,
-                (lab_number, manifest.patient.name,
-                 # TODO: pass manifest.patient.dob once ManifestPatient exposes birthDate.
-                 # DOB was intentionally removed from ManifestPatient in PR #18 review
-                 # (round 2). Re-enable by adding a dob field to ManifestPatient and
-                 # extracting patient.birthDate in parse_manifest().
-                 None),
+                (lab_number, manifest.patient.name),
             )
             patient_id: int = cur.fetchone()[0]
 

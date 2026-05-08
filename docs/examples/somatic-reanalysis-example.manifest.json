@@ -10,15 +10,16 @@
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2024-00456"
           }
-        ],
-        "birthDate": "1965-09-23"
+        ]
       }
     },
     {
       "resource": {
         "resourceType": "Specimen",
         "identifier": [
-          { "value": "26041S0089-T" }
+          {
+            "value": "26041S0089-T"
+          }
         ],
         "extension": [
           {
@@ -43,24 +44,32 @@
         "resourceType": "Task",
         "status": "completed",
         "identifier": [
-          { "value": "RUN-20250210-001" }
+          {
+            "value": "RUN-20250210-001"
+          }
         ],
         "code": {
           "text": "mutect2"
         },
         "input": [
           {
-            "type": { "text": "pipeline_version" },
+            "type": {
+              "text": "pipeline_version"
+            },
             "valueString": "4.5.0.0"
           },
           {
-            "type": { "text": "reason" },
-            "valueString": "reanalysis — updated panel of normals"
+            "type": {
+              "text": "reason"
+            },
+            "valueString": "reanalysis \u2014 updated panel of normals"
           }
         ],
         "output": [
           {
-            "type": { "text": "vcf" },
+            "type": {
+              "text": "vcf"
+            },
             "valueString": "somatic-reanalysis-example.vcf.gz"
           }
         ]
