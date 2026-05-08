@@ -1,3 +1,9 @@
+"""FastAPI application factory for the Variant Viewer API.
+
+Configures CORS for local development and mounts a ``/api/health``
+liveness probe.  Routes are added in subsequent PRs.
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,4 +24,5 @@ app.add_middleware(
 
 @app.get("/api/health")
 async def health():
+    """Return a 200 OK liveness response."""
     return {"status": "ok"}

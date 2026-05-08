@@ -1,3 +1,11 @@
+"""Pydantic data models mirroring the variant-viewer database schema.
+
+Each class maps one-for-one to a database table.  The module also
+exports shared ``Literal`` type aliases (``Framework``, ``Strength``,
+``CaseType``, ``WorkflowStatus``, ``Classification``) that are re-used
+across the business-logic layer.
+"""
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -16,6 +24,12 @@ Classification = Literal[
 
 
 class Patient(BaseModel):
+    """Patient record mirroring the ``patients`` table.
+
+    ``lab_number`` is the primary business key used for upsert; it must
+    be unique across all patients.
+    """
+
     id: int | None = None
     name: str | None = None
     lab_number: str
@@ -23,6 +37,13 @@ class Patient(BaseModel):
 
 
 class Sample(BaseModel):
+    """Per-VCF sample record mirroring the ``samples`` table.
+
+    ``s3_key`` uniquely identifies the source VCF object and is used for
+    idempotency checks.  Multiple samples may exist for the same patient
+    and specimen name (e.g. different gene panels from one specimen).
+    """
+
     id: int | None = None
     patient_id: int
     name: str
@@ -36,13 +57,21 @@ class Sample(BaseModel):
 
 
 class Variant(BaseModel):
+    """Genomic variant record mirroring the ``variants`` table.
+
+    One row is created per ALT allele per VCF data line.  Annotation
+    fields are extracted from VEP CSQ or flat ``CSQ_*`` INFO fields by
+    ``vcf_parser.parse_vcf()``.  ``info_json`` stores the full raw INFO
+    dict for downstream use.
+    """
+
     id: int | None = None
     sample_id: int
     chrom: str
     pos: int
     ref: str
     alt: str
-    qual: float | None = None
+    qual: float | None = None         # None when VCF field is "." (missing)
     filter: str | None = None
     gene: str | None = None
     consequence: str | None = None
@@ -51,23 +80,38 @@ class Variant(BaseModel):
     gnomad_af: float | None = None
     clinvar_sig: str | None = None
     revel_score: float | None = None
-    spliceai_max: float | None = None
+    spliceai_max: float | None = None  # max of DS_AG / DS_AL / DS_DG / DS_DL
     info_json: dict[str, Any] = {}
 
 
 class VariantClassification(BaseModel):
+    """Classification record mirroring the ``variant_classification`` table.
+
+    Created as a pending shell (``score`` and ``classification`` both
+    ``None``) at ingest time to hold pre-computed criteria.  Locked by
+    an analyst to produce the final classification.  Soft-deleted via
+    ``deleted_at`` to allow reset without losing audit history.
+    """
+
     id: int | None = None
     variant_id: int
     framework: Framework
     framework_version: str
-    score: int | None = None
+    score: int | None = None          # None until analyst submits
     classification: Classification | None = None
     locked_at: datetime | None = None
     locked_by: str | None = None
-    deleted_at: datetime | None = None
+    deleted_at: datetime | None = None  # soft-delete for reset
 
 
 class ClassificationCriterion(BaseModel):
+    """Individual criterion row mirroring the ``classification_criterion`` table.
+
+    ``pre_computed=True`` rows are suggestions generated at ingest time;
+    ``applied`` remains ``False`` until the analyst explicitly confirms
+    the criterion.
+    """
+
     id: int | None = None
     classification_id: int
     criterion_code: str
@@ -80,6 +124,12 @@ class ClassificationCriterion(BaseModel):
 
 
 class WorkflowRecord(BaseModel):
+    """Workflow status record mirroring the ``workflow`` table.
+
+    One row per sample, tracking progress from ``pending`` through
+    ``reviewing`` and ``reported`` to ``archived``.
+    """
+
     id: int | None = None
     sample_id: int
     status: WorkflowStatus = "pending"
@@ -88,6 +138,13 @@ class WorkflowRecord(BaseModel):
 
 
 class AuditEntry(BaseModel):
+    """Append-only audit log entry mirroring the ``audit_log`` table.
+
+    ``old_value`` and ``new_value`` capture the JSON representation of
+    the entity before and after the change.  The ``audit_log`` table is
+    protected by a PostgreSQL trigger that prevents UPDATE and DELETE.
+    """
+
     id: int | None = None
     user_id: str | None = None
     action: str
