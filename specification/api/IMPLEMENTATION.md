@@ -474,15 +474,17 @@ def test_config_criteria_invalid_framework(client):
 **`app/routes/health.py`:**
 ```python
 from fastapi import APIRouter
-from app.main import app   # NOTE: import version from app directly
-# or set version in a constant
 
 router = APIRouter()
+_VERSION = "0.2.0"  # keep in sync with main.py FastAPI(version=...)
 
 @router.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "0.2.0"}
+    return {"status": "ok", "version": _VERSION}
 ```
+
+> **Do not** `from app.main import app` here — `main.py` will import this
+> module after PR 6, creating a circular import. Hardcode the version constant.
 
 **`app/routes/patients.py`** (key implementation pattern — others follow the same shape):
 ```python
@@ -715,8 +717,10 @@ def test_ingest_success(client, monkeypatch):
         mock_conn = MagicMock()
         return fn(mock_conn)
 
+    # Patch at the location where the name is *used* (routes/ingest.py imports
+    # ingest_sample directly, so app.lib.ingest.ingest_sample is the wrong target).
     with patch("app.lib.db.run_in_transaction", side_effect=mock_transaction), \
-         patch("app.lib.ingest.ingest_sample", return_value=42):
+         patch("app.routes.ingest.ingest_sample", return_value=42):
         r = client.post("/api/ingest",
                         json={"vcf_s3_key": "runs/2024-11-05/s.vcf.gz",
                               "user_id": "analyst-1"},
@@ -727,11 +731,24 @@ def test_ingest_success(client, monkeypatch):
 
 def test_ingest_duplicate_returns_409(client, monkeypatch):
     monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
-    exc = DuplicateSubmissionError("Duplicate")
-    exc.existing_sample_id = 5
-    exc.duplicate_type = "exact"
+    # Constructor requires all three positional args: message, existing_sample_id, duplicate_type
+    exc = DuplicateSubmissionError("Duplicate", existing_sample_id=5, duplicate_type="exact")
 
-    with patch("app.lib.ingest.ingest_sample", side_effect=exc):
+    with patch("app.routes.ingest.ingest_sample", side_effect=exc):
+        with patch("app.lib.db.run_in_transaction", side_effect=lambda fn: fn(MagicMock())):
+            r = client.post("/api/ingest",
+                            json={"vcf_s3_key": "runs/2024-11-05/s.vcf.gz",
+                                  "user_id": "analyst-1"},
+                            headers=HEADERS)
+    assert r.status_code == 409
+
+
+def test_ingest_unique_violation_returns_409(client, monkeypatch):
+    """TOCTOU race: UniqueViolation from DB must map to 409, not 500."""
+    monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
+    import psycopg2.errors
+    with patch("app.routes.ingest.ingest_sample",
+               side_effect=psycopg2.errors.UniqueViolation()):
         with patch("app.lib.db.run_in_transaction", side_effect=lambda fn: fn(MagicMock())):
             r = client.post("/api/ingest",
                             json={"vcf_s3_key": "runs/2024-11-05/s.vcf.gz",
@@ -742,7 +759,7 @@ def test_ingest_duplicate_returns_409(client, monkeypatch):
 
 def test_ingest_bad_key_returns_400(client, monkeypatch):
     monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
-    with patch("app.lib.ingest.ingest_sample", side_effect=ValueError("Unsupported VCF key format")):
+    with patch("app.routes.ingest.ingest_sample", side_effect=ValueError("Unsupported VCF key format")):
         with patch("app.lib.db.run_in_transaction", side_effect=lambda fn: fn(MagicMock())):
             r = client.post("/api/ingest",
                             json={"vcf_s3_key": "runs/2024-11-05/s.bam",
@@ -850,9 +867,10 @@ async def get_upload_url(body: UploadUrlRequest):
 
 **`routes/ingest.py`:**
 ```python
-import asyncio, json, os
+import asyncio, os, re
 import boto3
 import jsonschema
+import psycopg2.errors
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.lib import db
@@ -881,12 +899,17 @@ async def manual_ingest(body: IngestRequest):
     except DuplicateSubmissionError as exc:
         raise HTTPException(status_code=409,
             detail=f"Duplicate submission: {exc}")
+    except psycopg2.errors.UniqueViolation:
+        # TOCTOU race: two concurrent ingests of the same key both pass
+        # check_idempotency() then one loses the UNIQUE constraint INSERT.
+        # ingest.py documents that callers must handle this.
+        raise HTTPException(status_code=409,
+            detail="Duplicate submission: concurrent ingest detected")
     except (ValueError, jsonschema.ValidationError) as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 def _manifest_key(vcf_key: str) -> str:
-    import re
     return re.sub(r'\.vcf(\.gz)?$', '.manifest.json', vcf_key)
 ```
 
@@ -928,18 +951,18 @@ async def update_workflow(sample_id: int, body: WorkflowUpdateRequest):
             detail=f"Invalid transition: {current} → {body.status}")
 
     def _do(conn):
-        c = conn.cursor()
-        c.execute(
-            "UPDATE workflow SET status=%s, updated_at=NOW(), updated_by=%s "
-            "WHERE sample_id=%s",
-            (body.status, body.user_id, sample_id),
-        )
-        c.execute(
-            "INSERT INTO audit_log (user_id, action, entity_type, entity_id, "
-            "old_value, new_value) VALUES (%s,%s,%s,%s,%s,%s)",
-            (body.user_id, "update_workflow", "workflow", sample_id,
-             json.dumps({"status": current}), json.dumps({"status": body.status})),
-        )
+        with conn.cursor() as c:  # always close cursor explicitly
+            c.execute(
+                "UPDATE workflow SET status=%s, updated_at=NOW(), updated_by=%s "
+                "WHERE sample_id=%s",
+                (body.status, body.user_id, sample_id),
+            )
+            c.execute(
+                "INSERT INTO audit_log (user_id, action, entity_type, entity_id, "
+                "old_value, new_value) VALUES (%s,%s,%s,%s,%s,%s)",
+                (body.user_id, "update_workflow", "workflow", sample_id,
+                 json.dumps({"status": current}), json.dumps({"status": body.status})),
+            )
 
     await asyncio.to_thread(db.run_in_transaction, _do)
     return {"sample_id": sample_id, "status": body.status}
@@ -1108,26 +1131,41 @@ Three endpoints:
 
 **`POST /api/variants/{variant_id}/classify`** (score only):
 ```python
+from app.lib.classification_engine import classify, AppliedCriterion, CombinationRule
+from app.lib.models import Framework, Strength
+
 @router.post("/{variant_id}/classify")
 async def score_classification(variant_id: int, body: ClassifyRequest):
-    # No DB needed — just call classify()
-    from app.lib.classification_engine import classify, AppliedCriterion, CombinationRule
-    criteria = [AppliedCriterion(**c.model_dump()) for c in body.criteria]
-    rules = [CombinationRule(**r.model_dump()) for r in body.combination_rules]
+    # AppliedCriterion is a plain @dataclass with only 3 fields;
+    # do NOT use model_dump() — it includes extra fields (notes, evidence_links, …)
+    # that the dataclass does not accept.
+    criteria = [
+        AppliedCriterion(
+            criterion_code=c.criterion_code,
+            applied=c.applied,
+            strength=c.strength,
+        )
+        for c in body.criteria
+    ]
+    rules = [
+        CombinationRule(rule=r.rule, codes=r.codes, message=r.message)
+        for r in body.combination_rules
+    ]
     result = classify(criteria, body.framework, rules)
     return {"score": result.score, "classification": result.classification,
             "warnings": result.warnings}
 ```
 
 **`PUT /api/variants/{variant_id}/classification`** (score + persist):
-1. Load variant + `case_type` from DB (for audit context).
-2. Call `classify()` to get score + classification.
-3. In `run_in_transaction`:
+1. Load variant from DB to verify it exists (404 if not); also fetches `sample_id` for audit.
+2. Call `classify()` to get score + classification (same explicit field mapping as score-only endpoint).
+3. Get `framework_version = get_framework_version(body.framework)` — import from `app.lib.classification_engine`.
+4. In `run_in_transaction` (using `with conn.cursor() as c:` throughout):
    - `UPDATE variant_classification SET deleted_at=NOW() WHERE variant_id=%s AND deleted_at IS NULL`
-   - `INSERT INTO variant_classification (..., score, classification, locked_at, locked_by) VALUES (...) RETURNING id`
-   - For each criterion: `INSERT INTO classification_criterion (...) VALUES (...)`
-   - `INSERT INTO audit_log (...)`
-4. Return `ClassificationSubmitResponse` with score, classification, new `classification_id`.
+   - `INSERT INTO variant_classification (variant_id, framework, framework_version, score, classification, locked_at, locked_by) VALUES (%s, %s, %s, %s, %s, NOW(), %s) RETURNING id` — **`framework_version` is NOT NULL in the schema; omitting it causes a constraint violation**
+   - For each criterion: `INSERT INTO classification_criterion (classification_id, criterion_code, applied, strength, notes, evidence_links, pre_computed, pre_computed_value) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)`
+   - `INSERT INTO audit_log (user_id, action, entity_type, entity_id, old_value, new_value) VALUES (%s, 'classify', 'classification', %s, NULL, %s)`
+5. Return `ClassificationSubmitResponse` with score, classification, new `classification_id`, `locked_at`.
 
 **`DELETE /api/variants/{variant_id}/classification/{classification_id}`** (soft-delete + blank):
 1. Load existing classification from DB; 404 if not found or `deleted_at IS NOT NULL`.
