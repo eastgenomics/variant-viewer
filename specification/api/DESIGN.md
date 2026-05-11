@@ -311,7 +311,6 @@ class ClassificationSubmitRequest(BaseModel):
     locked_by: str   # analyst identity (user_id asserted by client)
     user_id: str     # audit log identity
 
-@dataclass
 class AppliedCriterionRequest(BaseModel):
     criterion_code: str
     applied: bool
@@ -321,7 +320,6 @@ class AppliedCriterionRequest(BaseModel):
     pre_computed: bool = False
     pre_computed_value: str | None = None
 
-@dataclass
 class CombinationRuleRequest(BaseModel):
     rule: str
     codes: list[str]

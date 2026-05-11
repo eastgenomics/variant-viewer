@@ -121,7 +121,45 @@ constraint from being violated on concurrent requests.
 
 Verified by `test_classify_persist_soft_deletes_existing`.
 
-## Starting instruction
+### Invariant 7 — `classification.py` must import `Framework` and `Strength` from `app.lib.models`
+
+`ClassifyRequest`, `ClassificationSubmitRequest`, and `AppliedCriterionRequest` use
+`Framework` and `Strength` type aliases. Import from `app.lib.models` (the canonical
+shared location), not from `app.lib.classification_engine` (where they are also defined
+but intended for internal use).
+
+```python
+# routes/classification.py
+from app.lib.models import Framework, Strength
+```
+
+### Invariant 8 — Patch paths must target where the name is *used*, not where it is defined
+
+Python mocking rule: when a module does `from x import name`, patching `x.name`
+does **not** affect the importing module. You must patch `importing_module.name`.
+
+This applies specifically to `routes/ingest.py`:
+```python
+# routes/ingest.py does: from app.lib.ingest import ingest_sample
+# Therefore patch:
+patch("app.routes.ingest.ingest_sample", ...)   # ✅ correct
+patch("app.lib.ingest.ingest_sample", ...)      # ❌ wrong — doesn't affect routes/ingest.py
+```
+
+`db.run_in_transaction` is accessed as `db.run_in_transaction` (via module reference),
+so patching `app.lib.db.run_in_transaction` **does** work correctly in all route tests.
+
+### Invariant 9 — Always use `with conn.cursor() as c:` inside `_do` functions
+
+All write route `_do(conn)` lambdas/functions must open cursors as context managers:
+```python
+def _do(conn):
+    with conn.cursor() as c:   # ✅ cursor closed on exit
+        c.execute(...)
+        c.execute(...)
+```
+Never `c = conn.cursor()` without the context manager — the cursor will not be
+explicitly closed, which wastes server-side resources.
 
 1. Show the output of:
    ```bash
