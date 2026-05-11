@@ -1,26 +1,28 @@
-# variant-viewer backend core — PRs 2–4
+# variant-viewer backend core — PRs 2–5
 
-Database layer, VCF parser, FHIR manifest handler, classification engine, and
-pre-compute criteria modules for the Variant Viewer FastAPI backend.
+Database layer, VCF parser, FHIR manifest handler, classification engine,
+pre-compute criteria modules, and Lambda ingest pipeline for the Variant Viewer
+FastAPI backend.
 
 ## What this build delivers
 
-This specification covers the three foundational PRs of the Option A refactor.
-Together they produce all Python business-logic modules that sit between the
-database and the API routes:
+This specification now covers PRs 2–5 of the Option A refactor.
 
 1. **PR 2 — Database layer** — `db.py` (psycopg2 connection pool + AWS Secrets
    Manager resolution) and `models.py` (Pydantic v2 entities for every DB table).
-2. **PR 3 — VCF parser + FHIR manifest** — `vcf_parser.py` (multi-format VCF
-   stream parser supporting VEP CSQ and flat CSQ\_\* annotations),
-   `fhir_manifest.py` (FHIR R4 Bundle parser/builder),
-   and `pipeline_config.py` (YAML pipeline config loader and header-based
-   pipeline detection).
+2. **PR 3 — VCF parser + FHIR manifest** — `vcf_parser.py` (hand-rolled VCF
+   stream parser, replaced by cyvcf2 in PR 5), `fhir_manifest.py` (FHIR R4
+   Bundle parser/builder), and `pipeline_config.py` (YAML pipeline config loader
+   and header-based pipeline detection).
 3. **PR 4 — Classification engine + pre-compute criteria** — `classification_engine.py`
    (Tavtigian point-based ACGS SNV and SVIG-UK scoring) and
    `pre_compute_criteria.py` (rule-based criterion suggestions from VCF INFO
    annotations). PR 4 requires golden-output test fixtures generated from the
    TypeScript implementation **before** any Python code is written.
+4. **PR 5 — Lambda ingest pipeline + cyvcf2 migration** — `ingest.py`
+   (S3 download, manifest validation, DB write orchestration) and the Lambda
+   handler. Also migrates `vcf_parser.py` from the hand-rolled parser to
+   `cyvcf2` (htslib) for BCF, symbolic allele, and future CNV support.
 
 ## Status of this document set
 
@@ -38,23 +40,27 @@ Read in this order:
 4. **REFERENCE.md** — env vars, external deps, complete data format templates,
    config schema, FHIR manifest structure, golden fixture schema
 
-## Project layout (target after PRs 2–4)
+## Project layout (target after PRs 2–5)
 
-```
+```text
 variant-viewer/
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
 │   │   ├── main.py                    FastAPI entry point (pre-existing)
+│   │   ├── lambda_handler.py          PR 5 — S3 event handler (Lambda entry point)
 │   │   ├── routes/
 │   │   │   └── __init__.py
 │   │   └── lib/
 │   │       ├── __init__.py
 │   │       ├── db.py                  PR 2 — connection pool + Secrets Manager
 │   │       ├── models.py              PR 2 — Pydantic entities for all DB tables
-│   │       ├── vcf_parser.py          PR 3 — VCF stream parser (VEP CSQ/flat CSQ_*)
+│   │       ├── vcf_parser.py          PR 3 (hand-rolled) → PR 5 (cyvcf2/htslib)
 │   │       ├── fhir_manifest.py       PR 3 — FHIR R4 Bundle parser + builder
-│   │       └── pipeline_config.py     PR 3 — YAML pipeline config + header detection
+│   │       ├── pipeline_config.py     PR 3 — YAML pipeline config + header detection
+│   │       ├── classification_engine.py  PR 4 — Tavtigian scoring (pure functions)
+│   │       ├── pre_compute_criteria.py   PR 4 — auto-suggest criteria from VCF INFO
+│   │       └── ingest.py              PR 5 — S3 download + manifest validation + DB write
 │   ├── config/
 │   │   ├── acgs-snv-criteria.json     ACGS 2024 criteria + combination rules
 │   │   ├── svig-criteria.json         SVIG-UK v1.0 criteria + combination rules
@@ -67,7 +73,8 @@ variant-viewer/
 │   │   ├── test_db.py                 PR 2 — pool + transaction (mocked psycopg2)
 │   │   ├── test_pipeline_config.py    PR 3 — YAML loader + pipeline detection
 │   │   ├── test_fhir_manifest.py      PR 3 — manifest parser
-│   │   ├── test_vcf_parser.py         PR 3 — VCF parsing (VEP CSQ/flat CSQ_*)
+│   │   ├── test_vcf_parser.py         PR 3 (inline strings) → PR 5 (tmp_path + cyvcf2)
+│   │   ├── test_ingest.py             PR 5 — ingest orchestration (mocked S3 + DB)
 │   │   ├── golden/
 │   │   │   ├── classify_acgs_cases.json   PR 4 — ACGS SNV golden I/O
 │   │   │   ├── classify_svig_cases.json   PR 4 — SVIG-UK golden I/O
@@ -75,11 +82,9 @@ variant-viewer/
 │   │   │   └── pre_compute_cases.json     PR 4 — pre-compute criterion golden I/O
 │   │   ├── test_classification_engine.py  PR 4 — engine against golden fixtures
 │   │   └── test_pre_compute_criteria.py   PR 4 — pre-compute against golden fixtures
-│   │
-│   │   ├── classification_engine.py    PR 4 — Tavtigian scoring (pure functions)
-│   │   └── pre_compute_criteria.py    PR 4 — auto-suggest criteria from VCF INFO
 │   ├── pytest.ini
-│   ├── requirements.txt
+│   ├── requirements.in            Direct dependencies (pip-compile source)
+│   ├── requirements.txt           Hash-pinned transitive deps (pip-compile output)
 │   └── Dockerfile
 ├── migrations/                        Unchanged — PostgreSQL schema
 ├── terraform/                         Unchanged — AWS infrastructure
@@ -115,7 +120,8 @@ handling — verified by golden-output tests derived from the TypeScript engine.
 ## Non-goals
 
 - **No FastAPI routes in this spec** — API endpoints are PR 6/7.
-- **No Lambda ingest orchestration** — the S3 + DB ingest pipeline is PR 5.
+- **No Lambda ingest orchestration in PRs 2–4** — the S3 + DB ingest pipeline
+  is PR 5, specified in IMPLEMENTATION.md Milestones 11–13.
 - **No frontend components** — React SPA is PRs 8–11.
 - **No Terraform / infrastructure changes** — the existing ECS/RDS/ALB stack is
   unchanged in all three PRs.

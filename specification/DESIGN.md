@@ -1,4 +1,4 @@
-# DESIGN — variant-viewer backend core (PRs 2–4)
+# DESIGN — variant-viewer backend core (PRs 2–5)
 
 ## 1. Problem statement
 
@@ -273,12 +273,17 @@ def build_manifest(
 
 ### 3.5 `app/lib/vcf_parser.py`
 
+> **PR 3 status:** Built with a hand-rolled line parser (merged via PR #18).
+> **PR 5 action:** Migrate to `cyvcf2` (htslib-backed). The public dataclasses
+> (`VcfVariant`, `VcfMeta`) and all CSQ extraction logic are unchanged; only
+> the parsing loop and function signature change. See §3.5.1 for rationale.
+
 **Responsibilities:**
-- Parses VCF lines from any `Iterable[str]` (text lines, already decoded; caller
-  handles gzip decompression).
+- Parses a VCF or BCF file using `cyvcf2` (PR 5+); prior to PR 5 used a
+  hand-rolled line parser.
 - Extracts `CHROM`, `POS`, `REF`, `ALT`, `QUAL`, `FILTER`, `INFO` from each
   data line; calls `on_variant` callback for each parsed `VcfVariant`.
-- Splits multi-allelic ALT on comma; emits one `VcfVariant` per ALT allele;
+- Splits multi-allelic ALT fields; emits one `VcfVariant` per ALT allele;
   skips spanning deletions (`*`).
 - Extracts VEP annotations from two sources in priority order:
   1. VEP `CSQ` field — parsed using the `##INFO=<ID=CSQ,...,Format: A|B|C>`
@@ -286,14 +291,14 @@ def build_manifest(
      allele-matching entry first.
   2. Flat `CSQ_*` INFO fields — East Genomics pipeline pre-exploded format.
 - Detects pipeline from `##source` / `##pipeline` header lines.
-- Returns `VcfMeta` (pipeline\_key, header\_lines) after the stream is exhausted.
+- Returns `VcfMeta` (pipeline\_key, header\_lines) after the file is exhausted.
 
 **SpliceAI max delta computation:**
 `spliceai_max = max(DS_AG, DS_AL, DS_DG, DS_DL)` where each is taken from
 `SpliceAI_pred_DS_<X>` (VEP CSQ) or `CSQ_SpliceAI_pred_DS_<X>` (flat). NaN
 values are ignored. Returns `None` if no valid scores found.
 
-**Public interface:**
+**Public interface (PR 5+):**
 ```python
 @dataclass
 class VcfVariant:
@@ -319,14 +324,42 @@ class VcfMeta:
     header_lines: list[str]
 
 def parse_vcf(
-    lines: Iterable[str],
+    path: str | Path,
     on_variant: Callable[[VcfVariant], None] | None = None,
 ) -> VcfMeta: ...
 ```
 
+**Must use `cyvcf2` (PR 5+):**
+- The main parsing loop **must** use `cyvcf2.VCF(str(path))` for iteration.
+- VCF field access uses `cyvcf2` variant attributes (`v.CHROM`, `v.POS`,
+  `v.REF`, `v.ALT`, `v.QUAL`, `v.FILTER`, `v.INFO.get(...)`).
+- CSQ string extraction (splitting on `|`, canonical transcript selection,
+  SpliceAI max computation) remains custom — `cyvcf2` does not parse VEP.
+- Header lines for pipeline detection: `str(vcf.raw_header).splitlines()`.
+
 **Must NOT:**
-- Import `pysam`, `biopython`, or any third-party VCF library.
-- Open files — the caller provides the line iterator.
+- Open files using the standard library `open()` — pass a path to `cyvcf2.VCF`.
+- Re-implement the hand-rolled `_parse_info` tokeniser — use `v.INFO` directly.
+
+#### 3.5.1 Why cyvcf2 (and why in PR 5, not PR 3)
+
+CNVs are on the variant-viewer roadmap. Structural/copy-number variants
+require BCF and symbolic allele support (`<DEL>`, `<DUP>`, `<CNV>`), which the
+hand-rolled text parser cannot handle. `cyvcf2` wraps `htslib`, the field
+standard for VCF/BCF I/O, and handles:
+
+- BCF (binary) and BGZF-compressed VCF natively
+- Symbolic alleles and SVs
+- Multi-sample FORMAT columns (needed for tumour/normal pairs)
+- Edge-case INFO encoding that the hand-rolled parser would silently mangle
+
+The migration was deferred to PR 5 (not PR 3) because:
+1. PR 3 needed to ship quickly for the demo; adding a C-extension dependency
+   would have required Dockerfile and CI changes that were out of scope.
+2. PR 5 (Lambda ingest) is the first point where the parser runs against
+   real S3 VCF files — the natural integration point for the change.
+3. The Lambda handler downloads VCFs to `/tmp/` before processing, so the
+   API change from `Iterable[str]` to `path: str | Path` fits naturally.
 
 ---
 
@@ -605,9 +638,10 @@ specifically and lets the caller decide recovery strategy.
 1. **Synchronous DB driver** — psycopg2 blocks the thread during queries.
    Under FastAPI's async runtime, all DB calls must run in a thread pool
    (`asyncio.to_thread` or `run_in_executor`). Migration to asyncpg is deferred.
-2. **VCF parser is single-threaded** — no parallel chromosome processing. For
-   very large WGS VCFs (>10M variants), ingest will be slow. Acceptable for
-   initial v0.2 release.
+2. **VCF parser migrates to cyvcf2 in PR 5** — the PR 3 hand-rolled parser
+   does not support BCF, symbolic alleles, or multi-sample FORMAT columns.
+   cyvcf2 resolves this and is required before CNV support can be added.
+   Performance on large WGS VCFs is significantly better with htslib.
 3. **Pre-compute criteria are rule-based, not ML** — `PP3`/`BP4` REVEL
    thresholds (0.7/0.4) are hard-coded to ACGS 2024 guidance; they do not
    adapt to gene-specific evidence.
@@ -651,9 +685,10 @@ PR 5+ require explicit analyst action.
 
 ## 9. Use cases
 
-1. **Primary — ingest pipeline (PR 5)** calls `parse_vcf()` + `parse_manifest()`
+1. **Primary — ingest pipeline (PR 5)** calls `parse_vcf(path)` + `parse_manifest()`
    + `pre_compute_criteria()` + `db.with_transaction()` to ingest a VCF and
-   persist variants with pre-computed criterion suggestions.
+   persist variants with pre-computed criterion suggestions. The Lambda handler
+   downloads VCFs from S3 to `/tmp/` before passing the path to `parse_vcf`.
 2. **Secondary — API read routes (PR 6)** call `db.query()` to fetch patients,
    variants, and classifications.
 3. **Secondary — API write routes (PR 7)** call `classify()` to score analyst

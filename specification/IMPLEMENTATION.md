@@ -1,4 +1,4 @@
-# IMPLEMENTATION — variant-viewer backend core (PRs 2–4)
+# IMPLEMENTATION — variant-viewer backend core (PRs 2–5)
 
 ## 0. Prerequisites
 
@@ -770,6 +770,13 @@ def build_manifest(
 ---
 
 ## 7. Milestone 5 — `vcf_parser.py`
+
+> **Status:** Built in PR 3 (hand-rolled line parser). The implementation
+> below is the PR 3 version, present in the repo as of PR #18.
+> **PR 5 replaces this implementation with `cyvcf2`** — see Milestone 11.
+> The `VcfVariant` / `VcfMeta` dataclasses and all CSQ extraction helpers
+> (`_extract_vep`, `_extract_flat_csq`, `_csq_field`, `_spliceai_max`) are
+> **unchanged** in the migration; only `parse_vcf()` itself changes.
 
 ### Red: write tests first
 
@@ -2082,14 +2089,366 @@ print('All imports OK')
 
 ---
 
-## 13. Future work (out of scope for PRs 2–4)
+## 13. Future work (out of scope for PRs 2–4, delivered in PR 5)
 
-- **PR 5** — `app/lib/ingest.py`: S3 VCF download + gzip decompression +
-  manifest fetch + schema validation (`jsonschema`) + DB write using all
-  modules above.
+- **PR 5** — see Milestones 11–12 below.
 - **PR 6/7** — FastAPI routes in `app/routes/`.
 - **PR 8–11** — React SPA frontend.
-- **PR 12** — ECS task definition update (Docker image rebuild, env var
-  configuration for `APP_ENV=production`).
-- **Async DB** — Replace psycopg2 with asyncpg; wrap route handlers with
-  `async def`.
+- **PR 12** — ECS task definition update.
+- **Async DB** — Replace psycopg2 with asyncpg; deferred to PR 12.
+
+---
+
+## 14. Milestone 11 — `vcf_parser.py` → cyvcf2 migration (PR 5)
+
+### Why
+
+CNVs are on the roadmap. The hand-rolled parser cannot handle BCF, symbolic
+alleles (`<DEL>`, `<DUP>`), or multi-sample FORMAT columns. `cyvcf2` (htslib)
+resolves all three. See DESIGN.md §3.5.1 for full rationale.
+
+### Pre-work: add cyvcf2 to dependencies
+
+```bash
+# 1. Add to requirements.in
+echo 'cyvcf2>=0.30.0' >> backend/requirements.in
+
+# 2. Regenerate pinned requirements
+cd backend
+.venv/bin/pip install pip-tools
+.venv/bin/pip-compile --generate-hashes --allow-unsafe requirements.in -o requirements.txt
+
+# 3. Install
+.venv/bin/pip install --require-hashes --no-deps -r requirements.txt
+```
+
+Update `backend/Dockerfile` to install build dependencies before the pip step:
+
+```dockerfile
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        zlib1g-dev libbz2-dev liblzma-dev && \
+    rm -rf /var/lib/apt/lists/*
+```
+
+### Red: rewrite `test_vcf_parser.py` for file-path API
+
+The PR 3 tests used inline string fixtures with `parse_vcf(text.splitlines(), ...)`.
+cyvcf2 requires a file path. Replace all tests to write temp files using
+pytest’s `tmp_path` fixture:
+
+```python
+# tests/test_vcf_parser.py (PR 5 version)
+import pytest
+from pathlib import Path
+from app.lib.vcf_parser import parse_vcf, VcfVariant, VcfMeta
+
+_VEP_CONTENT = (
+    '##fileformat=VCFv4.2\n'
+    '##source=DRAGENv4.2\n'
+    '##INFO=<ID=CSQ,Number=.,Type=String,Description="VEP ... Format: '
+    'Allele|Consequence|SYMBOL|Gene|HGVSc|HGVSp|gnomADe_AF|REVEL|'
+    'SpliceAI_pred_DS_AG|SpliceAI_pred_DS_AL|SpliceAI_pred_DS_DG|SpliceAI_pred_DS_DL|'
+    'CLIN_SIG|CANONICAL">\n'
+    '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
+    '1\t100\t.\tA\tG\t50.0\tPASS\t'
+    'CSQ=G|missense_variant|BRCA1|ENSG001|c.100A>G|p.Thr34Ala'
+    '|0.0001|0.75|0.1|0.2|0.05|0.3|Pathogenic|YES\n'
+)
+
+_MULTI_ALLELIC_CONTENT = (
+    '##fileformat=VCFv4.2\n'
+    '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
+    '1\t200\t.\tA\tG,T\t.\t.\t.\n'
+)
+
+_FLAT_CSQ_CONTENT = (
+    '##fileformat=VCFv4.2\n'
+    '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
+    '3\t400\t.\tG\tA\t.\t.\t'
+    'CSQ_SYMBOL=BRCA2;CSQ_Consequence=frameshift_variant;'
+    'CSQ_gnomADe_AF=0.0002;CSQ_REVEL=0.8\n'
+)
+
+
+def _write(tmp_path: Path, name: str, content: str) -> Path:
+    p = tmp_path / name
+    p.write_text(content)
+    return p
+
+
+def _collect(path: Path) -> tuple[list[VcfVariant], VcfMeta]:
+    variants: list[VcfVariant] = []
+    meta = parse_vcf(path, on_variant=variants.append)
+    return variants, meta
+
+
+def test_vep_basic_fields(tmp_path):
+    p = _write(tmp_path, "vep.vcf", _VEP_CONTENT)
+    variants, _ = _collect(p)
+    assert len(variants) == 1
+    v = variants[0]
+    assert v.chrom == "1"
+    assert v.pos == 100
+    assert v.ref == "A" and v.alt == "G"
+    assert v.qual == 50.0 and v.filter == "PASS"
+    assert v.gene == "BRCA1"
+    assert v.consequence == "missense_variant"
+    assert v.hgvs_c == "c.100A>G" and v.hgvs_p == "p.Thr34Ala"
+    assert abs(v.gnomad_af - 0.0001) < 1e-9
+    assert abs(v.revel_score - 0.75) < 1e-9
+    assert v.clinvar_sig == "Pathogenic"
+
+
+def test_vep_spliceai_max(tmp_path):
+    # DS_AG=0.1, DS_AL=0.2, DS_DG=0.05, DS_DL=0.3 → max=0.3
+    p = _write(tmp_path, "vep.vcf", _VEP_CONTENT)
+    variants, _ = _collect(p)
+    assert abs(variants[0].spliceai_max - 0.3) < 1e-9
+
+
+def test_pipeline_detected_from_header(tmp_path):
+    p = _write(tmp_path, "vep.vcf", _VEP_CONTENT)
+    _, meta = _collect(p)
+    assert meta.pipeline_key == "dragen_germline"
+
+
+def test_multi_allelic_split(tmp_path):
+    p = _write(tmp_path, "multi.vcf", _MULTI_ALLELIC_CONTENT)
+    variants, _ = _collect(p)
+    assert len(variants) == 2
+    assert {v.alt for v in variants} == {"G", "T"}
+
+
+def test_missing_qual_becomes_none(tmp_path):
+    p = _write(tmp_path, "multi.vcf", _MULTI_ALLELIC_CONTENT)
+    variants, _ = _collect(p)
+    assert all(v.qual is None for v in variants)
+
+
+def test_flat_csq_fields(tmp_path):
+    p = _write(tmp_path, "flat.vcf", _FLAT_CSQ_CONTENT)
+    variants, _ = _collect(p)
+    assert len(variants) == 1
+    v = variants[0]
+    assert v.gene == "BRCA2"
+    assert v.consequence == "frameshift_variant"
+    assert abs(v.gnomad_af - 0.0002) < 1e-9
+    assert abs(v.revel_score - 0.8) < 1e-9
+
+
+def test_spanning_deletion_skipped(tmp_path):
+    content = (
+        "##fileformat=VCFv4.2\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        "1\t500\t.\tATG\tA,*\t.\t.\t.\n"
+    )
+    p = _write(tmp_path, "span.vcf", content)
+    variants: list[VcfVariant] = []
+    parse_vcf(p, on_variant=variants.append)
+    assert len(variants) == 1
+    assert variants[0].alt == "A"
+
+
+def test_header_lines_captured(tmp_path):
+    p = _write(tmp_path, "vep.vcf", _VEP_CONTENT)
+    _, meta = _collect(p)
+    assert any("fileformat" in line for line in meta.header_lines)
+```
+
+Run to confirm red: `cd backend && .venv/bin/pytest tests/test_vcf_parser.py -v`
+→ 8 tests fail (TypeError: wrong argument type for `parse_vcf`).
+
+### Green: rewrite `parse_vcf` to use cyvcf2
+
+Only `parse_vcf()` changes. All helper functions (`_extract_vep`,
+`_extract_flat_csq`, `_csq_field`, `_spliceai_max`, `_try_float`) are
+unchanged. Replace the function body:
+
+```python
+# app/lib/vcf_parser.py  — PR 5 parse_vcf replacement
+import cyvcf2  # new import at top of file
+
+def parse_vcf(
+    path: str | Path,
+    on_variant: Callable[[VcfVariant], None] | None = None,
+) -> VcfMeta:
+    """Parse a VCF or BCF file using cyvcf2 (htslib)."""
+    vcf = cyvcf2.VCF(str(path))
+
+    # Extract header lines for pipeline detection
+    header_lines = [
+        line for line in str(vcf.raw_header).splitlines()
+        if line.startswith("##")
+    ]
+
+    # Parse CSQ FORMAT from header
+    csq_header: list[str] | None = None
+    for line in header_lines:
+        if "ID=CSQ" in line and "Format:" in line:
+            fmt = line.split("Format:")[1].replace('"', "").replace(">", "").strip()
+            csq_header = fmt.split("|")
+            break
+
+    for v in vcf:
+        qual: float | None = v.QUAL  # cyvcf2 returns None if "."
+        filter_val: str | None = None
+        if v.FILTER:               # cyvcf2 returns empty string or filter name
+            filter_val = v.FILTER or None
+
+        info: dict = {}            # build info_json for storage
+        try:
+            for key in v.INFO.keys():
+                info[key] = v.INFO.get(key)
+        except Exception:
+            pass
+
+        for alt in v.ALT:
+            if not alt or alt == "*":
+                continue
+
+            if csq_header is not None and "CSQ" in info:
+                annotations = _extract_vep(info, csq_header, alt)
+            elif "CSQ_SYMBOL" in info or "CSQ_Consequence" in info:
+                annotations = _extract_flat_csq(info)
+            else:
+                annotations = {k: None for k in [
+                    "gene", "consequence", "hgvs_c", "hgvs_p",
+                    "gnomad_af", "clinvar_sig", "revel_score", "spliceai_max",
+                ]}
+
+            variant = VcfVariant(
+                chrom=v.CHROM,
+                pos=v.POS,
+                ref=v.REF,
+                alt=alt,
+                qual=qual,
+                filter=filter_val,
+                info_json=dict(info),
+                **annotations,
+            )
+            if on_variant:
+                on_variant(variant)
+
+    vcf.close()
+    pipeline_key = detect_pipeline_key(header_lines)
+    return VcfMeta(pipeline_key=pipeline_key, header_lines=header_lines)
+```
+
+**Verification:**
+```bash
+cd backend && .venv/bin/pytest tests/test_vcf_parser.py -v
+# Expected: 8 passed
+```
+
+**Invariant check — ensure PR 3 call sites still compile:**
+```bash
+cd backend && python -c "
+from app.lib.vcf_parser import parse_vcf, VcfVariant, VcfMeta
+import inspect
+sig = inspect.signature(parse_vcf)
+assert 'path' in sig.parameters, 'parse_vcf must accept path'
+print('OK: parse_vcf signature correct')
+"
+```
+
+---
+
+## 15. Milestone 12 — `ingest.py` + Lambda handler (PR 5)
+
+### Scope
+
+`app/lib/ingest.py` is the orchestration layer called by the Lambda function.
+It:
+1. Downloads the VCF and manifest JSON from S3 to `/tmp/`.
+2. Validates the manifest against `config/manifest-schema.json` (jsonschema).
+3. Parses the manifest with `fhir_manifest.parse_manifest(raw, source=s3_key)`.
+4. Calls `check_idempotency()` — already built (PR #18 ingest guard).
+5. Calls `parse_vcf(path)` — cyvcf2 version (M11).
+6. For each variant: calls `pre_compute_criteria()`, inserts into DB.
+7. Creates `WorkflowRecord(status="pending")` for the sample.
+8. Raises `DuplicateSubmissionError` or `ValueError` on validation failures;
+   caller catches `UniqueViolation` from psycopg2 as a TOCTOU guard.
+
+### Additional dependency
+
+```bash
+echo 'jsonschema>=4.0.0' >> backend/requirements.in
+.venv/bin/pip-compile --generate-hashes --allow-unsafe requirements.in -o requirements.txt
+```
+
+### Public interface
+
+```python
+def ingest_sample(
+    vcf_s3_key: str,
+    manifest_s3_key: str,
+    bucket: str,
+    s3_client,            # boto3 S3 client — injected for testability
+    conn,                 # psycopg2 connection — injected for testability
+) -> int:
+    """Download, validate, parse, and persist a VCF + manifest from S3.
+
+    Returns the new sample_id (int) on success.
+    Raises DuplicateSubmissionError, ValueError, or psycopg2 exceptions.
+    """
+```
+
+### Lambda handler skeleton
+
+```python
+# app/lambda_handler.py
+import json, boto3
+from app.lib.ingest import ingest_sample
+from app.lib.db import with_transaction
+
+def handler(event, context):
+    record = event["Records"][0]["s3"]
+    bucket    = record["bucket"]["name"]
+    vcf_key   = record["object"]["key"]
+    # Derive manifest key from VCF key (see DESIGN naming convention)
+    manifest_key = vcf_key.replace(".vcf.gz", ".manifest.json")
+    s3 = boto3.client("s3", region_name="eu-west-2")
+    with with_transaction() as conn:
+        sample_id = ingest_sample(vcf_key, manifest_key, bucket, s3, conn)
+    return {"statusCode": 200, "sample_id": sample_id}
+```
+
+### Tests
+
+All I/O (S3, DB) must be mocked. Key test cases:
+
+| Test | What it asserts |
+|---|---|
+| `test_ingest_clean_submission` | End-to-end happy path; asserts sample and variants inserted |
+| `test_ingest_exact_duplicate` | `DuplicateSubmissionError(duplicate_type="exact")` raised |
+| `test_ingest_multiple_vcfs_same_specimen` | second VCF for same patient+specimen is **allowed** (multi-panel RD workflow) |
+| `test_ingest_invalid_manifest` | `ValueError` raised on bad FHIR bundle |
+| `test_ingest_schema_validation_failure` | `jsonschema.ValidationError` propagates |
+| `test_ingest_unique_violation_toctou` | `psycopg2.errors.UniqueViolation` caught and re-raised |
+
+**Verification:**
+```bash
+cd backend && .venv/bin/pytest tests/test_ingest.py -v
+# Expected: 6+ passed
+```
+
+---
+
+## 16. Milestone 13 — PR 5 final checks
+
+```bash
+cd backend
+
+# All tests
+.venv/bin/pytest -v
+# Expected: 186+ passed (all prior + M11 + M12 additions)
+
+# Coverage still above threshold
+.venv/bin/pytest --cov=app --cov-fail-under=80
+
+# Docker build (validates cyvcf2 C-extension installs cleanly)
+sg docker -c 'docker build -t variant-viewer-pr5 .'
+
+# No credentials in test output
+.venv/bin/pytest -s 2>&1 | grep -iE 'password|secret|DATABASE_URL' && echo 'FAIL' || echo 'OK'
+```

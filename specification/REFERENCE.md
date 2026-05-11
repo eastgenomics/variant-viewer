@@ -1,4 +1,4 @@
-# REFERENCE — variant-viewer backend core (PRs 2–4)
+# REFERENCE — variant-viewer backend core (PRs 2–5)
 
 ## 1. Environment variables
 
@@ -34,12 +34,22 @@ Required fields: `username`, `password`, `host`, `dbname`. `port` is optional
 | `pydantic` | Data validation and models | `>=2.0.0` |
 | `psycopg2-binary` | PostgreSQL driver | `>=2.9.0` |
 | `boto3` | AWS SDK — Secrets Manager, S3 (S3 used in PR 5) | `>=1.34.0` |
+| `cyvcf2` | htslib-backed VCF/BCF parser — **introduced in PR 5** | `>=0.30.0` |
 | `pyyaml` | Parse `pipelines.yaml` | `>=6.0.0` |
 | `pytest` | Test runner | `>=8.0.0` |
 | `pytest-cov` | Coverage reporting | `>=5.0.0` |
 
-No new dependencies are introduced by PRs 2–4 beyond the existing
-`requirements.txt`.
+PRs 2–4 introduce no new dependencies beyond the existing `requirements.txt`.
+PR 5 adds `cyvcf2` (C extension, requires `libz` and `libbz2` at build time)
+and updates `requirements.txt` via `pip-compile --generate-hashes`.
+
+**Dockerfile change required in PR 5:**
+```dockerfile
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        zlib1g-dev libbz2-dev liblzma-dev && \
+    rm -rf /var/lib/apt/lists/*
+```
+Add this before the `pip install` step.
 
 ---
 
@@ -329,7 +339,7 @@ INFO keys: `CSQ_SYMBOL`, `CSQ_Consequence`, `CSQ_HGVSc`, `CSQ_HGVSp`,
 |---|---|---|
 | BA1 | gnomAD AF > ba1\_threshold (gene-specific or 0.05) | standalone |
 | BS1 | bs1\_threshold < gnomAD AF ≤ ba1\_threshold | strong |
-| PM2 | gnomAD AF absent or < 0.0001 | supporting |
+| PM2 | gnomAD AF absent or < 0.001 | supporting |
 | PVS1 | consequence ∈ LOF set | very\_strong |
 | PVS1\_RNA | SpliceAI max ≥ 0.8 | very\_strong |
 | PP3 | REVEL ≥ 0.7 | supporting |

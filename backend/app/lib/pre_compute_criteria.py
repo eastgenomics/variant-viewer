@@ -1,0 +1,249 @@
+"""Rule-based pre-computation of variant classification criteria.
+
+Derives candidate ACGS SNV (germline) and SVIG-UK (somatic) criteria
+suggestions from VCF INFO fields without any network calls.  All
+suggestions have ``applied=False``; the analyst must confirm each one
+before it contributes to the classification score.
+
+For CanVIG genes, gene-specific BA1/BS1 thresholds from
+``canvig-gene-mtaf.json`` are used in place of the ACGS defaults.
+
+Primary entry point
+-------------------
+pre_compute_criteria(variant, case_type)
+    Return a list of ``PreComputedCriterion`` suggestions.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal
+
+from app.lib.classification_engine import select_framework, Framework
+from app.lib.vcf_parser import VcfVariant
+
+CaseType = Literal["germline", "somatic"]
+
+_CONFIG_DIR = Path(__file__).parent.parent.parent / "config"
+_canvig_raw = json.loads((_CONFIG_DIR / "canvig-gene-mtaf.json").read_text())
+_CANVIG_GENES: dict = _canvig_raw["genes"]
+
+_LOF_CONSEQUENCES = {
+    "frameshift_variant",
+    "stop_gained",
+    "stop_lost",
+    "start_lost",
+    "splice_donor_variant",
+    "splice_acceptor_variant",
+    "transcript_ablation",
+}
+
+_ACGS_DEFAULT_BA1 = 0.05
+_ACGS_DEFAULT_BS1 = 0.01
+_ACGS_DEFAULT_PM2 = 0.001  # ACGS 2024 PM2_Supporting threshold
+
+
+@dataclass
+class PreComputedCriterion:
+    """A single pre-computed criterion suggestion for analyst review.
+
+    ``applied`` is intentionally absent: all pre-computed criteria start
+    as suggestions and are only activated by explicit analyst action.
+    """
+    criterion_code: str
+    pre_computed_value: str
+    framework: Framework
+    suggested_strength: str
+
+
+def _gnomad_thresholds(gene: str | None) -> tuple[float, float]:
+    """Return ``(ba1_threshold, bs1_threshold)`` for *gene*.
+
+    Uses gene-specific CanVIG thresholds when *gene* is in
+    ``canvig-gene-mtaf.json`` (case-insensitive); falls back to ACGS
+    defaults (BA1=0.05, BS1=0.001) for all other genes.
+    """
+    if gene:
+        normalised = gene.strip().upper()
+        g = _CANVIG_GENES.get(normalised)
+        if g:
+            return g["ba1_threshold"], g["bs1_threshold"]
+    return _ACGS_DEFAULT_BA1, _ACGS_DEFAULT_BS1
+
+
+def pre_compute_criteria(
+    variant: VcfVariant,
+    case_type: CaseType,
+) -> list[PreComputedCriterion]:
+    """Derive criterion suggestions from VCF annotation fields.
+
+    Applies rule-based logic to ``gnomad_af``, ``revel_score``,
+    ``spliceai_max``, ``clinvar_sig``, and ``consequence`` to suggest
+    applicable ACGS SNV or SVIG-UK criteria.  No network calls are made.
+
+    Args:
+        variant: Parsed VCF variant with annotation fields populated.
+        case_type: ``"germline"`` (ACGS SNV rules) or
+            ``"somatic"`` (SVIG-UK rules).
+
+    Returns:
+        A list of ``PreComputedCriterion`` suggestions.  The list is
+        empty when no rules trigger.  All suggestions have
+        ``applied=False`` until confirmed by the analyst.
+    """
+    results: list[PreComputedCriterion] = []
+    framework, is_canvig = select_framework(case_type, variant.gene)
+    gnomad = variant.gnomad_af
+    csq = variant.consequence.split("&")[0] if variant.consequence else None
+
+    if framework == "acgs_snv":
+        ba1_thresh, bs1_thresh = _gnomad_thresholds(variant.gene)
+
+        # BA1 — standalone benign if AF above threshold
+        if gnomad is not None and gnomad > ba1_thresh:
+            label = f"CanVIG {variant.gene}" if is_canvig else "ACGS standard"
+            results.append(PreComputedCriterion(
+                criterion_code="BA1",
+                pre_computed_value=f"gnomAD AF = {gnomad:.2e} [threshold {ba1_thresh} \u2014 {label}]",
+                framework=framework,
+                suggested_strength="standalone",
+            ))
+
+        # BS1 — elevated AF (above bs1 threshold but at or below ba1 threshold)
+        if gnomad is not None and bs1_thresh < gnomad <= ba1_thresh:
+            results.append(PreComputedCriterion(
+                criterion_code="BS1",
+                pre_computed_value=f"gnomAD AF = {gnomad:.2e} [BS1 threshold {bs1_thresh}]",
+                framework=framework,
+                suggested_strength="strong",
+            ))
+
+        # PM2 — absent or very low AF
+        # ACGS 2024 PM2_Supporting threshold: variants absent from or below 0.1%
+        # frequency in gnomAD. Update _ACGS_DEFAULT_PM2 when lab policy changes.
+        if gnomad is None or gnomad < _ACGS_DEFAULT_PM2:
+            af_label = "absent in gnomAD" if gnomad is None else f"gnomAD AF = {gnomad:.2e}"
+            results.append(PreComputedCriterion(
+                criterion_code="PM2",
+                pre_computed_value=af_label,
+                framework=framework,
+                suggested_strength="supporting",
+            ))
+
+        # PVS1 and PVS1_RNA are intentionally excluded from pre-compute.
+        # The PVS1 decision tree (gene-specific LOF tolerance, transcript/exon position, NMD escape,
+        # multi-exon deletions etc.) is too complex to reduce to a simple pre-compute rule.
+        # Clinical scientists apply PVS1 manually using the full ACGS/VCEP decision tree.
+
+        # PP3 — damaging REVEL
+        if variant.revel_score is not None and variant.revel_score >= 0.7:
+            results.append(PreComputedCriterion(
+                criterion_code="PP3",
+                pre_computed_value=f"REVEL score = {variant.revel_score:.3f}",
+                framework=framework,
+                suggested_strength="supporting",
+            ))
+
+        # BP4 — benign REVEL (ACGS 2024: REVEL < 0.4, strictly less than)
+        if variant.revel_score is not None and variant.revel_score < 0.4:
+            results.append(PreComputedCriterion(
+                criterion_code="BP4",
+                pre_computed_value=f"REVEL score = {variant.revel_score:.3f}",
+                framework=framework,
+                suggested_strength="supporting",
+            ))
+
+        # BP7 — synonymous + low SpliceAI
+        if variant.consequence and "synonymous_variant" in variant.consequence:
+            sai = variant.spliceai_max
+            if sai is None or sai < 0.1:
+                sai_str = f"{sai:.3f}" if sai is not None else "N/A"
+                results.append(PreComputedCriterion(
+                    criterion_code="BP7",
+                    pre_computed_value=f"Synonymous variant; SpliceAI max delta = {sai_str}",
+                    framework=framework,
+                    suggested_strength="supporting",
+                ))
+
+        # PS1 — ClinVar pathogenic (no conflict)
+        if (variant.clinvar_sig
+                and re.search(r"pathogenic", variant.clinvar_sig, re.I)
+                and not re.search(r"conflict", variant.clinvar_sig, re.I)):
+            results.append(PreComputedCriterion(
+                criterion_code="PS1",
+                pre_computed_value=f"ClinVar: {variant.clinvar_sig}",
+                framework=framework,
+                suggested_strength="strong",
+            ))
+
+    else:  # svig
+        # B1 — germline polymorphism (AF > 0.01)
+        if gnomad is not None and gnomad > 0.01:
+            results.append(PreComputedCriterion(
+                criterion_code="B1",
+                pre_computed_value=f"gnomAD AF = {gnomad:.2e} (> 0.01)",
+                framework=framework,
+                suggested_strength="standalone",
+            ))
+
+        # O3 — absent or very rare in population
+        if gnomad is None or gnomad < 0.0001:
+            af_label = "absent in gnomAD" if gnomad is None else f"gnomAD AF = {gnomad:.2e}"
+            results.append(PreComputedCriterion(
+                criterion_code="O3",
+                pre_computed_value=af_label,
+                framework=framework,
+                suggested_strength="moderate",
+            ))
+
+        # O2 — null variant in potential tumour suppressor gene
+        if csq and csq in _LOF_CONSEQUENCES:
+            results.append(PreComputedCriterion(
+                criterion_code="O2",
+                pre_computed_value=f"Consequence: {variant.consequence}",
+                framework=framework,
+                suggested_strength="very_strong",
+            ))
+
+        # O6 — computational evidence of oncogenic effect
+        if variant.revel_score is not None and variant.revel_score >= 0.7:
+            results.append(PreComputedCriterion(
+                criterion_code="O6",
+                pre_computed_value=f"REVEL score = {variant.revel_score:.3f}",
+                framework=framework,
+                suggested_strength="supporting",
+            ))
+
+        # B3 — computational benign evidence (REVEL < 0.4 takes priority over SpliceAI)
+        b3_added = False
+        if variant.revel_score is not None and variant.revel_score < 0.4:
+            results.append(PreComputedCriterion(
+                criterion_code="B3",
+                pre_computed_value=f"REVEL score = {variant.revel_score:.3f}",
+                framework=framework,
+                suggested_strength="supporting",
+            ))
+            b3_added = True
+        if not b3_added and variant.spliceai_max is not None and variant.spliceai_max < 0.1:
+            results.append(PreComputedCriterion(
+                criterion_code="B3",
+                pre_computed_value=f"SpliceAI max delta = {variant.spliceai_max:.3f}",
+                framework=framework,
+                suggested_strength="supporting",
+            ))
+
+        # O1 — ClinVar somatic oncogenic or pathogenic (no conflict)
+        if (variant.clinvar_sig
+                and re.search(r"oncogenic|pathogenic", variant.clinvar_sig, re.I)
+                and not re.search(r"conflict", variant.clinvar_sig, re.I)):
+            results.append(PreComputedCriterion(
+                criterion_code="O1",
+                pre_computed_value=f"ClinVar: {variant.clinvar_sig}",
+                framework=framework,
+                suggested_strength="standalone",
+            ))
+
+    return results

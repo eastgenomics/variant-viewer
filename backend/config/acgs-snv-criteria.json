@@ -8,7 +8,12 @@
       "category": "functional",
       "direction": "pathogenic",
       "default_strength": "very_strong",
-      "permitted_strengths": ["very_strong", "strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "very_strong",
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Null variant in a gene where LOF is a known mechanism of disease",
       "pre_computable": true,
@@ -20,7 +25,12 @@
       "category": "functional",
       "direction": "pathogenic",
       "default_strength": "very_strong",
-      "permitted_strengths": ["very_strong", "strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "very_strong",
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Splicing impact confirmed by RNA analysis or predicted by SpliceAI",
       "pre_computable": true,
@@ -32,7 +42,11 @@
       "category": "other_databases",
       "direction": "pathogenic",
       "default_strength": "strong",
-      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Same amino acid change as a previously established pathogenic variant",
       "pre_computable": true,
@@ -44,7 +58,11 @@
       "category": "segregation",
       "direction": "pathogenic",
       "default_strength": "strong",
-      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "De novo (confirmed) in patient with the disease and no family history",
       "pre_computable": false
@@ -55,7 +73,11 @@
       "category": "functional",
       "direction": "pathogenic",
       "default_strength": "strong",
-      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Well-established functional studies show a damaging effect",
       "pre_computable": false
@@ -66,7 +88,11 @@
       "category": "case_evidence",
       "direction": "pathogenic",
       "default_strength": "strong",
-      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Prevalence of variant in affected individuals significantly increased over controls",
       "pre_computable": false
@@ -77,7 +103,11 @@
       "category": "functional",
       "direction": "pathogenic",
       "default_strength": "moderate",
-      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Variant in mutational hot spot or critical functional domain without benign variation",
       "pre_computable": false
@@ -88,7 +118,10 @@
       "category": "population",
       "direction": "pathogenic",
       "default_strength": "moderate",
-      "permitted_strengths": ["moderate", "supporting"],
+      "permitted_strengths": [
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Absent or very low frequency in population databases (gnomAD)",
       "pre_computable": true,
@@ -100,7 +133,11 @@
       "category": "case_evidence",
       "direction": "pathogenic",
       "default_strength": "moderate",
-      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Detected in trans with a pathogenic variant (for recessive disorders)",
       "pre_computable": false
@@ -111,7 +148,10 @@
       "category": "functional",
       "direction": "pathogenic",
       "default_strength": "moderate",
-      "permitted_strengths": ["moderate", "supporting"],
+      "permitted_strengths": [
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Protein length change due to in-frame indels or stop-loss variants",
       "pre_computable": false
@@ -122,7 +162,10 @@
       "category": "other_databases",
       "direction": "pathogenic",
       "default_strength": "moderate",
-      "permitted_strengths": ["moderate", "supporting"],
+      "permitted_strengths": [
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Novel missense at same codon where different missense change is pathogenic",
       "pre_computable": true,
@@ -134,7 +177,10 @@
       "category": "segregation",
       "direction": "pathogenic",
       "default_strength": "moderate",
-      "permitted_strengths": ["moderate", "supporting"],
+      "permitted_strengths": [
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Assumed de novo (without confirmation) in patient with disease",
       "pre_computable": false
@@ -145,7 +191,11 @@
       "category": "segregation",
       "direction": "pathogenic",
       "default_strength": "supporting",
-      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Co-segregation with disease in multiple affected family members",
       "pre_computable": false
@@ -156,7 +206,9 @@
       "category": "functional",
       "direction": "pathogenic",
       "default_strength": "supporting",
-      "permitted_strengths": ["supporting"],
+      "permitted_strengths": [
+        "supporting"
+      ],
       "adjustable": false,
       "description": "Missense variant in gene with low rate of benign missense and disease caused by missense",
       "pre_computable": false
@@ -167,7 +219,10 @@
       "category": "computational",
       "direction": "pathogenic",
       "default_strength": "supporting",
-      "permitted_strengths": ["moderate", "supporting"],
+      "permitted_strengths": [
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Computational evidence supports a damaging effect (REVEL ≥ 0.7 per ACGS 2024)",
       "pre_computable": true,
@@ -179,7 +234,9 @@
       "category": "case_evidence",
       "direction": "pathogenic",
       "default_strength": "supporting",
-      "permitted_strengths": ["supporting"],
+      "permitted_strengths": [
+        "supporting"
+      ],
       "adjustable": false,
       "description": "Patient phenotype/family history highly specific for gene-specific disease",
       "pre_computable": false
@@ -190,7 +247,9 @@
       "category": "population",
       "direction": "benign",
       "default_strength": "standalone",
-      "permitted_strengths": ["standalone"],
+      "permitted_strengths": [
+        "standalone"
+      ],
       "adjustable": false,
       "description": "Allele frequency > 5% in population databases (or gene-specific MTAF for CanVIG genes). Standalone benign.",
       "pre_computable": true,
@@ -202,7 +261,10 @@
       "category": "population",
       "direction": "benign",
       "default_strength": "strong",
-      "permitted_strengths": ["strong", "moderate"],
+      "permitted_strengths": [
+        "strong",
+        "moderate"
+      ],
       "adjustable": true,
       "description": "Allele frequency greater than expected for disorder",
       "pre_computable": true,
@@ -214,7 +276,10 @@
       "category": "case_evidence",
       "direction": "benign",
       "default_strength": "strong",
-      "permitted_strengths": ["strong", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Observed in healthy adult with full penetrance expected at early age",
       "pre_computable": false
@@ -225,7 +290,11 @@
       "category": "functional",
       "direction": "benign",
       "default_strength": "strong",
-      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Well-established functional studies show no damaging effect",
       "pre_computable": false
@@ -236,7 +305,11 @@
       "category": "segregation",
       "direction": "benign",
       "default_strength": "strong",
-      "permitted_strengths": ["strong", "moderate", "supporting"],
+      "permitted_strengths": [
+        "strong",
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Lack of segregation in affected family members",
       "pre_computable": false
@@ -247,7 +320,9 @@
       "category": "functional",
       "direction": "benign",
       "default_strength": "supporting",
-      "permitted_strengths": ["supporting"],
+      "permitted_strengths": [
+        "supporting"
+      ],
       "adjustable": false,
       "description": "Missense variant in gene where truncating variants are the mechanism",
       "pre_computable": false
@@ -258,7 +333,9 @@
       "category": "segregation",
       "direction": "benign",
       "default_strength": "supporting",
-      "permitted_strengths": ["supporting"],
+      "permitted_strengths": [
+        "supporting"
+      ],
       "adjustable": false,
       "description": "Observed in trans with pathogenic variant in dominant gene, or in cis with pathogenic in any pattern",
       "pre_computable": false
@@ -269,7 +346,9 @@
       "category": "functional",
       "direction": "benign",
       "default_strength": "supporting",
-      "permitted_strengths": ["supporting"],
+      "permitted_strengths": [
+        "supporting"
+      ],
       "adjustable": false,
       "description": "In-frame deletions/insertions in repetitive region without known function",
       "pre_computable": false
@@ -280,7 +359,10 @@
       "category": "computational",
       "direction": "benign",
       "default_strength": "supporting",
-      "permitted_strengths": ["moderate", "supporting"],
+      "permitted_strengths": [
+        "moderate",
+        "supporting"
+      ],
       "adjustable": true,
       "description": "Computational evidence suggests no impact on gene or gene product (REVEL ≤ 0.4)",
       "pre_computable": true,
@@ -292,7 +374,9 @@
       "category": "case_evidence",
       "direction": "benign",
       "default_strength": "supporting",
-      "permitted_strengths": ["supporting"],
+      "permitted_strengths": [
+        "supporting"
+      ],
       "adjustable": false,
       "description": "Variant found in case with alternative molecular basis for disease",
       "pre_computable": false
@@ -303,7 +387,9 @@
       "category": "computational",
       "direction": "benign",
       "default_strength": "supporting",
-      "permitted_strengths": ["supporting"],
+      "permitted_strengths": [
+        "supporting"
+      ],
       "adjustable": false,
       "description": "Synonymous variant with no predicted splice impact and gene has no splice function constraint",
       "pre_computable": true,
@@ -315,7 +401,9 @@
       "category": "computational",
       "direction": "benign",
       "default_strength": "supporting",
-      "permitted_strengths": ["supporting"],
+      "permitted_strengths": [
+        "supporting"
+      ],
       "adjustable": false,
       "description": "No predicted splicing impact by SpliceAI for a variant near a splice site",
       "pre_computable": true,
@@ -325,22 +413,26 @@
   "combination_rules": [
     {
       "rule": "BS2_BP2_not_together",
-      "codes": ["BS2", "BP2"],
+      "codes": [
+        "BS2",
+        "BP2"
+      ],
       "message": "BS2 and BP2 should not be applied together per ACGS guidance."
     },
     {
-      "rule": "BA1_overrides_all",
-      "codes": ["BA1"],
-      "message": "BA1 is standalone Benign and overrides the point-based score. Other criteria are not needed."
-    },
-    {
       "rule": "PP3_BP4_conflict",
-      "codes": ["PP3", "BP4"],
+      "codes": [
+        "PP3",
+        "BP4"
+      ],
       "message": "PP3 and BP4 should not both be applied — they are opposing computational evidence."
     },
     {
       "rule": "PVS1_PM4_overlap",
-      "codes": ["PVS1", "PM4"],
+      "codes": [
+        "PVS1",
+        "PM4"
+      ],
       "message": "PVS1 and PM4 should not both be applied to the same variant — PM4 overlaps with PVS1 for indels."
     }
   ],

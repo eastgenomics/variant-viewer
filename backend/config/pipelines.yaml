@@ -1,6 +1,9 @@
 pipelines:
   dragen_germline:
     label: "DRAGEN Germline v3"
+    # TODO: Differentiate from dragen_somatic once real DRAGEN VCF header strings are confirmed.
+    # Both pipelines currently share the "DRAGEN" pattern; dragen_germline wins by dict insertion order.
+    # Validate against actual ##source / ##pipeline lines from lab VCFs and update patterns.
     header_pattern: "DRAGEN"
     default_filters:
       gnomad_af_max: 0.01

@@ -32,15 +32,16 @@ Original release tagged at `v0.1-discovery-nextjs`.
 ## Development
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 ## Backend
 
 ```bash
 cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/uvicorn app.main:app --reload --port 3000
 ```
 
 ## Frontend
