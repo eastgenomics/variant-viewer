@@ -130,6 +130,9 @@ async def list_sample_variants(
         LEFT JOIN variant_classification vc
                ON vc.variant_id = v.id AND vc.deleted_at IS NULL
         WHERE v.sample_id = %s
+        -- TODO: assumes bare chrom names ('1'–'22', 'X', 'Y', 'MT').
+        -- DRAGEN with chr prefix ('chr1' etc.) will error on the ELSE cast.
+        -- Confirm format against a real VCF from the lab before deploying.
         ORDER BY
             CASE v.chrom
                 WHEN 'X'  THEN 23
