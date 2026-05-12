@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+from collections.abc import Callable
 from contextlib import contextmanager
-from typing import Generator
+from typing import Generator, TypeVar
 from urllib.parse import quote_plus
 
 import boto3
@@ -96,6 +97,23 @@ def with_transaction() -> Generator[psycopg2.extensions.connection, None, None]:
             raise
         finally:
             conn.autocommit = True
+
+
+T = TypeVar("T")
+
+
+def run_in_transaction(fn: Callable[[psycopg2.extensions.connection], T]) -> T:
+    """Run fn(conn) inside a transaction and return its result.
+
+    Designed to be passed to asyncio.to_thread() from async route handlers::
+
+        result = await asyncio.to_thread(db.run_in_transaction, my_fn)
+
+    Opens a transaction via with_transaction(), calls fn(conn), and commits
+    on success or rolls back on exception.
+    """
+    with with_transaction() as conn:
+        return fn(conn)
 
 
 def _reset_pool() -> None:

@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routes import health, patients, samples, variants, config
+
 app = FastAPI(
     title="Variant Viewer API",
     description="Genomic variant review and classification API",
@@ -15,7 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.get("/api/health")
-async def health():
-    return {"status": "ok"}
+app.include_router(health.router)
+app.include_router(patients.router)
+app.include_router(samples.router)
+app.include_router(variants.router)
+app.include_router(config.router)
