@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import secrets
 
 import boto3
 from fastapi import HTTPException, Security, status
@@ -35,6 +36,10 @@ def _get_api_key() -> str:
         sm = boto3.client("secretsmanager", region_name=region)
         resp = sm.get_secret_value(SecretId=arn)
         secret = json.loads(resp["SecretString"])
+        if "api_key" not in secret:
+            raise RuntimeError(
+                f"Secrets Manager secret {arn!r} must contain an 'api_key' field"
+            )
         _resolved_key = secret["api_key"]
     else:
         _resolved_key = os.environ.get("API_KEY")
@@ -52,7 +57,8 @@ async def require_api_key(
 
     Raises HTTP 401 if the header is absent or does not match the resolved key.
     """
-    if not api_key or api_key != _get_api_key():
+    expected = _get_api_key()
+    if not api_key or not secrets.compare_digest(api_key, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing API key",

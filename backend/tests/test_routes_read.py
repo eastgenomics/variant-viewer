@@ -146,6 +146,13 @@ def test_sample_detail_returns_patient_and_workflow(client, monkeypatch):
 
 # ─── Sample variant list ──────────────────────────────────────────────────────
 
+def test_sample_variants_not_found(client, monkeypatch):
+    """Unknown sample_id must return 404, not a silent empty list."""
+    monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [])
+    r = client.get("/api/samples/999/variants", headers=HEADERS)
+    assert r.status_code == 404
+
+
 def test_sample_variants_returns_list(client, monkeypatch):
     def mock_query(sql, params=()):
         if "COUNT" in sql:

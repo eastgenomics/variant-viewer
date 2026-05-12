@@ -103,6 +103,16 @@ async def list_sample_variants(
     offset: int = Query(0, ge=0),
 ):
     """Return a paginated list of variants for a sample with classification summary."""
+    # Verify the sample exists before counting variants — a missing sample
+    # should 404, not silently return an empty list.
+    sample_rows = await asyncio.to_thread(
+        db.query,
+        "SELECT 1 FROM samples WHERE id = %s",
+        (sample_id,),
+    )
+    if not sample_rows:
+        raise HTTPException(status_code=404, detail="Sample not found")
+
     total_rows = await asyncio.to_thread(
         db.query,
         "SELECT COUNT(*) AS n FROM variants WHERE sample_id = %s",
@@ -120,7 +130,15 @@ async def list_sample_variants(
         LEFT JOIN variant_classification vc
                ON vc.variant_id = v.id AND vc.deleted_at IS NULL
         WHERE v.sample_id = %s
-        ORDER BY v.chrom, v.pos
+        ORDER BY
+            CASE v.chrom
+                WHEN 'X'  THEN 23
+                WHEN 'Y'  THEN 24
+                WHEN 'MT' THEN 25
+                WHEN 'M'  THEN 25
+                ELSE v.chrom::integer
+            END,
+            v.pos
         LIMIT %s OFFSET %s
         """,
         (sample_id, limit, offset),

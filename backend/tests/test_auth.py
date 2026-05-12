@@ -82,6 +82,23 @@ def test_auth_raises_if_neither_env_set(monkeypatch):
         auth_module._get_api_key()
 
 
+def test_auth_raises_if_secret_missing_api_key_field(monkeypatch):
+    """Secrets Manager secret exists but was created with wrong key name."""
+    import json
+    from unittest.mock import MagicMock, patch
+    monkeypatch.delenv("API_KEY", raising=False)
+    monkeypatch.setenv("API_KEY_SECRET_ARN", "arn:aws:...:secret:api-key")
+    monkeypatch.setattr(auth_module, "_resolved_key", None)
+
+    mock_sm = MagicMock()
+    mock_sm.get_secret_value.return_value = {
+        "SecretString": json.dumps({"API_KEY": "wrong-field-name"})
+    }
+    with patch("boto3.client", return_value=mock_sm):
+        with pytest.raises(RuntimeError, match="must contain an 'api_key' field"):
+            auth_module._get_api_key()
+
+
 def test_run_in_transaction_commits(monkeypatch):
     import app.lib.db as db_module
     from unittest.mock import MagicMock, patch
