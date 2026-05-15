@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR 25: Auth &amp; Read API — Part 3 · Function walkthrough</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}.cb .k{color:#79b8ff}.cb .s{color:#9ecbff}.cb .n{color:#b392f0}.cb .f{color:#85e89d}.cb .t{color:#ffab70}
+  /* fn-box */
+  .fn-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .fn-header{background:var(--accent-deep);padding:14px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .fn-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:#fff;font-weight:700}
+  .fn-lines{font-size:12px;color:#a8c8e8}
+  .fn-phase{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+  .fn-phase.auth{background:#1a6e47;color:#fff}
+  .fn-phase.db{background:#4b2d8e;color:#fff}
+  .fn-phase.route{background:#b35c00;color:#fff}
+  .fn-phase.helper{background:#6b7c8d;color:#fff}
+  .fn-body{padding:18px}
+  .fn-body p{margin-bottom:10px}
+  .io-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .io-box{background:#f7f9fb;border:1px solid var(--line);border-radius:6px;padding:12px}
+  .io-box h4{margin:0 0 6px}
+  .io-box ul{margin:0;padding-left:18px}
+  .io-box li{font-size:13px;margin:3px 0}
+  .file-section{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f0f4f8;border:1px solid var(--line);border-radius:6px;margin:20px 0 8px;font-size:13px}
+  .file-section .fs-name{font-weight:700;color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace}
+  .file-section .fs-desc{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR 25 API LAYER<br>12 May 2026</div>
+  <div class="toc-section">Part 3 of 4</div>
+  <ul>
+    <li><a href="#auth-fns">16 · Authentication layer</a></li>
+    <li><a href="#db-fns">17 · Database layer additions</a></li>
+    <li><a href="#patient-fns">18 · Patient &amp; sample routes</a></li>
+    <li><a href="#variant-fns">19 · Variant &amp; config routes</a></li>
+  </ul>
+  <div class="meta">Continued from Part 2.<br>17 functions total.<br>Source: PR #25 feat/pr6-read-api</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code Explainer · Clinical Bioinformatics · PR #25</div>
+  <h1>Variant Viewer — Auth &amp; Read API</h1>
+  <p class="sub">Every function in the PR examined individually — Part 3 of 4: Function walkthrough.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 12 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> eastgenomics/variant-viewer #25</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="PR25_Briefing_Part1.html">1 · High-level outline</a>
+  <a href="PR25_Briefing_Part2.html">2 · Key concepts</a>
+  <a href="PR25_Briefing_Part3.html" class="current">3 · Function walkthrough</a>
+  <a href="PR25_Briefing_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+<!-- 16 -->
+<section id="auth-fns">
+  <h2><span class="sec-num">16</span> Authentication layer — <code>middleware/auth.py</code></h2>
+
+  <div class="file-section">
+    <span class="fs-name">app/middleware/auth.py</span>
+    <span class="fs-desc">3 functions · 66 lines · new file</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">_get_api_key()</span>
+      <span class="fn-lines">lines 19–47</span>
+      <span class="fn-phase auth">Auth</span>
+    </div>
+    <div class="fn-body">
+      <p>Resolves the expected API key using a lazy singleton. The first call pays the cost of a Secrets Manager round-trip (if configured); every subsequent call returns the cached string immediately.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs</h4>
+          <ul><li>None (reads from module globals and environment)</li></ul>
+        </div>
+        <div class="io-box">
+          <h4>Returns / raises</h4>
+          <ul>
+            <li><code>str</code> — the expected API key</li>
+            <li><code>RuntimeError</code> — if <code>API_KEY_SECRET_ARN</code> secret is missing the <code>api_key</code> field</li>
+            <li><code>RuntimeError</code> — if neither <code>API_KEY_SECRET_ARN</code> nor <code>API_KEY</code> is set</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Resolution order:</strong> (1) return cached value if already resolved; (2) if <code>API_KEY_SECRET_ARN</code> is set, call Secrets Manager, parse the JSON, validate the <code>api_key</code> field exists, and cache it; (3) otherwise read <code>API_KEY</code> directly from the environment; (4) raise if neither produced a value.</p>
+      <div class="callout blue">
+        <span class="tag">Design decision</span>
+        <p>The field-presence check (<code>if "api_key" not in secret</code>) before assignment was added after code review. Without it, a secret created with the wrong field name (e.g. <code>API_KEY</code> instead of <code>api_key</code>) would raise a bare <code>KeyError</code> surfacing as HTTP 500, with a traceback that does not mention the misconfiguration. The explicit <code>RuntimeError</code> names both the ARN and the expected field.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">require_api_key()</span>
+      <span class="fn-lines">lines 50–60</span>
+      <span class="fn-phase auth">Auth</span>
+    </div>
+    <div class="fn-body">
+      <p>FastAPI dependency that validates the <code>X-API-Key</code> header on every protected request. Declared <code>async def</code> so FastAPI can call it as a coroutine, but it does no async work — the actual key resolution is synchronous (and fast after the first call).</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs</h4>
+          <ul>
+            <li><code>api_key: str | None</code> — injected by <code>APIKeyHeader</code>; <code>None</code> if the header is absent</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Returns / raises</h4>
+          <ul>
+            <li><code>str</code> — the validated key (injected into the route handler if declared as a parameter)</li>
+            <li><code>HTTPException(401)</code> — if key is absent or wrong</li>
+          </ul>
+        </div>
+      </div>
+      <p>Uses <code>secrets.compare_digest(api_key, expected)</code> for constant-time comparison (see §12). The <code>not api_key</code> guard before it short-circuits on <code>None</code> or empty string without leaking timing information about the expected key.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">_reset_resolved_key()</span>
+      <span class="fn-lines">lines 63–66</span>
+      <span class="fn-phase helper">Test helper</span>
+    </div>
+    <div class="fn-body">
+      <p>Sets the module-level <code>_resolved_key</code> back to <code>None</code>. Required in tests because the singleton persists across test functions in the same pytest process. Used via <code>monkeypatch.setattr(auth_module, "_resolved_key", None)</code> in fixtures.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 17 -->
+<section id="db-fns">
+  <h2><span class="sec-num">17</span> Database layer additions — <code>lib/db.py</code></h2>
+
+  <div class="file-section">
+    <span class="fs-name">app/lib/db.py</span>
+    <span class="fs-desc">2 additions · run_in_transaction + TypeVar · pre-existing functions unchanged</span>
+  </div>
+
+  <p>The five pre-existing functions (<code>_resolve_secrets</code>, <code>_get_pool</code>, <code>_get_connection</code>, <code>query</code>, <code>with_transaction</code>) are documented briefly below for completeness; <code>run_in_transaction</code> is the new addition and receives more detail.</p>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">_resolve_secrets()</span>
+      <span class="fn-lines">lines 21–42</span>
+      <span class="fn-phase db">DB setup</span>
+    </div>
+    <div class="fn-body">
+      <p>Idempotent (guarded by <code>_secrets_resolved</code> flag): on first call, reads DB credentials from Secrets Manager and writes a PostgreSQL DSN into <code>os.environ["DATABASE_URL"]</code>. On all subsequent calls returns immediately. Called by <code>_get_pool()</code>.</p>
+      <p>Validates that all four required fields (<code>username</code>, <code>password</code>, <code>host</code>, <code>dbname</code>) are present in the secret; raises <code>RuntimeError</code> with the missing field names if any are absent.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">_get_pool()</span>
+      <span class="fn-lines">lines 45–55</span>
+      <span class="fn-phase db">DB setup</span>
+    </div>
+    <div class="fn-body">
+      <p>Lazy-initialises the <code>ThreadedConnectionPool</code>. Calls <code>_resolve_secrets()</code> first (idempotent), then creates the pool if <code>_pool is None</code>. Adds <code>sslmode="require"</code> when <code>APP_ENV == "production"</code>, satisfying the DSPT v8 / UK GDPR requirement for encryption in transit to the RDS instance.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">_get_connection()</span>
+      <span class="fn-lines">lines 58–64</span>
+      <span class="fn-phase db">DB</span>
+    </div>
+    <div class="fn-body">
+      <p>Context manager: borrows a connection from the pool on entry, returns it in <code>finally</code>. The <code>finally</code> guarantee is important — it ensures connections are always returned even if the caller raises, preventing pool exhaustion.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">query()</span>
+      <span class="fn-lines">lines 67–78</span>
+      <span class="fn-phase db">DB</span>
+    </div>
+    <div class="fn-body">
+      <p>Executes a SELECT and returns all rows as <code>list[dict]</code>. Constructs the dict by zipping column names (from <code>cur.description</code>) with row tuples. The <code>conn.rollback()</code> in <code>finally</code> closes the implicit transaction that psycopg2 opens automatically when you call <code>execute()</code> — without it, connections returned to the pool would carry an open idle transaction.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">with_transaction()</span>
+      <span class="fn-lines">lines 81–92</span>
+      <span class="fn-phase db">DB</span>
+    </div>
+    <div class="fn-body">
+      <p>Context manager that wraps a sequence of database operations in an explicit transaction: sets <code>autocommit=False</code>, yields the connection for the caller to use, then calls <code>commit()</code> on success or <code>rollback()</code> on exception, and finally resets <code>autocommit=True</code>.</p>
+      <div class="callout amber">
+        <span class="tag">Gotcha</span>
+        <p>The <code>autocommit</code> toggle in <code>finally</code> is necessary because the pool reuses connections. A connection returned with <code>autocommit=False</code> would cause the next caller's <code>query()</code> to silently open a new implicit transaction — which would then be left open when the query completes.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">run_in_transaction()</span>
+      <span class="fn-lines">lines 96–106</span>
+      <span class="fn-phase db">DB</span>
+    </div>
+    <div class="fn-body">
+      <p>Synchronous wrapper that opens a transaction, calls <code>fn(conn)</code>, and returns the result. Designed to be passed as the first argument to <code>asyncio.to_thread()</code> so that an entire write transaction — including audit log inserts — runs as a single thread call on one connection.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs</h4>
+          <ul>
+            <li><code>fn: Callable[[connection], T]</code> — any callable that accepts a psycopg2 connection and returns a value</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Returns</h4>
+          <ul>
+            <li><code>T</code> — whatever <code>fn(conn)</code> returns; type preserved via <code>TypeVar("T")</code></li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout blue">
+        <span class="tag">Design decision</span>
+        <p>The alternative to <code>run_in_transaction</code> would be to call <code>db.with_transaction()</code> directly inside the thread — but context managers cannot be yielded across <code>asyncio.to_thread</code> boundaries cleanly. By wrapping the whole transaction in a synchronous function and passing it to <code>to_thread</code>, the async route handler dispatches one unit of work that completes atomically on a single OS thread.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 18 -->
+<section id="patient-fns">
+  <h2><span class="sec-num">18</span> Patient &amp; sample routes</h2>
+
+  <div class="file-section">
+    <span class="fs-name">app/routes/patients.py</span>
+    <span class="fs-desc">list_patients · get_patient · 4 Pydantic response models</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">list_patients()</span>
+      <span class="fn-lines">lines 45–72</span>
+      <span class="fn-phase route">Route — GET /api/patients</span>
+    </div>
+    <div class="fn-body">
+      <p>Returns a paginated list of patients. Optionally filters by a case-insensitive substring match on <code>lab_number</code> or <code>name</code>.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Query parameters</h4>
+          <ul>
+            <li><code>limit</code>: int, 1–200, default 50</li>
+            <li><code>offset</code>: int, ≥0, default 0</li>
+            <li><code>search</code>: str | None</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Returns</h4>
+          <ul>
+            <li><code>PatientListResponse</code> — <code>items</code>, <code>total</code>, <code>limit</code>, <code>offset</code></li>
+            <li>HTTP 401 — no/wrong key</li>
+            <li>HTTP 422 — <code>limit</code> out of range</li>
+          </ul>
+        </div>
+      </div>
+      <p>Runs two queries: one <code>COUNT(*)</code> for the total (needed for frontend pagination controls), one <code>SELECT</code> with <code>LIMIT</code>/<code>OFFSET</code> for the page. The <code>WHERE</code> clause is constructed conditionally: if <code>search</code> is absent, no <code>WHERE</code> is added; if present, both <code>ILIKE</code> conditions share the same params tuple. The <code>limit ≤ 200</code> ceiling is enforced by FastAPI's <code>Query(le=200)</code> — any client sending <code>?limit=999</code> gets HTTP 422 without the handler running.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">get_patient()</span>
+      <span class="fn-lines">lines 75–101</span>
+      <span class="fn-phase route">Route — GET /api/patients/{patient_id}</span>
+    </div>
+    <div class="fn-body">
+      <p>Returns patient detail plus the list of all their samples with current workflow status.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Path parameter</h4>
+          <ul><li><code>patient_id: int</code></li></ul>
+        </div>
+        <div class="io-box">
+          <h4>Returns</h4>
+          <ul>
+            <li><code>PatientDetailResponse</code> (extends <code>PatientSummary</code>)</li>
+            <li>HTTP 404 — patient not found</li>
+          </ul>
+        </div>
+      </div>
+      <p>Two sequential <code>to_thread</code> calls: first fetches the patient row (404 if empty), then fetches all samples via a <code>LEFT JOIN workflow</code> so each sample carries its current workflow status. <code>COALESCE(w.status, 'pending')</code> handles samples that have no workflow row yet — the workflow table row is created lazily on first status transition.</p>
+    </div>
+  </div>
+
+  <div class="file-section" style="margin-top:36px">
+    <span class="fs-name">app/routes/samples.py</span>
+    <span class="fs-desc">get_sample · list_sample_variants · 3 Pydantic response models</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">get_sample()</span>
+      <span class="fn-lines">lines 56–92</span>
+      <span class="fn-phase route">Route — GET /api/samples/{sample_id}</span>
+    </div>
+    <div class="fn-body">
+      <p>Returns sample detail including patient summary, workflow status, and variant count — all in a single database query using multi-table JOINs.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Path parameter</h4>
+          <ul><li><code>sample_id: int</code></li></ul>
+        </div>
+        <div class="io-box">
+          <h4>Returns</h4>
+          <ul>
+            <li><code>SampleDetailResponse</code> with nested <code>PatientSummary</code></li>
+            <li>HTTP 404 — sample not found</li>
+          </ul>
+        </div>
+      </div>
+      <p>The JOIN pattern: <code>samples JOIN patients</code> (inner — every sample has a patient), <code>LEFT JOIN workflow</code> (optional — workflow row may not exist), <code>LEFT JOIN variants COUNT</code> (optional — may have zero variants). The <code>GROUP BY s.id, p.id, w.status</code> is required because <code>COUNT(v.id)</code> is an aggregate function; all non-aggregated columns in the <code>SELECT</code> must appear in the <code>GROUP BY</code>. The flat query result is then manually decomposed: the patient columns (<code>patient_id</code>, <code>lab_number</code>, <code>patient_name</code>) are extracted to build a <code>PatientSummary</code> object, and the rest populate the <code>SampleDetailResponse</code>.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">list_sample_variants()</span>
+      <span class="fn-lines">lines 95–148</span>
+      <span class="fn-phase route">Route — GET /api/samples/{sample_id}/variants</span>
+    </div>
+    <div class="fn-body">
+      <p>Returns a paginated list of variants for a sample, including a classification summary column from the active (non-deleted) classification record. Variants are sorted in clinical chromosomal order.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Parameters</h4>
+          <ul>
+            <li><code>sample_id: int</code> (path)</li>
+            <li><code>limit</code>: 1–200, default 50</li>
+            <li><code>offset</code>: ≥0, default 0</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Returns</h4>
+          <ul>
+            <li><code>VariantListResponse</code></li>
+            <li>HTTP 404 — sample not found</li>
+          </ul>
+        </div>
+      </div>
+      <p>Three sequential queries: (1) existence check (<code>SELECT 1 FROM samples WHERE id = %s</code>) to 404 on unknown samples rather than silently returning an empty list; (2) <code>COUNT(*)</code> for pagination total; (3) the paginated variant list with <code>LEFT JOIN variant_classification ON deleted_at IS NULL</code>. The chromosomal sort uses a <code>CASE</code> expression (see §15 Pattern C).</p>
+    </div>
+  </div>
+</section>
+
+<!-- 19 -->
+<section id="variant-fns">
+  <h2><span class="sec-num">19</span> Variant &amp; config routes</h2>
+
+  <div class="file-section">
+    <span class="fs-name">app/routes/variants.py</span>
+    <span class="fs-desc">get_variant · 3 Pydantic response models including nested ClassificationDetail</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">get_variant()</span>
+      <span class="fn-lines">lines 53–102</span>
+      <span class="fn-phase route">Route — GET /api/variants/{variant_id}</span>
+    </div>
+    <div class="fn-body">
+      <p>Returns full variant detail with the optional active classification and all its criteria. This is the most structurally complex route: it issues three sequential database queries and assembles a deeply nested response object.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Path parameter</h4>
+          <ul><li><code>variant_id: int</code></li></ul>
+        </div>
+        <div class="io-box">
+          <h4>Returns</h4>
+          <ul>
+            <li><code>VariantDetailResponse</code> with optional <code>ClassificationDetail</code> (itself containing <code>list[CriterionDetail]</code>)</li>
+            <li>HTTP 404 — variant not found</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Query 1</strong> — variant + case_type: joins <code>variants</code> to <code>samples</code> to retrieve <code>case_type</code>, which is needed by the classification engine (PR 7 write routes will use it to select the correct framework). <strong>Query 2</strong> — active classification: selects from <code>variant_classification WHERE deleted_at IS NULL</code>; returns at most one row per variant (the partial unique index on the table enforces this). <strong>Query 3</strong> — criteria: fetched only if query 2 found a classification; otherwise skipped. The conditional dispatch avoids an unnecessary round-trip to the database for unclassified variants.</p>
+      <div class="callout blue">
+        <span class="tag">Design decision — 3 queries vs 1 JOIN</span>
+        <p>A single SQL query with two <code>LEFT JOIN</code>s (on <code>variant_classification</code> and <code>classification_criterion</code>) would produce a row per criterion, requiring application-side aggregation to reconstruct the nested structure. The 3-query approach is simpler to read and maintain, and for the expected data sizes (1–30 criteria per classification) the extra round-trips are negligible.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="file-section" style="margin-top:36px">
+    <span class="fs-name">app/routes/config.py</span>
+    <span class="fs-desc">get_criteria · reads JSON files from disk at request time</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">get_criteria()</span>
+      <span class="fn-lines">lines 20–27</span>
+      <span class="fn-phase route">Route — GET /api/config/criteria/{framework}</span>
+    </div>
+    <div class="fn-body">
+      <p>Serves a classification criteria JSON file from disk. No database call — the criteria definitions are static configuration files committed to the repository.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Path parameter</h4>
+          <ul>
+            <li><code>framework: str</code> — one of <code>"acgs_snv"</code>, <code>"svig"</code></li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Returns</h4>
+          <ul>
+            <li>Parsed JSON dict (FastAPI serialises to response)</li>
+            <li>HTTP 400 — unknown framework name</li>
+          </ul>
+        </div>
+      </div>
+      <p>The <code>_FRAMEWORK_FILES</code> dict maps framework names to <code>Path</code> objects resolved at module import time using <code>Path(__file__).parent.parent.parent / "config"</code>. Lookup is a dictionary get — any framework name not in the dict returns 400. The JSON files are read on every request (<code>path.read_text()</code>); file-level caching is not implemented because the files change rarely and the read cost is negligible. The endpoint is consumed by the frontend ClassificationPanel (PR 10) to dynamically build the criteria checkbox list.</p>
+    </div>
+  </div>
+
+  <div class="file-section" style="margin-top:36px">
+    <span class="fs-name">app/routes/health.py</span>
+    <span class="fs-desc">health · liveness probe · no auth</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">health()</span>
+      <span class="fn-lines">lines 11–13</span>
+      <span class="fn-phase route">Route — GET /api/health</span>
+    </div>
+    <div class="fn-body">
+      <p>Liveness probe for ALB health checks and monitoring. Returns <code>{"status": "ok", "version": "0.2.0"}</code>. No authentication required — the <code>health</code> router is created without <code>dependencies=[Depends(require_api_key)]</code>, and it is registered separately from the protected routers in <code>main.py</code>. The version constant <code>_VERSION = "0.2.0"</code> is hardcoded in <code>health.py</code> rather than imported from <code>main.py</code> to avoid a circular import (main.py imports health.py; health.py importing main.py would create a cycle).</p>
+    </div>
+  </div>
+
+  <div class="series-nav">
+    <a href="PR25_Briefing_Part1.html">1 · High-level outline</a>
+    <a href="PR25_Briefing_Part2.html">2 · Key concepts</a>
+    <a href="PR25_Briefing_Part3.html" class="current">3 · Function walkthrough</a>
+    <a href="PR25_Briefing_Part4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Continued from Part 2. Joo Wook Ahn · 12 May 2026 · Code explainer for eastgenomics/variant-viewer PR #25 · Continues in Part 4.
+</footer>
+</body>
+</html>

@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR 25: Auth &amp; Read API — Part 2 · Key concepts</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+  /* series nav */
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  /* code mode */
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}
+  .cb .k{color:#79b8ff}
+  .cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}
+  .cb .f{color:#85e89d}
+  .cb .t{color:#ffab70}
+  .anno{list-style:none;margin:4px 0 24px;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .anno li{display:grid;grid-template-columns:36px 1fr;gap:0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .anno li:last-child{border-bottom:none}
+  .anno .num{background:var(--accent-deep);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .anno .txt{padding:10px 14px;color:var(--ink-soft);line-height:1.5}
+  .anno .txt strong{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR 25 API LAYER<br>12 May 2026</div>
+  <div class="toc-section">Part 2 of 4</div>
+  <ul>
+    <li><a href="#depends">08 · FastAPI Depends &amp; Security</a></li>
+    <li><a href="#to-thread">09 · asyncio.to_thread</a></li>
+    <li><a href="#pool">10 · psycopg2 connection pool</a></li>
+    <li><a href="#ctxmgr">11 · @contextmanager</a></li>
+    <li><a href="#timing">12 · Constant-time comparison</a></li>
+    <li><a href="#pydantic">13 · Pydantic BaseModel</a></li>
+    <li><a href="#singleton">14 · Lazy singleton pattern</a></li>
+    <li><a href="#sql">15 · SQL patterns used in the routes</a></li>
+  </ul>
+  <div class="meta">Continued from Part 1.<br>Source: eastgenomics/variant-viewer PR #25</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code Explainer · Clinical Bioinformatics · PR #25</div>
+  <h1>Variant Viewer — Auth &amp; Read API</h1>
+  <p class="sub">Eight concepts you need to understand before the code makes sense — Part 2 of 4: Key concepts.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 12 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> eastgenomics/variant-viewer #25</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="PR25_Briefing_Part1.html">1 · High-level outline</a>
+  <a href="PR25_Briefing_Part2.html" class="current">2 · Key concepts</a>
+  <a href="PR25_Briefing_Part3.html">3 · Function walkthrough</a>
+  <a href="PR25_Briefing_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+<!-- 08 -->
+<section id="depends">
+  <h2><span class="sec-num">08</span> FastAPI <code>Depends</code> and <code>Security</code></h2>
+
+  <p>FastAPI's <strong>dependency injection</strong> system lets you declare reusable logic that must run (and succeed) before a route handler is called. You declare a dependency by passing it to <code>Depends()</code> either in the function signature or in the router's <code>dependencies</code> list.</p>
+
+  <h3>Plain English</h3>
+  <p>Think of <code>Depends</code> as a gatekeeper that FastAPI calls for you, automatically, before your route function. If the gatekeeper raises an <code>HTTPException</code>, FastAPI returns that response immediately — your route handler never runs. If the gatekeeper returns normally, its return value can be injected into your route handler as a parameter.</p>
+
+  <h3>Minimal example</h3>
+  <div class="cb"><pre><span class="k">from</span> fastapi <span class="k">import</span> Depends, FastAPI, HTTPException
+
+<span class="k">def</span> <span class="f">verify_token</span>(token: str) -> str:
+    <span class="k">if</span> token != <span class="s">"secret"</span>:
+        <span class="k">raise</span> HTTPException(status_code=<span class="n">401</span>)
+    <span class="k">return</span> token              <span class="c"># injected into route as `tok`</span>
+
+app = FastAPI()
+
+<span class="c"># Method 1: inject into the handler function</span>
+<span class="k">@app</span>.get(<span class="s">"/items"</span>)
+<span class="k">async def</span> <span class="f">list_items</span>(tok: str = Depends(verify_token)):
+    ...
+
+<span class="c"># Method 2: attach to the router (protects ALL routes in the router)</span>
+<span class="k">from</span> fastapi <span class="k">import</span> APIRouter
+router = APIRouter(dependencies=[Depends(verify_token)])
+</pre></div>
+
+  <h3>In this file</h3>
+  <div class="callout blue">
+    <span class="tag">Where it appears</span>
+    <p>Every route module except <code>health.py</code> creates its router with <code>dependencies=[Depends(require_api_key)]</code>. This single declaration protects every <code>@router.get()</code> in that module without repeating the check on each function. <code>Security()</code> (a specialised variant of <code>Depends</code>) is used inside <code>require_api_key</code> itself to extract the <code>X-API-Key</code> header value — it behaves identically to <code>Depends</code> but also adds the key to FastAPI's OpenAPI security schema.</p>
+  </div>
+
+  <p><code>APIKeyHeader(name="X-API-Key", auto_error=False)</code> is a pre-built FastAPI dependency that reads the named header and returns its value (or <code>None</code> if absent). <code>auto_error=False</code> means it returns <code>None</code> rather than raising a 403 when the header is missing — the custom <code>require_api_key</code> function then raises a 401 instead, which is the correct status code for missing authentication.</p>
+</section>
+
+<!-- 09 -->
+<section id="to-thread">
+  <h2><span class="sec-num">09</span> <code>asyncio.to_thread</code></h2>
+
+  <p>FastAPI is an <em>async</em> framework. Its route handlers are declared with <code>async def</code>, which means they run on Python's event loop. The event loop can only do one thing at a time on a single OS thread — but it can <em>interleave</em> coroutines (async functions) that yield control while waiting for I/O. The problem is that psycopg2 is synchronous: calling <code>cursor.execute()</code> blocks the OS thread until the database responds.</p>
+
+  <h3>The problem without <code>to_thread</code></h3>
+  <div class="cb"><pre><span class="c"># BAD — this blocks the event loop for ~5 ms per query</span>
+<span class="k">@app</span>.get(<span class="s">"/patients"</span>)
+<span class="k">async def</span> <span class="f">list_patients</span>():
+    rows = db.query(<span class="s">"SELECT * FROM patients"</span>)  <span class="c"># synchronous call!</span>
+    <span class="c"># While this line runs, FastAPI cannot handle ANY other request.</span>
+    <span class="k">return</span> rows</pre></div>
+
+  <h3>The fix with <code>to_thread</code></h3>
+  <div class="cb"><pre><span class="c"># GOOD — the DB call runs in a thread-pool worker</span>
+<span class="k">import</span> asyncio
+
+<span class="k">@app</span>.get(<span class="s">"/patients"</span>)
+<span class="k">async def</span> <span class="f">list_patients</span>():
+    rows = <span class="k">await</span> asyncio.to_thread(db.query, <span class="s">"SELECT * FROM patients"</span>)
+    <span class="c"># `await` suspends this coroutine; the event loop is free to</span>
+    <span class="c"># handle other requests while the DB call runs in a worker thread.</span>
+    <span class="k">return</span> rows</pre></div>
+
+  <p><code>asyncio.to_thread(fn, *args)</code> schedules <code>fn(*args)</code> on Python's default <code>ThreadPoolExecutor</code>, then returns a coroutine that resolves to the function's return value. The <code>await</code> suspends the current coroutine (releases the event loop) until the thread finishes.</p>
+
+  <div class="callout blue">
+    <span class="tag">In this file</span>
+    <p>Every <code>db.query()</code> call and every <code>db.run_in_transaction()</code> call in the route handlers is wrapped in <code>await asyncio.to_thread(...)</code>. This is mandatory — calling psycopg2 directly from an <code>async def</code> handler would block the event loop and serialise all requests to the backend.</p>
+  </div>
+
+  <p><strong>Thread safety note:</strong> <code>db.query</code> uses <code>ThreadedConnectionPool</code>, which uses a <code>threading.Lock</code> internally to protect <code>getconn()</code>/<code>putconn()</code>. Multiple <code>to_thread</code> workers can call <code>db.query</code> concurrently without data corruption.</p>
+</section>
+
+<!-- 10 -->
+<section id="pool">
+  <h2><span class="sec-num">10</span> psycopg2 connection pool</h2>
+
+  <p>Opening a PostgreSQL connection is expensive — it involves a TCP handshake, TLS negotiation, and PostgreSQL's own authentication round-trips, adding ~20–100 ms per connection. A connection pool pre-opens a set of connections at startup and reuses them across requests.</p>
+
+  <h3>How it works</h3>
+  <div class="cb"><pre><span class="k">import</span> psycopg2.pool
+
+<span class="c"># Created once at module load (lazily, on first query).</span>
+pool = psycopg2.pool.ThreadedConnectionPool(
+    minconn=<span class="n">1</span>,   <span class="c"># always keep 1 connection open</span>
+    maxconn=<span class="n">10</span>,  <span class="c"># at most 10 concurrent connections</span>
+    dsn=<span class="s">"postgresql://user:pass@host/db"</span>
+)
+
+conn = pool.getconn()    <span class="c"># borrow a connection (blocks if all 10 are in use)</span>
+<span class="k">try</span>:
+    cursor = conn.cursor()
+    cursor.execute(<span class="s">"SELECT 1"</span>)
+<span class="k">finally</span>:
+    pool.putconn(conn)   <span class="c"># return connection to the pool</span></pre></div>
+
+  <p><strong>Why <code>ThreadedConnectionPool</code> and not <code>SimpleConnectionPool</code>?</strong> Because <code>asyncio.to_thread</code> runs DB calls on real OS threads. Multiple threads will call <code>getconn()</code> concurrently. <code>SimpleConnectionPool</code> has no internal locking and would corrupt its internal state under concurrent access. <code>ThreadedConnectionPool</code> uses a <code>threading.Lock</code> to serialise pool operations.</p>
+
+  <div class="callout blue">
+    <span class="tag">In this file</span>
+    <p>The pool is created in <code>_get_pool()</code> (db.py) with <code>minconn=1, maxconn=10</code>. The <code>_get_connection()</code> context manager calls <code>getconn()</code> on enter and <code>putconn()</code> in <code>finally</code>, ensuring connections are always returned even if the query raises. The <code>maxconn=10</code> value was chosen to give headroom above uvicorn's default ~6 worker threads while staying well within RDS <code>db.t3.micro</code>'s ~80-connection limit.</p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section id="ctxmgr">
+  <h2><span class="sec-num">11</span> <code>@contextmanager</code></h2>
+
+  <p>A <strong>context manager</strong> is the mechanism behind Python's <code>with</code> statement. It guarantees that setup and teardown code always run in pairs, even when exceptions occur. The <code>@contextmanager</code> decorator lets you write a context manager using a generator function rather than a class with <code>__enter__</code>/<code>__exit__</code> methods.</p>
+
+  <h3>How it works</h3>
+  <div class="cb"><pre><span class="k">from</span> contextlib <span class="k">import</span> contextmanager
+
+<span class="k">@contextmanager</span>
+<span class="k">def</span> <span class="f">managed_resource</span>():
+    resource = acquire()    <span class="c"># runs on `with` entry   (= __enter__)</span>
+    <span class="k">try</span>:
+        <span class="k">yield</span> resource      <span class="c"># `with ... as resource:` body runs here</span>
+    <span class="k">finally</span>:
+        release(resource)   <span class="c"># always runs on exit    (= __exit__)</span>
+
+<span class="c"># Usage:</span>
+<span class="k">with</span> managed_resource() <span class="k">as</span> r:
+    r.do_something()
+<span class="c"># release() has already run here, even if do_something() raised</span></pre></div>
+
+  <p>The generator pauses at <code>yield</code>. The value yielded becomes the <code>as</code> variable in the <code>with</code> block. When the <code>with</code> block finishes (normally or by exception), Python resumes the generator, which runs the <code>finally</code> clause.</p>
+
+  <div class="callout blue">
+    <span class="tag">In this file</span>
+    <p><code>_get_connection()</code> uses <code>@contextmanager</code> to ensure <code>pool.putconn(conn)</code> always runs, even if the caller raises an exception. <code>with_transaction()</code> nests inside <code>_get_connection()</code> and adds commit/rollback logic: it yields the connection, and in its own <code>finally</code> block resets <code>autocommit</code> back to <code>True</code>. The nesting means the connection is always returned to the pool — the transaction cannot "leak" a connection even if it crashes mid-query.</p>
+  </div>
+</section>
+
+<!-- 12 -->
+<section id="timing">
+  <h2><span class="sec-num">12</span> Constant-time comparison</h2>
+
+  <p>Python's <code>==</code> operator on strings is <em>short-circuit</em>: it compares characters left to right and returns <code>False</code> as soon as it finds a mismatch. This means <code>"abc" == "axyz"</code> takes slightly less time than <code>"abc" == "abxyz"</code>, because the mismatch at position 1 is detected earlier than the mismatch at position 2.</p>
+
+  <h3>Why this matters for secrets</h3>
+  <p>An attacker sending thousands of requests with subtly different API keys can measure response times and use them to determine, character by character, what the correct key is — a <strong>timing attack</strong>. The attack is difficult to execute over the internet due to network jitter, but trivial to execute from within the same data centre or container network.</p>
+
+  <h3>The fix: <code>secrets.compare_digest</code></h3>
+  <div class="cb"><pre><span class="k">import</span> secrets
+
+<span class="c"># Constant time: always compares all bytes, regardless of where mismatch is.</span>
+<span class="c"># Returns True only if both strings are identical.</span>
+ok = secrets.compare_digest(provided_key, expected_key)
+
+<span class="c"># Note: both arguments must be str (or both bytes). Mixed types raise TypeError.</span>
+<span class="c"># Guard against None before calling:</span>
+<span class="k">if not</span> provided_key <span class="k">or not</span> secrets.compare_digest(provided_key, expected_key):
+    <span class="k">raise</span> HTTPException(status_code=<span class="n">401</span>, ...)</pre></div>
+
+  <div class="callout green">
+    <span class="tag">In this file</span>
+    <p><code>require_api_key</code> uses <code>secrets.compare_digest(api_key, expected)</code>. The <code>not api_key</code> guard before it short-circuits on <code>None</code> or empty string — this is safe because returning early on <em>absence</em> of a key leaks no information about the key's value. The timing vulnerability only arises when comparing a provided value against the correct one.</p>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="pydantic">
+  <h2><span class="sec-num">13</span> Pydantic <code>BaseModel</code></h2>
+
+  <p>Pydantic is a data validation library. A <code>BaseModel</code> subclass declares the expected fields and their types. When FastAPI sees a return type annotation of a <code>BaseModel</code> subclass on a route handler, it automatically serialises the returned value to JSON, validates field types, and excludes any extra keys.</p>
+
+  <h3>Minimal example</h3>
+  <div class="cb"><pre><span class="k">from</span> pydantic <span class="k">import</span> BaseModel
+
+<span class="k">class</span> <span class="t">PatientSummary</span>(BaseModel):
+    id: int
+    lab_number: str
+    name: str | <span class="k">None</span>      <span class="c"># Optional field — serialises as null in JSON</span>
+
+<span class="c"># Building from a dict (e.g. a DB row):</span>
+row = {<span class="s">"id"</span>: <span class="n">1</span>, <span class="s">"lab_number"</span>: <span class="s">"LAB-001"</span>, <span class="s">"name"</span>: <span class="s">"Jane"</span>}
+p = PatientSummary(**row)   <span class="c"># unpacks the dict as keyword arguments</span>
+print(p.model_dump())       <span class="c"># {'id': 1, 'lab_number': 'LAB-001', 'name': 'Jane'}</span>
+
+<span class="c"># Pydantic validates types at construction time:</span>
+PatientSummary(id=<span class="s">"not-an-int"</span>, lab_number=<span class="s">"LAB-001"</span>, name=<span class="k">None</span>)
+<span class="c"># raises ValidationError — "id must be an integer"</span></pre></div>
+
+  <div class="callout blue">
+    <span class="tag">In this file</span>
+    <p>Every route module defines its own response models (<code>PatientSummary</code>, <code>PatientListResponse</code>, <code>SampleDetailResponse</code>, etc.) as <code>BaseModel</code> subclasses. The <code>response_model=</code> argument on each <code>@router.get()</code> tells FastAPI to use that model for serialisation. DB rows arrive as plain dicts (from <code>db.query</code>); the routes construct Pydantic models from them using <code>ModelClass(**row)</code> or <code>ModelClass(**row, extra_field=value)</code>. Pydantic's type coercion handles the conversion — for example, a <code>datetime</code> column returned by psycopg2 as a Python <code>datetime</code> object is serialised to an ISO 8601 string in the JSON response.</p>
+  </div>
+
+  <p><strong>Inheritance is used once:</strong> <code>PatientDetailResponse</code> extends <code>PatientSummary</code>, adding <code>created_at</code> and <code>samples</code> fields. This avoids duplicating the three shared fields. The same technique is available for any response type that is a superset of a summary type.</p>
+</section>
+
+<!-- 14 -->
+<section id="singleton">
+  <h2><span class="sec-num">14</span> Lazy singleton pattern</h2>
+
+  <p>A <strong>singleton</strong> is an object that is created at most once per process lifetime. The <em>lazy</em> variant delays creation until the first time the object is actually needed, rather than at module import time. This is useful when creating the object has a significant side effect (like a network call to Secrets Manager or opening a database connection pool).</p>
+
+  <h3>The pattern</h3>
+  <div class="cb"><pre><span class="c"># Module-level variable, initially None</span>
+_resolved_key: str | <span class="k">None</span> = <span class="k">None</span>
+
+<span class="k">def</span> <span class="f">_get_value</span>() -> str:
+    <span class="k">global</span> _resolved_key
+    <span class="k">if</span> _resolved_key:              <span class="c"># ① already resolved — return immediately</span>
+        <span class="k">return</span> _resolved_key
+
+    _resolved_key = expensive_call()   <span class="c"># ② first call only</span>
+    <span class="k">return</span> _resolved_key</pre></div>
+
+  <p>The <code>global</code> statement tells Python that the assignment inside the function should write to the module-level variable, not create a new local one. Without <code>global</code>, the assignment <code>_resolved_key = ...</code> would create a local variable that disappears when the function returns.</p>
+
+  <div class="callout amber">
+    <span class="tag">Thread safety caveat</span>
+    <p>This pattern has a theoretical race condition: two threads could both see <code>_resolved_key is None</code> and both call <code>expensive_call()</code> concurrently. In practice this is harmless for the API key case — both calls would return the same key and one write would clobber the other with the same value. The pool initialisation in <code>db._get_pool()</code> has the same exposure. For the expected concurrency level (small number of threads, cold start happens once) this is acceptable.</p>
+  </div>
+
+  <div class="callout blue">
+    <span class="tag">In this file</span>
+    <p>Both <code>auth._resolved_key</code> and <code>db._pool</code> use this pattern. The test helpers <code>_reset_resolved_key()</code> and <code>_reset_pool()</code> exist precisely because the singleton is module-level: without an explicit reset, one test that resolves the key would contaminate all subsequent tests in the same pytest process.</p>
+  </div>
+</section>
+
+<!-- 15 -->
+<section id="sql">
+  <h2><span class="sec-num">15</span> SQL patterns used in the routes</h2>
+
+  <p>Three SQL patterns recur across the route queries. Understanding them makes the queries in Parts 3 and 4 immediately readable.</p>
+
+  <h3>Pattern A — Parameterised queries</h3>
+  <p>All queries use psycopg2 parameterised form: <code>%s</code> placeholders with a tuple of values as the second argument to <code>cursor.execute()</code>. The psycopg2 driver escapes the values before substituting them, preventing SQL injection.</p>
+  <div class="cb"><pre><span class="c"># Safe — psycopg2 escapes patient_id before inserting it</span>
+cur.execute(<span class="s">"SELECT * FROM patients WHERE id = %s"</span>, (patient_id,))
+
+<span class="c"># Dynamic WHERE: build the clause as a string, keep values in the tuple</span>
+where = <span class="s">" WHERE lab_number ILIKE %s OR name ILIKE %s"</span>
+params = (<span class="s">f"%{search}%"</span>, <span class="s">f"%{search}%"</span>)
+cur.execute(<span class="s">"SELECT id, lab_number FROM patients"</span> + where, params)</pre></div>
+
+  <h3>Pattern B — LEFT JOIN with soft-delete filter</h3>
+  <p>The <code>variant_classification</code> table uses <strong>soft deletes</strong>: records are never physically removed; instead a <code>deleted_at</code> timestamp is set when a classification is superseded or reset. The active classification is the one where <code>deleted_at IS NULL</code>.</p>
+  <div class="cb"><pre><span class="c">-- Variant list: join classification only if it is active (not soft-deleted)</span>
+<span class="k">SELECT</span> v.id, v.gene, vc.classification, vc.score
+<span class="k">FROM</span> variants v
+<span class="k">LEFT JOIN</span> variant_classification vc
+       <span class="k">ON</span> vc.variant_id = v.id <span class="k">AND</span> vc.deleted_at <span class="k">IS NULL</span>
+<span class="k">WHERE</span> v.sample_id = %s</pre></div>
+  <p>A <code>LEFT JOIN</code> means variants without any classification are still returned — they appear with <code>NULL</code> values for <code>vc.*</code> columns. An <code>INNER JOIN</code> would silently drop unclassified variants from the list, which is incorrect behaviour for a clinical review tool.</p>
+
+  <h3>Pattern C — CASE expression for chromosomal order</h3>
+  <p>Chromosomes stored as text strings sort lexicographically (<code>1, 10, 11, ..., 2, 20, ...</code>), not in the clinical order (<code>1, 2, ..., 22, X, Y, MT</code>). A SQL <code>CASE</code> expression maps chromosome names to sort integers without requiring a schema change.</p>
+  <div class="cb"><pre><span class="k">ORDER BY</span>
+    <span class="k">CASE</span> v.chrom
+        <span class="k">WHEN</span> <span class="s">'X'</span>  <span class="k">THEN</span> <span class="n">23</span>
+        <span class="k">WHEN</span> <span class="s">'Y'</span>  <span class="k">THEN</span> <span class="n">24</span>
+        <span class="k">WHEN</span> <span class="s">'MT'</span> <span class="k">THEN</span> <span class="n">25</span>
+        <span class="k">WHEN</span> <span class="s">'M'</span>  <span class="k">THEN</span> <span class="n">25</span>
+        <span class="k">ELSE</span> v.chrom::<span class="t">integer</span>  <span class="c">-- cast '1'–'22' to integers</span>
+    <span class="k">END</span>,
+    v.pos</pre></div>
+
+  <div class="callout amber">
+    <span class="tag">Known assumption</span>
+    <p>The <code>ELSE v.chrom::integer</code> cast assumes chromosomes are stored as bare numbers (<code>'1'</code>–<code>'22'</code>), not with the <code>chr</code> prefix (<code>'chr1'</code>–<code>'chr22'</code>). DRAGEN pipelines produce the <code>chr</code> prefix by default. The VCF ingest pipeline strips it during parsing, but this needs confirming against a real lab VCF before the endpoint is used in production.</p>
+  </div>
+
+  <div class="series-nav">
+    <a href="PR25_Briefing_Part1.html">1 · High-level outline</a>
+    <a href="PR25_Briefing_Part2.html" class="current">2 · Key concepts</a>
+    <a href="PR25_Briefing_Part3.html">3 · Function walkthrough</a>
+    <a href="PR25_Briefing_Part4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Continued from Part 1. Joo Wook Ahn · 12 May 2026 · Code explainer for eastgenomics/variant-viewer PR #25 · Continues in Part 3.
+</footer>
+</body>
+</html>
