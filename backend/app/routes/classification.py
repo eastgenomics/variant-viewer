@@ -34,6 +34,10 @@ router = APIRouter(
 )
 
 
+class _ConcurrentReset(Exception):
+    """Raised inside _do when the classification row was already deleted; converted to 409."""
+
+
 # ── Pydantic request/response models ─────────────────────────────────────────
 
 
@@ -231,6 +235,9 @@ async def reset_classification(
                 "UPDATE variant_classification SET deleted_at=NOW() WHERE id=%s",
                 (classification_id,),
             )
+            if c.rowcount == 0:
+                # Another request deleted it between our SELECT and this UPDATE.
+                raise _ConcurrentReset()
 
             # Insert blank replacement
             c.execute(
@@ -258,5 +265,11 @@ async def reset_classification(
             )
         return new_id
 
-    new_classification_id = await asyncio.to_thread(db.run_in_transaction, _do)
+    try:
+        new_classification_id = await asyncio.to_thread(db.run_in_transaction, _do)
+    except _ConcurrentReset as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="Concurrent modification: classification already deleted, please retry",
+        ) from exc
     return {"new_classification_id": new_classification_id}

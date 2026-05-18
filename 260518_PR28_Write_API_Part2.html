@@ -139,7 +139,7 @@ router = APIRouter(prefix=<span class="s">"/api/workflow"</span>)
 
 <span class="c"># Handles PUT /api/workflow/42</span>
 <span class="k">@router</span>.put(<span class="s">"/{sample_id}"</span>)
-<span class="k">async def</span> <span class="f">update_workflow</span>(sample_id: <span class="t">int</span>, body: <span class="t">WorkflowUpdateRequest</span>) -> <span class="t">dict</span>:
+<span class="k">async def</span> <span class="f">update_workflow</span>(sample_id: <span class="t">int</span>, body: <span class="t">WorkflowUpdateRequest</span>) -&gt; <span class="t">dict</span>:
     ...  <span class="c"># sample_id comes from the URL; body comes from the JSON request body</span></pre></div>
       <p>An <code>APIRouter</code> is a mini-application that groups related routes. It is registered with the main <code>FastAPI</code> app in <code>main.py</code> via <code>app.include_router(workflow.router)</code>. The <code>prefix</code> argument is prepended to every route path — so <code>prefix="/api/workflow"</code> with <code>"/{sample_id}"</code> produces <code>/api/workflow/{sample_id}</code>.</p>
       <div class="in-this-file"><strong>In this file</strong>Each of the four modules declares its own router with a different prefix: <code>/api</code> for upload and ingest, <code>/api/workflow</code> for workflow, and <code>/api/variants</code> for classification. All four routers are registered in <code>app/main.py</code>.</div>
@@ -160,7 +160,7 @@ router = APIRouter(
 )
 
 <span class="c"># require_api_key checks X-API-Key header; raises 401 if absent or wrong</span>
-<span class="k">async def</span> <span class="f">require_api_key</span>(api_key: str | <span class="t">None</span> = Security(_api_key_header)) -> str:
+<span class="k">async def</span> <span class="f">require_api_key</span>(api_key: str | <span class="t">None</span> = Security(_api_key_header)) -&gt; str:
     expected = _get_api_key()
     <span class="k">if not</span> api_key <span class="k">or not</span> secrets.compare_digest(api_key, expected):
         <span class="k">raise</span> HTTPException(status_code=<span class="n">401</span>, detail=<span class="s">"Invalid or missing API key"</span>)

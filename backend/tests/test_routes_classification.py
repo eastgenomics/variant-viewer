@@ -135,6 +135,30 @@ def test_classify_reset_soft_deletes_and_creates_blank(client, monkeypatch):
     assert any("INSERT INTO audit_log" in s for s in executed)
 
 
+def test_classify_reset_concurrent_modification_returns_409(client, monkeypatch):
+    """If the classification row is deleted between SELECT and UPDATE, return 409."""
+    monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [
+        {"id": 50, "variant_id": 100, "framework": "acgs_snv",
+         "framework_version": "ACGS 2024"}
+    ] if params == (50, 100) else [])
+
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mc = MagicMock()
+        mc.__enter__ = lambda s: s
+        mc.__exit__ = MagicMock(return_value=False)
+        mc.rowcount = 0  # simulate concurrent deletion
+        mock_conn.cursor.return_value = mc
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+
+    r = client.request("DELETE", "/api/variants/100/classification/50",
+                        json={"user_id": "analyst-1"}, headers=HEADERS)
+    assert r.status_code == 409
+    assert "Concurrent" in r.json()["detail"]
+
+
 def test_classify_reset_not_found(client, monkeypatch):
     monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [])
     r = client.request("DELETE", "/api/variants/100/classification/999",

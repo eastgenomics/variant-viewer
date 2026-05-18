@@ -101,7 +101,7 @@
       <span class="acb-desc">upload.py · lines 37–82 · POST /api/upload-url</span>
     </div>
     <div class="acb-code"><pre><span class="k">@router</span>.post(<span class="s">"/upload-url"</span>, response_model=<span class="t">UploadUrlResponse</span>)
-<span class="k">async def</span> <span class="f">get_upload_url</span>(body: <span class="t">UploadUrlRequest</span>) -> <span class="t">UploadUrlResponse</span>:
+<span class="k">async def</span> <span class="f">get_upload_url</span>(body: <span class="t">UploadUrlRequest</span>) -&gt; <span class="t">UploadUrlResponse</span>:
     <span class="k">if not</span> _VCF_RE.search(body.vcf_filename):           <span class="c"># ①</span>
         <span class="k">raise</span> HTTPException(status_code=<span class="n2">400</span>, ...)
 
@@ -169,7 +169,7 @@
       <span class="acb-desc">ingest.py · lines 36–73 · POST /api/ingest</span>
     </div>
     <div class="acb-code"><pre><span class="k">@router</span>.post(<span class="s">"/ingest"</span>)
-<span class="k">async def</span> <span class="f">manual_ingest</span>(body: <span class="t">IngestRequest</span>) -> dict:
+<span class="k">async def</span> <span class="f">manual_ingest</span>(body: <span class="t">IngestRequest</span>) -&gt; dict:
     <span class="k">if not</span> _VCF_RE.search(body.vcf_s3_key):              <span class="c"># ①</span>
         <span class="k">raise</span> HTTPException(status_code=<span class="n2">400</span>, ...)
 
@@ -229,7 +229,7 @@
       <span class="acb-desc">workflow.py · lines 41–85 · PUT /api/workflow/{sample_id}</span>
     </div>
     <div class="acb-code"><pre><span class="k">@router</span>.put(<span class="s">"/{sample_id}"</span>)
-<span class="k">async def</span> <span class="f">update_workflow</span>(sample_id: <span class="t">int</span>, body: <span class="t">WorkflowUpdateRequest</span>) -> dict:
+<span class="k">async def</span> <span class="f">update_workflow</span>(sample_id: <span class="t">int</span>, body: <span class="t">WorkflowUpdateRequest</span>) -&gt; dict:
     rows = <span class="k">await</span> asyncio.to_thread(                     <span class="c"># ①</span>
         db.query,
         <span class="s">"SELECT status FROM workflow WHERE sample_id = %s"</span>,
@@ -242,7 +242,7 @@
     <span class="k">if</span> body.status <span class="k">not in</span> VALID_TRANSITIONS.get(current, []):  <span class="c"># ④</span>
         <span class="k">raise</span> HTTPException(status_code=<span class="n2">422</span>, detail=<span class="s">f"Invalid transition: {current} → {body.status}"</span>)
 
-    <span class="k">def</span> <span class="f">_do</span>(conn) -> <span class="t">None</span>:
+    <span class="k">def</span> <span class="f">_do</span>(conn) -&gt; <span class="t">None</span>:
         <span class="k">with</span> conn.cursor() <span class="k">as</span> c:
             c.execute(                                    <span class="c"># ⑤</span>
                 <span class="s">"UPDATE workflow SET status=%s, updated_at=NOW(), updated_by=%s "</span>
@@ -300,7 +300,7 @@ result = classify(                                         <span class="c"># ②
 )
 framework_version = get_framework_version(body.framework)  <span class="c"># ③</span>
 
-<span class="k">def</span> <span class="f">_do</span>(conn) -> <span class="t">int</span>:
+<span class="k">def</span> <span class="f">_do</span>(conn) -&gt; <span class="t">int</span>:
     <span class="k">with</span> conn.cursor() <span class="k">as</span> c:
         c.execute(                                         <span class="c"># ④</span>
             <span class="s">"UPDATE variant_classification SET deleted_at=NOW() "</span>

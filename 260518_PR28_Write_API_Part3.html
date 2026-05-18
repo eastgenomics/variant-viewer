@@ -273,7 +273,7 @@
     </div>
     <div class="fn-body">
       <p>Two short private helpers that translate Pydantic input models to the classification engine's dataclasses. The translation is explicit field-by-field because the Pydantic models contain extra fields (notes, evidence_links, pre_computed) that the engine does not accept — passing them would raise a <code>TypeError</code>.</p>
-      <div class="cb"><pre><span class="k">def</span> <span class="f">_build_criteria</span>(criteria: list[<span class="t">CriterionIn</span>]) -> list[<span class="t">AppliedCriterion</span>]:
+      <div class="cb"><pre><span class="k">def</span> <span class="f">_build_criteria</span>(criteria: list[<span class="t">CriterionIn</span>]) -&gt; list[<span class="t">AppliedCriterion</span>]:
     <span class="k">return</span> [
         AppliedCriterion(
             criterion_code=c.criterion_code,  <span class="c"># only these three fields go to the engine</span>
