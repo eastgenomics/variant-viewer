@@ -15,7 +15,6 @@ from app.middleware.auth import require_api_key
 router = APIRouter(prefix="/api", dependencies=[Depends(require_api_key)])
 
 _VCF_RE = re.compile(r"\.vcf(\.gz)?$")
-_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _EXPIRES = 3600
 
 
@@ -49,11 +48,14 @@ async def get_upload_url(body: UploadUrlRequest) -> UploadUrlResponse:
             detail="vcf_filename must not contain '/' or '..'",
         )
 
-    if body.run_date is not None and not _DATE_RE.match(body.run_date):
-        raise HTTPException(
-            status_code=400,
-            detail=f"run_date must be YYYY-MM-DD, got {body.run_date!r}",
-        )
+    if body.run_date is not None:
+        try:
+            datetime.strptime(body.run_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"run_date must be a valid YYYY-MM-DD date, got {body.run_date!r}",
+            )
 
     bucket = os.environ.get("VCF_BUCKET_NAME")
     if not bucket:

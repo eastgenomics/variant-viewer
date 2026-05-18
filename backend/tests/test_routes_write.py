@@ -81,13 +81,29 @@ def test_upload_url_rejects_invalid_run_date(client, monkeypatch):
     assert r.status_code == 400
 
 
+def test_upload_url_rejects_semantically_invalid_run_date(client, monkeypatch):
+    """A syntactically matching but semantically invalid date (e.g. month 13) returns 400."""
+    monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
+    r = client.post("/api/upload-url",
+                    json={"vcf_filename": "sample.vcf.gz", "run_date": "2024-13-45"},
+                    headers=HEADERS)
+    assert r.status_code == 400
+
+
 
 
 def test_ingest_success(client, monkeypatch):
     monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
 
+    executed_sqls: list[str] = []
+
     def mock_transaction(fn):
         mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__ = lambda s: s
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        mock_cursor.execute.side_effect = lambda sql, p=(): executed_sqls.append(sql)
+        mock_conn.cursor.return_value = mock_cursor
         return fn(mock_conn)
 
     with patch("app.lib.db.run_in_transaction", side_effect=mock_transaction), \
@@ -98,6 +114,7 @@ def test_ingest_success(client, monkeypatch):
                         headers=HEADERS)
     assert r.status_code == 200
     assert r.json()["sample_id"] == 42
+    assert any("INSERT INTO audit_log" in s for s in executed_sqls)
 
 
 def test_ingest_duplicate_returns_409(client, monkeypatch):
@@ -127,17 +144,29 @@ def test_ingest_unique_violation_returns_409(client, monkeypatch):
     assert r.status_code == 409
 
 
-def test_ingest_bad_key_returns_400(client, monkeypatch):
+def test_ingest_bad_vcf_key_returns_400(client, monkeypatch):
+    """Route-level VCF key check rejects non-.vcf/.vcf.gz keys before any S3/DB work."""
+    monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
+    r = client.post("/api/ingest",
+                    json={"vcf_s3_key": "runs/2024-11-05/s.bam",
+                          "user_id": "analyst-1"},
+                    headers=HEADERS)
+    assert r.status_code == 400
+
+
+def test_ingest_invalid_manifest_returns_400(client, monkeypatch):
+    """ValueError from ingest_sample (e.g. bad manifest) maps to 400."""
     monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
     with patch("app.routes.ingest.ingest_sample",
-               side_effect=ValueError("Unsupported VCF key format")):
+               side_effect=ValueError("Invalid manifest structure")):
         with patch("app.lib.db.run_in_transaction",
                    side_effect=lambda fn: fn(MagicMock())):
             r = client.post("/api/ingest",
-                            json={"vcf_s3_key": "runs/2024-11-05/s.bam",
+                            json={"vcf_s3_key": "runs/2024-11-05/s.vcf.gz",
                                   "user_id": "analyst-1"},
                             headers=HEADERS)
     assert r.status_code == 400
+    assert "Invalid manifest structure" in r.json()["detail"]
 
 
 # ─── Workflow ─────────────────────────────────────────────────────────────────
