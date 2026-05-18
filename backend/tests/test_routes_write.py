@@ -178,6 +178,29 @@ def test_workflow_invalid_transition_returns_422(client, monkeypatch):
     assert "pending" in r.json()["detail"] and "reported" in r.json()["detail"]
 
 
+def test_workflow_concurrent_modification_returns_409(client, monkeypatch):
+    """rowcount == 0 after UPDATE means a race; must return 409."""
+    monkeypatch.setattr("app.lib.db.query",
+        lambda sql, params=(): [{"status": "pending"}])
+
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__ = lambda s: s
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        mock_cursor.rowcount = 0  # simulate concurrent modification
+        mock_conn.cursor.return_value = mock_cursor
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+
+    r = client.put("/api/workflow/10",
+                   json={"status": "reviewing", "user_id": "analyst-1"},
+                   headers=HEADERS)
+    assert r.status_code == 409
+    assert "Concurrent" in r.json()["detail"]
+
+
 def test_workflow_archived_terminal_returns_422(client, monkeypatch):
     """Attempting to transition out of archived (terminal) state returns 422."""
     monkeypatch.setattr("app.lib.db.query",

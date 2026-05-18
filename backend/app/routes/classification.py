@@ -13,7 +13,7 @@ DELETE /api/variants/{variant_id}/classification/{classification_id}
 """
 import asyncio
 import json
-from typing import Any
+from typing import Any, Literal
 
 import psycopg2.extras
 from fastapi import APIRouter, Depends, HTTPException
@@ -56,14 +56,14 @@ class CombinationRuleIn(BaseModel):
 class ClassifyRequest(BaseModel):
     """Score-only — no DB write."""
     criteria: list[CriterionIn]
-    framework: str
+    framework: Literal["acgs_snv", "svig"]
     combination_rules: list[CombinationRuleIn] = []
 
 
 class ClassificationSubmitRequest(BaseModel):
     """Persist — score + lock + store criteria."""
     criteria: list[CriterionIn]
-    framework: str
+    framework: Literal["acgs_snv", "svig"]
     combination_rules: list[CombinationRuleIn] = []
     locked_by: str
     user_id: str

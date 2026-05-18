@@ -22,6 +22,10 @@ from app.middleware.auth import require_api_key
 
 router = APIRouter(prefix="/api/workflow", dependencies=[Depends(require_api_key)])
 
+
+class _ConcurrentModification(Exception):
+    """Raised inside the DB callback when optimistic lock fails; converted to 409 by the handler."""
+
 VALID_TRANSITIONS: dict[str, list[str]] = {
     "pending":   ["reviewing", "archived"],
     "reviewing": ["reported", "archived"],
@@ -61,11 +65,8 @@ async def update_workflow(sample_id: int, body: WorkflowUpdateRequest) -> dict:
                 (body.status, body.user_id, sample_id, current),
             )
             if c.rowcount == 0:
-                # Concurrent request changed the status between our SELECT and UPDATE.
-                raise HTTPException(
-                    status_code=409,
-                    detail="Concurrent modification: workflow status changed, please retry",
-                )
+                # Status changed between our SELECT and this UPDATE.
+                raise _ConcurrentModification()
             c.execute(
                 "INSERT INTO audit_log "
                 "(user_id, action, entity_type, entity_id, old_value, new_value) "
@@ -80,5 +81,11 @@ async def update_workflow(sample_id: int, body: WorkflowUpdateRequest) -> dict:
                 ),
             )
 
-    await asyncio.to_thread(db.run_in_transaction, _do)
+    try:
+        await asyncio.to_thread(db.run_in_transaction, _do)
+    except _ConcurrentModification:
+        raise HTTPException(
+            status_code=409,
+            detail="Concurrent modification: workflow status changed, please retry",
+        )
     return {"sample_id": sample_id, "status": body.status}

@@ -59,7 +59,7 @@ async def get_upload_url(body: UploadUrlRequest) -> UploadUrlResponse:
             detail=f"run_date must be YYYY-MM-DD, got {body.run_date!r}",
         )
     date_prefix = body.run_date or datetime.today().strftime("%Y-%m-%d")
-    vcf_key = f"runs/{date_prefix}/{body.vcf_filename}"
+    vcf_key = f"runs/{date_prefix}/{safe_filename}"
     manifest_key = _VCF_RE.sub(".manifest.json", vcf_key)
 
     region = os.environ.get("AWS_REGION", "eu-west-2")
