@@ -234,7 +234,6 @@ CASE_TYPE_EXT  = "https://example.org/fhir/StructureDefinition/case-type"
 class ManifestPatient:
     lab_number: str
     name: str | None
-    dob: str | None   # "YYYY-MM-DD"
 
 @dataclass
 class ManifestSpecimen:
@@ -495,6 +494,122 @@ def pre_compute_criteria(
 
 ---
 
+### 3.8 `app/lib/ingest.py`
+
+**Responsibilities:**
+- Defines `DuplicateSubmissionError` — structured exception carrying
+  `duplicate_type` (always `"exact"`) and `existing_sample_id`.
+- Provides `check_idempotency()` — pre-insert guard that raises
+  `DuplicateSubmissionError` if the proposed VCF has already been ingested.
+- Provides `ingest_sample()` — orchestrates the full ingest pipeline from an
+  S3 key pair to persisted DB records and returns the new `sample_id`.
+
+**`ingest_sample()` algorithm (steps must execute in order):**
+1. Validate VCF key format: must end with `.vcf` or `.vcf.gz`; raise
+   `ValueError("Unsupported VCF key format: ...")` otherwise.
+2. Idempotency pre-check: call `check_idempotency(vcf_s3_key, "", "", conn)` before
+   any S3 work to short-circuit wasted downloads for duplicate keys.
+3. Download both files from S3 via `s3_client.download_file(bucket, key, dest)` into a
+   `tempfile.TemporaryDirectory` (auto-deleted on exit to avoid /tmp accumulation in warm Lambdas).
+4. Load manifest JSON: `raw = json.loads(manifest_path.read_text())`.
+5. Validate against `config/manifest-schema.json` using
+   `jsonschema.validate(raw, _get_manifest_schema())` — propagate
+   `jsonschema.ValidationError`; do not catch.
+6. Parse manifest: `manifest = parse_manifest(raw)` — raises `ValueError` on
+   structural errors.
+7. Cross-check filename: if `manifest.task.vcf_filename` is set and its basename
+   differs from `Path(vcf_s3_key).name`, raise `ValueError`.
+8. Parse VCF: `meta = parse_vcf(vcf_path, on_variant=variants.append)` using
+   the `cyvcf2`-backed parser (PR 5+).
+9. DB writes (inside caller-provided `conn`, already in a transaction):
+   - a. Upsert `patients` by `lab_number`
+     (`ON CONFLICT (lab_number) DO UPDATE SET name`) → `patient_id`.
+   - b. Insert `samples` row (`s3_key`, `pipeline_key` from `meta` or manifest
+     task, `case_type`, `tissue`, `sequencing_date`) → `sample_id`.
+   - c. For each `VcfVariant`:
+     - Insert `variants` row → `variant_id`.
+     - Call `select_framework(case_type, variant.gene)` +
+       `get_framework_version(framework)`. Insert `variant_classification`
+       (`score=NULL`, `classification=NULL`) → `classification_id`.
+     - Call `pre_compute_criteria(variant, case_type)`. For each suggestion
+       insert one `classification_criterion` row
+       (`applied=FALSE`, `pre_computed=TRUE`).
+   - d. Insert `workflow` row (`status='pending'`).
+10. Return `sample_id` (int).
+
+**Public interface:**
+```python
+class DuplicateSubmissionError(Exception):
+    existing_sample_id: int
+    duplicate_type: str   # "exact" | "near"
+
+def check_idempotency(
+    s3_key: str,
+    lab_number: str,
+    sample_name: str,
+    conn: psycopg2.extensions.connection,
+) -> None: ...
+
+def ingest_sample(
+    vcf_s3_key: str,
+    manifest_s3_key: str,
+    bucket: str,
+    s3_client: Any,                         # boto3 S3 client — injected for testability
+    conn: psycopg2.extensions.connection,   # injected for testability
+) -> int: ...
+```
+
+**Must NOT:**
+- Catch and swallow `jsonschema.ValidationError` — propagate to caller.
+- Write to DB before the idempotency check completes.
+- Create the `s3_client` or DB connection internally — accept both as
+  parameters for testability.
+- Hard-code the temp directory — use `tempfile.gettempdir()`.
+
+---
+
+### 3.9 `app/lambda_handler.py`
+
+**Responsibilities:**
+- Entry point for the AWS Lambda function triggered by S3 `ObjectCreated`
+  events on the VCF upload bucket.
+- Derives the manifest S3 key from the VCF key:
+  `re.sub(r'\.vcf(\.gz)?$', '.manifest.json', vcf_key)`.
+- Creates a boto3 S3 client and calls `ingest_sample()` inside
+  `with_transaction()` for atomic DB writes.
+- Returns structured HTTP-style responses:
+  - `{"statusCode": 200, "sample_id": int}` — success.
+  - `{"statusCode": 409, "error": str}` — `DuplicateSubmissionError`.
+  - `{"statusCode": 400, "error": str}` — `ValueError` or
+    `jsonschema.ValidationError`.
+  - Re-raises all other exceptions (triggers Lambda retry).
+
+**Incoming S3 event structure:**
+```json
+{
+  "Records": [{
+    "s3": {
+      "bucket": { "name": "variant-viewer-vcf-749929395031" },
+      "object": { "key": "runs/2024-11-05/26041S0057.vcf.gz" }
+    }
+  }]
+}
+```
+
+**S3 key naming convention:**
+- VCF key ends with `.vcf` or `.vcf.gz`.
+- Manifest key is derived by replacing the suffix with `.manifest.json`:
+  `runs/2024-11-05/26041S0057.vcf.gz` → `runs/2024-11-05/26041S0057.manifest.json`.
+- Both files must reside in the same S3 prefix (directory).
+
+**Must NOT:**
+- Log patient-identifiable data (lab numbers, sample names) at INFO level
+  or higher — log S3 keys and returned `sample_id` only.
+- Create the DB connection pool inside `handler()` — use the module-level
+  pool via `with_transaction()`.
+
+---
+
 ## 4. Data model
 
 ```python
@@ -503,7 +618,6 @@ def pre_compute_criteria(
 class Patient(BaseModel):
     id: int | None = None
     name: str | None = None
-    dob: date | None = None
     lab_number: str                   # unique key for upsert
     created_at: datetime | None = None
 
@@ -592,7 +706,10 @@ class AuditEntry(BaseModel):
 | `ValueError("Patient manifest missing lab number identifier")` | fhir\_manifest.py | No usable identifier on Patient |
 | `ValueError("Specimen manifest missing case-type extension")` | fhir\_manifest.py | `CASE_TYPE_EXT` extension absent on Specimen |
 | `ValueError("Invalid case_type: ...")` | fhir\_manifest.py | `valueCode` not `"germline"` or `"somatic"` |
-| `ValueError("Unsupported VCF key format: ...")` | (ingest, PR 5) | Key doesn't end `.vcf` or `.vcf.gz` |
+| `ValueError("Unsupported VCF key format: ...")` | ingest.py | Key doesn't end `.vcf` or `.vcf.gz` |
+| `ValueError("Manifest vcf\_filename ... does not match ...")` | ingest.py | Manifest `vcf_filename` basename differs from S3 key basename |
+| `DuplicateSubmissionError(duplicate_type="exact", ...)` | ingest.py | `s3_key` already in `samples` |
+| `jsonschema.ValidationError` | ingest.py | Manifest JSON fails `manifest-schema.json` |
 | `pydantic.ValidationError` | models.py | Invalid field value on construction |
 
 No module catches and silently swallows exceptions. Each module raises
@@ -615,6 +732,9 @@ specifically and lets the caller decide recovery strategy.
 | M7 | golden fixtures | TypeScript engine via ts-node script |
 | M8 | classification\_engine.py | Nothing — pure functions |
 | M9 | pre\_compute\_criteria.py | Nothing — pure functions |
+| M11 | vcf\_parser.py (cyvcf2 migration) | Real temp VCF files via `tmp_path` |
+| M12 | `ingest_sample()` + `lambda_handler.py` | S3 client + DB conn injected; `parse_vcf` patched |
+| M13 | Full suite + Docker build | All green, coverage ≥80%, image builds clean |
 
 **Acceptance criteria for v0.1 (all must be green before PR merge):**
 
@@ -630,6 +750,12 @@ specifically and lets the caller decide recovery strategy.
 - [ ] All SVIG-UK golden cases pass exactly
 - [ ] All `select_framework()` golden cases pass exactly
 - [ ] All `pre_compute_criteria()` golden cases (criterion codes + strengths) pass
+- [ ] `parse_vcf(path)` (cyvcf2) passes all VCF parser test cases via `tmp_path`
+- [ ] `ingest_sample()` happy path returns `sample_id` and inserts patient, sample, variants, criteria, workflow rows
+- [ ] `ingest_sample()` raises `DuplicateSubmissionError` on exact and near duplicates
+- [ ] `ingest_sample()` raises `jsonschema.ValidationError` on invalid manifest JSON
+- [ ] `ingest_sample()` raises `ValueError` on bad VCF key format
+- [ ] Lambda handler returns 200 / 400 / 409 responses correctly
 
 ---
 

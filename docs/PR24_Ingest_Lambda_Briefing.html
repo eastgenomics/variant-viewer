@@ -1,0 +1,1126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR #24 — Ingest Pipeline &amp; Lambda Handler Briefing</title>
+<style>
+  /* ── LEVEL 1: FIXED TOKENS ──────────────────────────── */
+  :root{
+    --ink:#0d1b2a; --ink-soft:#354656; --muted:#6b7c8d;
+    --line:#e0e7ef; --line-strong:#c5d0db;
+    --bg:#f7f9fb; --paper:#ffffff;
+    --accent:#005eb8; --accent-deep:#003d78; --accent-mid:#1a73c4; --accent-soft:#e3edf8;
+    --green:#1a6e47; --green-soft:#e0f0e8;
+    --amber:#b35c00; --amber-soft:#fdf0e0;
+    --red:#9b2335; --red-soft:#fce8ea;
+    --purple:#4b2d8e; --purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+    --code-bg:#f0f4f8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ── LEVEL 1: FIXED LAYOUT ──────────────────────────── */
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+
+  /* ── LEVEL 1: FIXED TYPOGRAPHY ──────────────────────── */
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);
+    margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;
+    display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;
+    font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+
+  /* ── LEVEL 2: SIDEBAR TOC ───────────────────────────── */
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+    padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);
+    border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);
+    text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);
+    font-size:11.5px;color:var(--muted);line-height:1.6}
+
+  /* ── LEVEL 2: HERO ──────────────────────────────────── */
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;
+    color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+
+  /* ── LEVEL 2: SECTION ───────────────────────────────── */
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+
+  /* ── LEVEL 2: FOOTER ────────────────────────────────── */
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;
+    border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+
+  /* ── LEVEL 3: CALLOUT ───────────────────────────────── */
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout.red{border-color:#e8a0aa;background:var(--red-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout.red .tag{color:var(--red)}
+  .callout p:last-child{margin:0}
+
+  /* ── LEVEL 3: STATS STRIP ───────────────────────────── */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+  @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;
+    padding:16px;border-top:3px solid var(--accent)}
+  .stat .n{font-size:26px;font-weight:800;color:var(--accent-deep);line-height:1.1;
+    font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+
+  /* ── LEVEL 3: CONTENT CARDS ─────────────────────────── */
+  .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
+  @media(max-width:640px){.card-grid{grid-template-columns:1fr}}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:8px;
+    padding:18px;box-shadow:var(--shadow)}
+  .card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;
+    justify-content:center;flex-shrink:0}
+  .card-name{font-weight:700;font-size:14.5px;color:var(--ink);line-height:1.2}
+  .card-sub{font-size:11.5px;color:var(--muted)}
+  .card p{font-size:13.5px;margin:0 0 10px}
+  .card p:last-child{margin:0}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;
+    font-size:11px;font-weight:600;letter-spacing:.04em}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+  .pill.amber{background:var(--amber-soft);color:var(--amber)}
+  .pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill.purple{background:var(--purple-soft);color:var(--purple)}
+
+  /* ── LEVEL 3: TABLE ─────────────────────────────────── */
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+
+  /* ── LEVEL 3: FIGURES ───────────────────────────────── */
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);
+    border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;
+    margin-top:8px;font-style:italic;line-height:1.5}
+
+  /* ── LEVEL 3: INLINE REFERENCE TAG ─────────────────── */
+  .ref{display:inline-block;background:#f0f4f8;border:1px solid var(--line);
+    border-radius:4px;padding:1px 7px;font-size:11.5px;color:var(--ink-soft);
+    font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+
+  /* ── TOPIC-SPECIFIC: CODE DISPLAY ───────────────────── */
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;
+    background:var(--code-bg);padding:2px 6px;border-radius:3px;color:var(--ink)}
+  pre{background:var(--code-bg);border:1px solid var(--line);border-radius:6px;
+    padding:18px 20px;overflow-x:auto;font-size:13px;line-height:1.7;
+    font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--ink-soft);margin:14px 0}
+  pre strong{color:var(--accent-deep);font-weight:600}
+  pre em{color:var(--green);font-style:normal}
+
+  /* ── TOPIC-SPECIFIC: LINE-BY-LINE ANNOTATOR ─────────── */
+  .code-annot{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+  .code-annot th{background:#f0f4f8;font-weight:600;font-size:11.5px;color:var(--ink);
+    letter-spacing:.03em;padding:9px 14px;border-bottom:2px solid var(--line-strong)}
+  .code-annot td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  .code-annot tr:hover td{background:#fafbfd}
+  .code-annot .ln{color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:11px;white-space:nowrap;width:48px;text-align:right;padding-right:8px}
+  .code-annot .snippet{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    color:var(--ink);white-space:pre-wrap;word-break:break-all}
+  .code-annot .note{font-size:13px;color:var(--ink-soft);line-height:1.5}
+  .code-annot .note strong{color:var(--ink)}
+
+  /* ── TOPIC-SPECIFIC: STEP BADGE ─────────────────────── */
+  .step-badge{display:inline-block;min-width:26px;height:26px;border-radius:50%;
+    background:var(--accent);color:#fff;font-size:12px;font-weight:700;
+    text-align:center;line-height:26px;margin-right:8px;flex-shrink:0}
+  .step-row{display:flex;align-items:flex-start;gap:12px;margin:10px 0}
+  .step-row .step-text{flex:1;padding-top:3px;color:var(--ink-soft);font-size:14.5px}
+  .step-row .step-text strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — VARIANT VIEWER PR #24<br>10 May 2026</div>
+
+  <div class="toc-section">Context</div>
+  <ul>
+    <li><a href="#overview">What this PR does</a></li>
+    <li><a href="#aws-concepts">AWS concepts explained</a></li>
+  </ul>
+
+  <div class="toc-section">Architecture</div>
+  <ul>
+    <li><a href="#data-flow">End-to-end data flow</a></li>
+    <li><a href="#lambda-handler">The Lambda handler</a></li>
+    <li><a href="#ingest-pipeline">The ingest pipeline</a></li>
+  </ul>
+
+  <div class="toc-section">Deep Dive</div>
+  <ul>
+    <li><a href="#db-persistence">Database persistence</a></li>
+    <li><a href="#error-handling">Error handling &amp; TOCTOU</a></li>
+    <li><a href="#test-design">Test design</a></li>
+  </ul>
+
+  <div class="toc-section">Reference</div>
+  <ul>
+    <li><a href="#ref-lambda">lambda_handler.py annotated</a></li>
+    <li><a href="#ref-ingest">ingest.py annotated</a></li>
+    <li><a href="#ref-tests">test_ingest.py annotated</a></li>
+  </ul>
+
+  <div class="meta">Source: PR #24<br>eastgenomics/variant-viewer<br>feat/pr5-lambda-ingest</div>
+</aside>
+
+<!-- ═══ MAIN ════════════════════════════════════════════════ -->
+<main>
+
+<!-- ── HERO ─────────────────────────────────────────────── -->
+<header class="hero">
+  <div class="eyebrow">Code Review Briefing · PR #24 · Variant Viewer</div>
+  <h1>Ingest Pipeline &amp; Lambda Handler</h1>
+  <p class="sub">A guided walkthrough of the S3-triggered VCF ingest system introduced in PR #24 — written for a Python developer unfamiliar with AWS.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 10 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> feat/pr5-lambda-ingest → main</span>
+    <span class="meta-item"><strong>Files</strong> lambda_handler.py · ingest.py · test_ingest.py</span>
+  </div>
+</header>
+
+<!-- ── SECTION 1: OVERVIEW ──────────────────────────────── -->
+<section id="overview">
+  <h2><span class="sec-num">01</span> What This PR Does</h2>
+
+  <p>This PR completes Milestone 12 of the refactor. It introduces the full <strong>VCF ingest pipeline</strong> — the code that takes a VCF file uploaded to cloud storage, validates it against a clinical manifest, and persists all variant and patient data to the database. It also adds the <strong>Lambda handler</strong> that wires the whole pipeline to an automated cloud trigger.</p>
+
+  <p>In practical terms: after this PR, uploading a <code>.vcf.gz</code> file to the right cloud storage location will automatically kick off the entire ingest process without any manual intervention.</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="n">2</div>
+      <div class="l">New production files added</div>
+    </div>
+    <div class="stat">
+      <div class="n">9</div>
+      <div class="l">Steps in the ingest pipeline</div>
+    </div>
+    <div class="stat">
+      <div class="n">15</div>
+      <div class="l">New tests added</div>
+    </div>
+    <div class="stat">
+      <div class="n">~280</div>
+      <div class="l">Lines of production code</div>
+    </div>
+  </div>
+
+  <h3>Files changed</h3>
+  <table>
+    <thead><tr><th>File</th><th>Role</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><code>backend/app/lambda_handler.py</code></td><td>Cloud trigger entry point — receives upload events and calls the pipeline</td><td><span class="pill green">New</span></td></tr>
+      <tr><td><code>backend/app/lib/ingest.py</code></td><td>Core pipeline — download, validate, parse, persist</td><td><span class="pill amber">Extended</span></td></tr>
+      <tr><td><code>backend/tests/test_ingest.py</code></td><td>15 new tests covering happy paths, validation failures, duplicate detection</td><td><span class="pill amber">Extended</span></td></tr>
+      <tr><td><code>backend/requirements.in / .txt</code></td><td>Added <code>jsonschema</code> dependency for manifest validation</td><td><span class="pill amber">Extended</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout blue">
+    <span class="tag">Orientation</span>
+    <p>The code reviewed in this PR sits in the <strong>backend layer only</strong>. It is not part of the web API (no HTTP routes are added here). Instead, it is the <em>background data ingestion path</em>: files arrive asynchronously from a clinical pipeline, and this code processes them into the database so they appear in the web UI.</p>
+  </div>
+</section>
+
+<!-- ── SECTION 2: AWS CONCEPTS ──────────────────────────── -->
+<section id="aws-concepts">
+  <h2><span class="sec-num">02</span> AWS Concepts for Python Developers</h2>
+
+  <p>This section explains the three AWS services used in this PR. If you are already familiar with S3, Lambda, and boto3, skip ahead to Section 3.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:#fdf0e0">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="S3 bucket icon">
+            <rect x="2" y="6" width="16" height="10" rx="2" fill="#b35c00"/>
+            <ellipse cx="10" cy="6" rx="8" ry="3" fill="#e8890a"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">Amazon S3</div>
+          <div class="card-sub">Simple Storage Service — cloud file storage</div>
+        </div>
+      </div>
+      <p>S3 is AWS's object storage service. Think of it as a very large file system in the cloud. A <strong>bucket</strong> is like a top-level folder; an <strong>object</strong> is any file stored inside it; an <strong>object key</strong> is the file path within the bucket (e.g. <code>runs/2024/sample.vcf.gz</code>). There is no concept of directories — the key is just a string that may contain slashes.</p>
+      <span class="pill amber">Storage</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:#e3edf8">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lambda function icon">
+            <polygon points="3,17 10,3 17,17" fill="none" stroke="#005eb8" stroke-width="2"/>
+            <line x1="6" y1="13" x2="14" y2="13" stroke="#005eb8" stroke-width="2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">AWS Lambda</div>
+          <div class="card-sub">Serverless function — runs code on demand</div>
+        </div>
+      </div>
+      <p>Lambda lets you run Python functions in the cloud without managing any servers. You upload your code, and AWS runs it in response to <strong>events</strong>. Each invocation is independent — Lambda boots your function, runs it, and stops. You pay only for the time it runs. Critically, <strong>multiple Lambda invocations can run concurrently</strong> — this is why the TOCTOU race condition discussed in Section 7 is real.</p>
+      <span class="pill blue">Compute</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:#e0f0e8">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Trigger arrow icon">
+            <path d="M3 10 L13 10 M10 6 L14 10 L10 14" stroke="#1a6e47" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">S3 → Lambda Trigger</div>
+          <div class="card-sub">Automatic invocation on file upload</div>
+        </div>
+      </div>
+      <p>S3 can be configured to <strong>automatically invoke a Lambda function</strong> whenever a file is uploaded to a specific bucket or key prefix. This is called an <em>event notification</em>. The <code>handler()</code> function in this PR is that Lambda. AWS calls it with an <strong>event payload</strong> — a JSON object describing what was uploaded and where. No polling, no cron job; the trigger is instant.</p>
+      <span class="pill green">Integration</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:#ede8f8">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="boto3 SDK icon">
+            <rect x="3" y="3" width="14" height="14" rx="2" fill="none" stroke="#4b2d8e" stroke-width="2"/>
+            <text x="5" y="14" font-size="8" fill="#4b2d8e" font-weight="bold">py</text>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">boto3</div>
+          <div class="card-sub">AWS Python SDK — the AWS standard library for Python</div>
+        </div>
+      </div>
+      <p><code>boto3</code> is the official Python library for interacting with all AWS services. In this PR it is used to download files from S3. <code>boto3.client("s3")</code> creates a connection to the S3 API. The method <code>download_file(bucket, key, local_path)</code> downloads an S3 object to a local file path. It handles authentication, retries, and streaming automatically.</p>
+      <span class="pill purple">SDK</span>
+    </div>
+  </div>
+
+  <h3>The S3 event payload structure</h3>
+  <p>When a file is uploaded, Lambda receives a JSON payload that looks like this. The handler unpacks it to find the bucket name and file path:</p>
+  <pre>{
+  "Records": [
+    {
+      "s3": {
+        "bucket": { "name": "variant-viewer-vcf-749929395031" },
+        "object": { "key": "runs/2024/26041S0057.vcf.gz" }
+      }
+    }
+  ]
+}</pre>
+
+  <div class="callout amber">
+    <span class="tag">AWS Gotcha</span>
+    <p>S3 delivers the <code>object.key</code> <strong>URL-encoded</strong>. A filename with a space like <code>my sample.vcf.gz</code> arrives as <code>my+sample.vcf.gz</code>. The code should call <code>urllib.parse.unquote_plus(key)</code> before using the key — this is a known gap flagged in the PR review.</p>
+  </div>
+
+  <h3>What is jsonschema?</h3>
+  <p><code>jsonschema</code> is a pure-Python library that validates a Python dict against a <a href="https://json-schema.org/" target="_blank">JSON Schema</a> — a standard way of describing the shape of a JSON document (required fields, types, allowed values). If the data does not match the schema, it raises <code>jsonschema.ValidationError</code>. Think of it as a form validator for JSON.</p>
+</section>
+
+<!-- ── SECTION 3: DATA FLOW ──────────────────────────────── -->
+<section id="data-flow">
+  <h2><span class="sec-num">03</span> End-to-End Data Flow</h2>
+
+  <p>The diagram below shows the complete journey of a VCF file from upload to database — all of it triggered automatically by a single file upload.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="End-to-end data flow from S3 upload through Lambda to database">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#6b7c8d"/>
+      </marker>
+      <marker id="arr-b" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#005eb8"/>
+      </marker>
+    </defs>
+    <style>
+      .diag-lbl{font:700 11px -apple-system,Segoe UI,sans-serif;letter-spacing:1.5px}
+      .box-title{font:700 13px -apple-system,Segoe UI,sans-serif}
+      .box-sub{font:400 11px -apple-system,Segoe UI,sans-serif}
+      .step-lbl{font:600 11px -apple-system,Segoe UI,sans-serif}
+      .arrow-lbl{font:400 10.5px -apple-system,Segoe UI,sans-serif}
+    </style>
+    <text x="16" y="22" class="diag-lbl" fill="#6b7c8d">END-TO-END FLOW</text>
+
+    <!-- S3 Bucket -->
+    <rect x="30" y="50" width="130" height="64" rx="6" fill="#fdf0e0" stroke="#e8c28a" stroke-width="1.5"/>
+    <text x="95" y="77" text-anchor="middle" class="box-title" fill="#b35c00">S3 Bucket</text>
+    <text x="95" y="95" text-anchor="middle" class="box-sub" fill="#b35c00">VCF + manifest upload</text>
+
+    <!-- Arrow: S3 → Lambda trigger -->
+    <line x1="160" y1="82" x2="218" y2="82" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="189" y="76" text-anchor="middle" class="arrow-lbl" fill="#6b7c8d">S3 event</text>
+    <text x="189" y="96" text-anchor="middle" class="arrow-lbl" fill="#6b7c8d">notification</text>
+
+    <!-- Lambda Handler box -->
+    <rect x="220" y="40" width="170" height="84" rx="6" fill="#e3edf8" stroke="#b3cce8" stroke-width="1.5"/>
+    <text x="305" y="67" text-anchor="middle" class="box-title" fill="#003d78">lambda_handler.py</text>
+    <text x="305" y="85" text-anchor="middle" class="box-sub" fill="#354656">handler(event, context)</text>
+    <text x="305" y="102" text-anchor="middle" class="box-sub" fill="#354656">Unpack event, derive manifest key</text>
+
+    <!-- Arrow: handler → ingest_sample -->
+    <line x1="390" y1="82" x2="448" y2="82" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="419" y="76" text-anchor="middle" class="arrow-lbl" fill="#6b7c8d">calls</text>
+    <text x="419" y="92" text-anchor="middle" class="arrow-lbl" fill="#6b7c8d">ingest_sample()</text>
+
+    <!-- ingest.py box -->
+    <rect x="450" y="40" width="170" height="84" rx="6" fill="#e0f0e8" stroke="#a8d4bb" stroke-width="1.5"/>
+    <text x="535" y="67" text-anchor="middle" class="box-title" fill="#1a6e47">ingest.py</text>
+    <text x="535" y="85" text-anchor="middle" class="box-sub" fill="#354656">ingest_sample()</text>
+    <text x="535" y="102" text-anchor="middle" class="box-sub" fill="#354656">9-step pipeline (see §5)</text>
+
+    <!-- Arrow: ingest → DB -->
+    <line x1="620" y1="82" x2="678" y2="82" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="649" y="76" text-anchor="middle" class="arrow-lbl" fill="#6b7c8d">SQL</text>
+    <text x="649" y="92" text-anchor="middle" class="arrow-lbl" fill="#6b7c8d">INSERTs</text>
+
+    <!-- Database box -->
+    <rect x="680" y="50" width="115" height="64" rx="6" fill="#ede8f8" stroke="#c5b8e8" stroke-width="1.5"/>
+    <text x="737" y="77" text-anchor="middle" class="box-title" fill="#4b2d8e">PostgreSQL</text>
+    <text x="737" y="95" text-anchor="middle" class="box-sub" fill="#4b2d8e">patients, samples,</text>
+
+    <!-- Second row: return path -->
+    <text x="737" y="108" text-anchor="middle" class="box-sub" fill="#4b2d8e">variants, workflow</text>
+
+    <!-- Response path -->
+    <path d="M535 124 L535 160 L305 160 L305 124" stroke="#005eb8" stroke-width="1.5" stroke-dasharray="5 3" fill="none" marker-end="url(#arr-b)"/>
+    <text x="420" y="178" text-anchor="middle" class="arrow-lbl" fill="#005eb8">returns sample_id (int)</text>
+
+    <!-- Status code return -->
+    <path d="M305 124 L305 200 L95 200 L95 114" stroke="#005eb8" stroke-width="1.5" stroke-dasharray="5 3" fill="none" marker-end="url(#arr-b)"/>
+    <text x="200" y="218" text-anchor="middle" class="arrow-lbl" fill="#005eb8">returns {statusCode: 200, sample_id: N}</text>
+
+    <!-- Separator -->
+    <line x1="30" y1="240" x2="790" y2="240" stroke="#e0e7ef" stroke-width="1" stroke-dasharray="4 4"/>
+    <text x="30" y="258" class="diag-lbl" fill="#6b7c8d">ERROR PATHS</text>
+
+    <!-- Error boxes -->
+    <rect x="30" y="270" width="170" height="50" rx="5" fill="#fce8ea" stroke="#e8a0aa" stroke-width="1.5"/>
+    <text x="115" y="292" text-anchor="middle" class="box-title" fill="#9b2335">DuplicateSubmissionError</text>
+    <text x="115" y="310" text-anchor="middle" class="box-sub" fill="#9b2335">Returns 409 Conflict</text>
+
+    <rect x="220" y="270" width="170" height="50" rx="5" fill="#fdf0e0" stroke="#e8c28a" stroke-width="1.5"/>
+    <text x="305" y="292" text-anchor="middle" class="box-title" fill="#b35c00">ValueError / ValidationError</text>
+    <text x="305" y="310" text-anchor="middle" class="box-sub" fill="#b35c00">Returns 400 Bad Request</text>
+
+    <rect x="410" y="270" width="170" height="50" rx="5" fill="#e3edf8" stroke="#b3cce8" stroke-width="1.5"/>
+    <text x="495" y="292" text-anchor="middle" class="box-title" fill="#003d78">Any other exception</text>
+    <text x="495" y="310" text-anchor="middle" class="box-sub" fill="#003d78">Propagates → Lambda retry</text>
+  </svg>
+  </div>
+  <figcaption>Figure 1 · End-to-end data flow: an S3 file upload automatically triggers the Lambda handler, which calls the ingest pipeline and returns a structured status code response. Error paths are shown in the lower half.</figcaption>
+  </figure>
+
+  <h3>The two-file convention</h3>
+  <p>Every VCF upload is expected to come with a paired <strong>manifest file</strong>. The manifest is a <a href="https://www.hl7.org/fhir/" target="_blank">FHIR R4 Bundle</a> — a structured JSON document that carries clinical metadata about the patient and specimen. The naming convention is:</p>
+  <table>
+    <thead><tr><th>File type</th><th>Example key</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>VCF (variant calls)</td><td><code>runs/2024/26041S0057.vcf.gz</code></td><td>The genomic data — one row per variant</td></tr>
+      <tr><td>Manifest (metadata)</td><td><code>runs/2024/26041S0057.manifest.json</code></td><td>Patient lab number, specimen ID, pipeline used, case type</td></tr>
+    </tbody>
+  </table>
+  <p>The manifest key is derived automatically by replacing the <code>.vcf</code> or <code>.vcf.gz</code> extension with <code>.manifest.json</code>. This means <strong>both files must be uploaded to the same S3 prefix</strong> with the same base name.</p>
+</section>
+
+<!-- ── SECTION 4: LAMBDA HANDLER ────────────────────────── -->
+<section id="lambda-handler">
+  <h2><span class="sec-num">04</span> The Lambda Handler</h2>
+
+  <p><code>lambda_handler.py</code> is a thin <strong>routing and error-handling shell</strong>. Its job is to unpack the S3 event, delegate to the ingest pipeline, and translate Python exceptions into HTTP-style status codes. It contains no business logic of its own.</p>
+
+  <h3>What <code>handler(event, context)</code> does, step by step</h3>
+
+  <div class="step-row">
+    <span class="step-badge">1</span>
+    <div class="step-text"><strong>Guard against multi-record events.</strong> The handler expects exactly one S3 record. If AWS delivers more (which can happen in batch scenarios), it raises <code>RuntimeError</code>. Lambda treats an unhandled exception as a failure and will retry the invocation — this is intentional behaviour for unexpected situations.</div>
+  </div>
+  <div class="step-row">
+    <span class="step-badge">2</span>
+    <div class="step-text"><strong>Unpack the event.</strong> Extracts the bucket name and VCF key from the nested JSON structure. Then derives the manifest key using a regular expression.</div>
+  </div>
+  <div class="step-row">
+    <span class="step-badge">3</span>
+    <div class="step-text"><strong>Create an S3 client.</strong> <code>boto3.client("s3")</code> creates a connection to the S3 API using credentials that Lambda automatically injects via its IAM execution role. No credentials are hardcoded.</div>
+  </div>
+  <div class="step-row">
+    <span class="step-badge">4</span>
+    <div class="step-text"><strong>Open a database transaction and call ingest_sample().</strong> <code>with_transaction()</code> is a context manager that opens a database connection and wraps everything in a single transaction. If <code>ingest_sample()</code> raises, the transaction is rolled back automatically.</div>
+  </div>
+  <div class="step-row">
+    <span class="step-badge">5</span>
+    <div class="step-text"><strong>Return a structured response.</strong> The return value is a Python dict with a <code>statusCode</code> key. Lambda itself does not use HTTP status codes, but this convention lets monitoring tools read the outcome without parsing log messages.</div>
+  </div>
+
+  <h3>Status code convention</h3>
+  <table>
+    <thead><tr><th>Code</th><th>Trigger</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>200</code></td><td>No exception raised</td><td>VCF successfully ingested; <code>sample_id</code> included in response</td></tr>
+      <tr><td><code>409</code></td><td><code>DuplicateSubmissionError</code></td><td>This VCF file was already ingested — re-upload is rejected</td></tr>
+      <tr><td><code>400</code></td><td><code>ValueError</code> or <code>jsonschema.ValidationError</code></td><td>Bad input — invalid VCF key format or invalid manifest</td></tr>
+      <tr><td>(no return)</td><td>Any other exception</td><td>Unexpected failure; Lambda retries and eventually routes to a Dead Letter Queue</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout blue">
+    <span class="tag">Design note</span>
+    <p>The <code>DuplicateSubmissionError</code> is caught and returns 409 rather than letting it propagate, because a duplicate upload is an <em>expected</em> clinical scenario (e.g. a file re-sent by mistake) — not a system failure. Lambda should not retry it. Any other exception is treated as a genuine fault and is allowed to propagate so Lambda's retry and DLQ mechanisms kick in.</p>
+  </div>
+</section>
+
+<!-- ── SECTION 5: INGEST PIPELINE ────────────────────────── -->
+<section id="ingest-pipeline">
+  <h2><span class="sec-num">05</span> The <code>ingest_sample()</code> Pipeline</h2>
+
+  <p><code>ingest_sample()</code> in <code>ingest.py</code> is the heart of this PR. It is a nine-step sequential pipeline. Steps 1–8 run inside a <code>TemporaryDirectory</code>; step 9 runs outside it (after the temp files have been deleted) to keep database writes separate from file I/O.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The nine-step ingest_sample pipeline shown as a vertical flow with step numbers">
+    <defs>
+      <marker id="arr2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#6b7c8d"/>
+      </marker>
+    </defs>
+    <style>
+      .pl-title{font:700 12px -apple-system,Segoe UI,sans-serif}
+      .pl-sub{font:400 11px -apple-system,Segoe UI,sans-serif}
+      .pl-badge{font:700 11px -apple-system,Segoe UI,sans-serif}
+    </style>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">PIPELINE FLOW</text>
+
+    <!-- Temp dir bracket -->
+    <rect x="14" y="55" width="8" height="295" rx="2" fill="#e0f0e8" stroke="#a8d4bb" stroke-width="1"/>
+    <text x="12" y="208" text-anchor="middle" class="pl-sub" fill="#1a6e47" transform="rotate(-90,12,208)">TemporaryDirectory scope</text>
+
+    <!-- Step boxes: left column -->
+    <!-- Step 1 -->
+    <rect x="40" y="50" width="220" height="44" rx="5" fill="#e3edf8" stroke="#b3cce8" stroke-width="1.5"/>
+    <text x="60" y="69" class="pl-badge" fill="#003d78">STEP 1</text>
+    <text x="60" y="87" class="pl-title" fill="#003d78">Validate VCF key format</text>
+    <text x="270" y="69" text-anchor="end" class="pl-sub" fill="#6b7c8d">Raises ValueError if not .vcf/.vcf.gz</text>
+
+    <!-- Arrow -->
+    <line x1="150" y1="94" x2="150" y2="108" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <!-- Step 2-3 -->
+    <rect x="40" y="108" width="220" height="44" rx="5" fill="#e3edf8" stroke="#b3cce8" stroke-width="1.5"/>
+    <text x="60" y="128" class="pl-badge" fill="#003d78">STEP 3</text>
+    <text x="60" y="145" class="pl-title" fill="#003d78">Download VCF + manifest from S3</text>
+    <text x="270" y="128" text-anchor="end" class="pl-sub" fill="#6b7c8d">Both files saved to /tmp/ingest-XXXX/</text>
+
+    <!-- Arrow -->
+    <line x1="150" y1="152" x2="150" y2="166" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <!-- Step 4-5 -->
+    <rect x="40" y="166" width="220" height="44" rx="5" fill="#e3edf8" stroke="#b3cce8" stroke-width="1.5"/>
+    <text x="60" y="186" class="pl-badge" fill="#003d78">STEP 4&#8211;5</text>
+    <text x="60" y="203" class="pl-title" fill="#003d78">Load + validate manifest JSON</text>
+    <text x="270" y="186" text-anchor="end" class="pl-sub" fill="#6b7c8d">jsonschema.validate() against schema</text>
+
+    <!-- Arrow -->
+    <line x1="150" y1="210" x2="150" y2="224" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <!-- Step 6 -->
+    <rect x="40" y="224" width="220" height="44" rx="5" fill="#e3edf8" stroke="#b3cce8" stroke-width="1.5"/>
+    <text x="60" y="244" class="pl-badge" fill="#003d78">STEP 6</text>
+    <text x="60" y="261" class="pl-title" fill="#003d78">Parse FHIR manifest</text>
+    <text x="270" y="244" text-anchor="end" class="pl-sub" fill="#6b7c8d">Extracts patient, specimen, pipeline</text>
+
+    <!-- Arrow -->
+    <line x1="150" y1="268" x2="150" y2="282" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <!-- Step 7 -->
+    <rect x="40" y="282" width="220" height="44" rx="5" fill="#fdf0e0" stroke="#e8c28a" stroke-width="1.5"/>
+    <text x="60" y="302" class="pl-badge" fill="#b35c00">STEP 7</text>
+    <text x="60" y="319" class="pl-title" fill="#b35c00">Idempotency check</text>
+    <text x="270" y="302" text-anchor="end" class="pl-sub" fill="#6b7c8d">SELECT s3_key — raises if duplicate</text>
+
+    <!-- Arrow -->
+    <line x1="150" y1="326" x2="150" y2="340" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <!-- Step 8 -->
+    <rect x="40" y="340" width="220" height="44" rx="5" fill="#e3edf8" stroke="#b3cce8" stroke-width="1.5"/>
+    <text x="60" y="360" class="pl-badge" fill="#003d78">STEP 8</text>
+    <text x="60" y="377" class="pl-title" fill="#003d78">Parse VCF with cyvcf2</text>
+    <text x="270" y="360" text-anchor="end" class="pl-sub" fill="#6b7c8d">VcfVariant objects built in memory</text>
+
+    <!-- Temp dir end marker -->
+    <line x1="14" y1="350" x2="30" y2="350" stroke="#a8d4bb" stroke-width="1"/>
+    <text x="32" y="398" class="pl-sub" fill="#1a6e47">Temp dir deleted here</text>
+
+    <!-- Arrow -->
+    <line x1="150" y1="384" x2="150" y2="418" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <!-- Step 9 - DB writes -->
+    <rect x="40" y="418" width="370" height="44" rx="5" fill="#e0f0e8" stroke="#a8d4bb" stroke-width="2"/>
+    <text x="60" y="438" class="pl-badge" fill="#1a6e47">STEP 9</text>
+    <text x="60" y="455" class="pl-title" fill="#1a6e47">Database writes (inside transaction)</text>
+    <text x="420" y="438" text-anchor="end" class="pl-sub" fill="#6b7c8d">patient upsert &#8594; sample &#8594; variants &#8594; classifications &#8594; workflow</text>
+
+    <!-- Right column: what's extracted -->
+    <rect x="490" y="215" width="300" height="180" rx="6" fill="#f7f9fb" stroke="#e0e7ef" stroke-width="1.5"/>
+    <text x="505" y="237" class="pl-title" fill="#354656">From the FHIR manifest:</text>
+    <text x="505" y="258" class="pl-sub" fill="#6b7c8d">&#8226; patient.lab_number  (e.g. LAB-001)</text>
+    <text x="505" y="275" class="pl-sub" fill="#6b7c8d">&#8226; specimen.sample_name  (e.g. 26041S0057)</text>
+    <text x="505" y="292" class="pl-sub" fill="#6b7c8d">&#8226; specimen.case_type  (e.g. germline)</text>
+    <text x="505" y="309" class="pl-sub" fill="#6b7c8d">&#8226; specimen.tissue</text>
+    <text x="505" y="326" class="pl-sub" fill="#6b7c8d">&#8226; specimen.sequencing_date</text>
+    <text x="505" y="343" class="pl-sub" fill="#6b7c8d">&#8226; task.pipeline_key  (fallback if VCF has none)</text>
+    <text x="505" y="360" class="pl-sub" fill="#6b7c8d">&#8226; task.vcf_filename  (display name)</text>
+    <line x1="490" y1="215" x2="460" y2="268" stroke="#e0e7ef" stroke-width="1.5" stroke-dasharray="4 3"/>
+  </svg>
+  </div>
+  <figcaption>Figure 2 · The nine-step ingest_sample() pipeline. Steps 1–8 run inside a TemporaryDirectory that is automatically deleted when step 8 completes. Step 9 (database writes) runs on plain Python objects after the temp directory is gone.</figcaption>
+  </figure>
+
+  <h3>Why use a TemporaryDirectory?</h3>
+  <p>Lambda functions can be <strong>warm</strong> — after the first invocation, the runtime may be kept alive and reused for subsequent invocations. If files were written to <code>/tmp</code> without cleanup, each warm invocation would accumulate more files until the 512 MB <code>/tmp</code> limit is hit. <code>tempfile.TemporaryDirectory</code> is a context manager that creates a uniquely named directory and <strong>automatically deletes it when the <code>with</code> block exits</strong> — even if an exception is raised. This makes the Lambda safe for high-volume use.</p>
+
+  <h3>Why run DB writes outside the TemporaryDirectory block?</h3>
+  <p>By the time the database writes start, the VCF and manifest files are no longer needed — the data has been parsed into Python objects (<code>VcfVariant</code> instances and the <code>manifest</code> struct). Exiting the <code>with tempfile.TemporaryDirectory()</code> block at that point means the files are deleted <em>before</em> the database work begins, keeping the <code>/tmp</code> usage as short as possible.</p>
+
+  <h3>The idempotency check</h3>
+  <p>Before any database writes, the pipeline checks whether this exact VCF file has already been ingested by querying the <code>samples</code> table for the <code>s3_key</code>. This prevents duplicate rows. The check is deliberately simple: <strong>only an identical S3 key is rejected</strong>. Multiple VCFs for the same patient (e.g. from different gene panels) are allowed because the database has no unique constraint on <code>(patient_id, sample_name)</code>.</p>
+</section>
+
+<!-- ── SECTION 6: DB PERSISTENCE ────────────────────────── -->
+<section id="db-persistence">
+  <h2><span class="sec-num">06</span> Database Persistence</h2>
+
+  <p>Step 9 of the pipeline performs all database writes inside a single <code>psycopg2</code> cursor block. The writes are sequential and depend on each other — each returns a database-generated integer ID that feeds into the next.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Database table dependency chain: patients to samples to variants to variant_classification to classification_criterion and workflow">
+    <defs>
+      <marker id="arr3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#4b2d8e"/>
+      </marker>
+    </defs>
+    <style>
+      .tbl-title{font:700 12px -apple-system,Segoe UI,sans-serif}
+      .tbl-sub{font:400 10.5px -apple-system,Segoe UI,sans-serif}
+      .tbl-id{font:700 10px -apple-system,Segoe UI,sans-serif}
+    </style>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">TABLE DEPENDENCY CHAIN</text>
+
+    <!-- patients -->
+    <rect x="20" y="50" width="110" height="60" rx="5" fill="#ede8f8" stroke="#c5b8e8" stroke-width="1.5"/>
+    <text x="75" y="73" text-anchor="middle" class="tbl-title" fill="#4b2d8e">patients</text>
+    <text x="75" y="90" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">UPSERT by</text>
+    <text x="75" y="104" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">lab_number</text>
+    <text x="75" y="126" text-anchor="middle" class="tbl-id" fill="#4b2d8e">&#8594; patient_id</text>
+
+    <line x1="130" y1="80" x2="156" y2="80" stroke="#4b2d8e" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+    <!-- samples -->
+    <rect x="158" y="50" width="110" height="60" rx="5" fill="#e0f0e8" stroke="#a8d4bb" stroke-width="1.5"/>
+    <text x="213" y="73" text-anchor="middle" class="tbl-title" fill="#1a6e47">samples</text>
+    <text x="213" y="90" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">INSERT with</text>
+    <text x="213" y="104" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">patient_id</text>
+    <text x="213" y="126" text-anchor="middle" class="tbl-id" fill="#1a6e47">&#8594; sample_id</text>
+
+    <line x1="268" y1="80" x2="294" y2="80" stroke="#4b2d8e" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+    <!-- variants -->
+    <rect x="296" y="50" width="110" height="60" rx="5" fill="#e3edf8" stroke="#b3cce8" stroke-width="1.5"/>
+    <text x="351" y="73" text-anchor="middle" class="tbl-title" fill="#003d78">variants</text>
+    <text x="351" y="90" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">one INSERT</text>
+    <text x="351" y="104" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">per ALT allele</text>
+    <text x="351" y="126" text-anchor="middle" class="tbl-id" fill="#003d78">&#8594; variant_id</text>
+
+    <line x1="406" y1="80" x2="432" y2="80" stroke="#4b2d8e" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+    <!-- variant_classification -->
+    <rect x="434" y="50" width="140" height="60" rx="5" fill="#fdf0e0" stroke="#e8c28a" stroke-width="1.5"/>
+    <text x="504" y="68" text-anchor="middle" class="tbl-title" fill="#b35c00">variant_classification</text>
+    <text x="504" y="85" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">Pending shell, stores</text>
+    <text x="504" y="99" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">framework + version</text>
+    <text x="504" y="126" text-anchor="middle" class="tbl-id" fill="#b35c00">&#8594; classification_id</text>
+
+    <line x1="574" y1="80" x2="598" y2="80" stroke="#4b2d8e" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+    <!-- classification_criterion -->
+    <rect x="600" y="50" width="140" height="60" rx="5" fill="#fce8ea" stroke="#e8a0aa" stroke-width="1.5"/>
+    <text x="670" y="68" text-anchor="middle" class="tbl-title" fill="#9b2335">classification_criterion</text>
+    <text x="670" y="85" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">Pre-computed criteria,</text>
+    <text x="670" y="99" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">one row per criterion</text>
+
+    <!-- workflow (below samples) -->
+    <rect x="158" y="155" width="110" height="40" rx="5" fill="#f7f9fb" stroke="#e0e7ef" stroke-width="1.5"/>
+    <text x="213" y="175" text-anchor="middle" class="tbl-title" fill="#354656">workflow</text>
+    <text x="213" y="190" text-anchor="middle" class="tbl-sub" fill="#6b7c8d">one row per sample</text>
+    <line x1="213" y1="110" x2="213" y2="155" stroke="#4b2d8e" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr3)"/>
+  </svg>
+  </div>
+  <figcaption>Figure 3 · Database table dependency chain. Each arrow represents an INSERT that uses the ID returned by the previous step. The variants loop (blue box) may execute many times — once per ALT allele in the VCF.</figcaption>
+  </figure>
+
+  <h3>The patient UPSERT</h3>
+  <p>The patient is written using an <strong>upsert</strong> — a combined INSERT and UPDATE in one SQL statement. If the patient's <code>lab_number</code> already exists, the row is updated rather than rejected. The <code>COALESCE</code> function means: <em>use the new value if it is not null, otherwise keep the existing value</em>. This allows patient records to be enriched over time without overwriting existing data with nulls.</p>
+  <pre>INSERT INTO patients (lab_number, name, dob)
+VALUES (%s, %s, %s)
+ON CONFLICT (lab_number) DO UPDATE
+  SET name = <strong>COALESCE(EXCLUDED.name, patients.name)</strong>,
+      dob  = <strong>COALESCE(EXCLUDED.dob,  patients.dob)</strong>
+RETURNING id</pre>
+  <p><code>EXCLUDED</code> is a PostgreSQL keyword that refers to the row that was proposed for insertion (i.e., the new values). <code>RETURNING id</code> means PostgreSQL sends back the row's primary key in the result set, so the code can retrieve it with <code>cur.fetchone()[0]</code>.</p>
+
+  <h3>The classification shell</h3>
+  <p>For each variant, a <code>variant_classification</code> row is inserted as a <strong>pending shell</strong>. This row does not contain a final classification verdict — it is a placeholder that records which scoring framework applies (ACGS SNV vs SVIG-UK) and pre-populates criteria values computed from the variant data. A clinical scientist will later review and finalise the classification in the web UI.</p>
+</section>
+
+<!-- ── SECTION 7: ERROR HANDLING ────────────────────────── -->
+<section id="error-handling">
+  <h2><span class="sec-num">07</span> Error Handling &amp; the TOCTOU Race</h2>
+
+  <h3>DuplicateSubmissionError</h3>
+  <p>This is a custom exception class defined at the top of <code>ingest.py</code>. It carries two structured attributes alongside the message string:</p>
+  <table>
+    <thead><tr><th>Attribute</th><th>Type</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>duplicate_type</code></td><td><code>str</code></td><td>Always <code>"exact"</code> — only re-uploading the identical file is rejected</td></tr>
+      <tr><td><code>existing_sample_id</code></td><td><code>int</code></td><td>The database ID of the existing sample, or <code>-1</code> if the ID is unavailable (TOCTOU race)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The TOCTOU race condition</h3>
+  <p>TOCTOU stands for <em>Time Of Check, Time Of Use</em>. It is a classic concurrency bug. Because Lambda can run many invocations at the same time, two uploads of the same file can happen simultaneously:</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TOCTOU race condition: two concurrent Lambda invocations both pass the idempotency check before either INSERT runs">
+    <defs>
+      <marker id="arr4" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#6b7c8d"/>
+      </marker>
+    </defs>
+    <style>
+      .race-lbl{font:700 12px -apple-system,Segoe UI,sans-serif}
+      .race-sub{font:400 11px -apple-system,Segoe UI,sans-serif}
+      .race-time{font:600 10.5px -apple-system,Segoe UI,sans-serif}
+    </style>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">TOCTOU RACE TIMELINE</text>
+
+    <!-- Time axis -->
+    <line x1="60" y1="185" x2="780" y2="185" stroke="#e0e7ef" stroke-width="1.5"/>
+    <text x="60" y="200" class="race-time" fill="#6b7c8d">t=0</text>
+    <text x="220" y="200" class="race-time" fill="#6b7c8d">t=1</text>
+    <text x="380" y="200" class="race-time" fill="#6b7c8d">t=2</text>
+    <text x="540" y="200" class="race-time" fill="#6b7c8d">t=3</text>
+    <text x="700" y="200" class="race-time" fill="#6b7c8d">t=4</text>
+
+    <!-- Lambda A -->
+    <text x="30" y="68" text-anchor="middle" class="race-lbl" fill="#003d78">Lambda</text>
+    <text x="30" y="83" text-anchor="middle" class="race-lbl" fill="#003d78">A</text>
+    <rect x="60" y="50" width="160" height="30" rx="4" fill="#e3edf8" stroke="#b3cce8" stroke-width="1.5"/>
+    <text x="140" y="69" text-anchor="middle" class="race-sub" fill="#003d78">SELECT s3_key (no row found)</text>
+    <!-- gap -->
+    <rect x="380" y="50" width="160" height="30" rx="4" fill="#e0f0e8" stroke="#a8d4bb" stroke-width="1.5"/>
+    <text x="460" y="69" text-anchor="middle" class="race-sub" fill="#1a6e47">INSERT samples &#8594; SUCCESS</text>
+
+    <!-- Lambda B -->
+    <text x="30" y="128" text-anchor="middle" class="race-lbl" fill="#9b2335">Lambda</text>
+    <text x="30" y="143" text-anchor="middle" class="race-lbl" fill="#9b2335">B</text>
+    <rect x="220" y="110" width="160" height="30" rx="4" fill="#fce8ea" stroke="#e8a0aa" stroke-width="1.5"/>
+    <text x="300" y="129" text-anchor="middle" class="race-sub" fill="#9b2335">SELECT s3_key (no row found)</text>
+    <rect x="540" y="110" width="160" height="30" rx="4" fill="#fdf0e0" stroke="#e8c28a" stroke-width="1.5"/>
+    <text x="620" y="124" text-anchor="middle" class="race-sub" fill="#b35c00">INSERT samples &#8594;</text>
+    <text x="620" y="139" text-anchor="middle" class="race-sub" fill="#b35c00">UniqueViolation &#8594; 409</text>
+
+    <!-- annotations -->
+    <line x1="220" y1="60" x2="220" y2="185" stroke="#e0e7ef" stroke-width="1" stroke-dasharray="4 3"/>
+    <line x1="380" y1="60" x2="380" y2="185" stroke="#e0e7ef" stroke-width="1" stroke-dasharray="4 3"/>
+    <line x1="540" y1="60" x2="540" y2="185" stroke="#e0e7ef" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="300" y="175" text-anchor="middle" class="race-sub" fill="#6b7c8d">Both pass check &#8212; race window</text>
+  </svg>
+  </div>
+  <figcaption>Figure 4 · TOCTOU race: two Lambda invocations both pass the idempotency SELECT before either INSERT runs. Lambda B receives a UniqueViolation from the database, which is caught and converted to a 409 response.</figcaption>
+  </figure>
+
+  <p>The <code>except psycopg2.errors.UniqueViolation</code> block at the end of <code>ingest_sample()</code> handles this case. A <code>UniqueViolation</code> is a specific PostgreSQL error (a subclass of <code>psycopg2.errors.IntegrityError</code>) raised when an INSERT would violate a UNIQUE constraint. The code catches it and raises <code>DuplicateSubmissionError</code> with <code>existing_sample_id=-1</code> (the ID is unknown because we can not easily recover it at this point).</p>
+
+  <div class="callout amber">
+    <span class="tag">Review note</span>
+    <p>The <code>except UniqueViolation</code> block currently catches violations from <em>any</em> INSERT in the write block, not just <code>samples.s3_key</code>. A bug in <code>pre_compute_criteria()</code> that emits duplicate criterion codes would be swallowed as a "duplicate VCF" error. The review comment on this PR recommends checking <code>exc.diag.constraint_name</code> to narrow the catch.</p>
+  </div>
+</section>
+
+<!-- ── SECTION 8: TEST DESIGN ───────────────────────────── -->
+<section id="test-design">
+  <h2><span class="sec-num">08</span> Test Design</h2>
+
+  <p>The tests use Python's <code>unittest.mock</code> library to replace the two external systems — S3 and the database — with controllable fakes. This means the tests run without any network access, AWS credentials, or a running database.</p>
+
+  <h3>Mocking S3 with <code>_make_s3_mock()</code></h3>
+  <p>Rather than actually uploading to S3, the mock intercepts <code>download_file(bucket, key, dest)</code> and writes files directly to the local destination path. The manifest content is the test fixture dict serialised to JSON; the VCF gets a minimal valid header.</p>
+  <pre>def download_side_effect(bucket, key, dest):
+    if key.endswith(".manifest.json"):
+        Path(dest).write_text(manifest_content)  <em># write the test manifest locally</em>
+    else:
+        Path(dest).write_text("##fileformat=VCFv4.2\n")  <em># minimal VCF header</em></pre>
+
+  <h3>Mocking the database with <code>_make_db_mock()</code></h3>
+  <p>The database mock returns pre-set values from <code>fetchone()</code> in sequence using <code>side_effect</code>. The sequence reflects the order the pipeline calls <code>fetchone()</code>:</p>
+  <table>
+    <thead><tr><th>Call #</th><th>Returns</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>1st</td><td><code>None</code></td><td><code>check_idempotency</code>: no existing row found for this <code>s3_key</code></td></tr>
+      <tr><td>2nd</td><td><code>(patient_id,)</code></td><td><code>INSERT INTO patients RETURNING id</code></td></tr>
+      <tr><td>3rd</td><td><code>(sample_id,)</code></td><td><code>INSERT INTO samples RETURNING id</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Mocking <code>parse_vcf()</code></h3>
+  <p>Because <code>parse_vcf()</code> calls cyvcf2 (which needs a real VCF file), the happy-path ingest tests patch it with <code>@patch("app.lib.ingest.parse_vcf")</code>. The mock returns a bare <code>VcfMeta</code> object directly, bypassing file parsing entirely.</p>
+
+  <h3>Test coverage at a glance</h3>
+  <table>
+    <thead><tr><th>Test</th><th>What it verifies</th></tr></thead>
+    <tbody>
+      <tr><td><code>test_ingest_returns_sample_id</code></td><td>Happy path returns the expected integer ID</td></tr>
+      <tr><td><code>test_ingest_s3_downloads_both_files</code></td><td>Both VCF and manifest keys are downloaded</td></tr>
+      <tr><td><code>test_ingest_sql_rows_inserted</code></td><td>patients, samples, and workflow INSERTs are executed</td></tr>
+      <tr><td><code>test_ingest_with_variant_inserts_classification_and_criteria</code></td><td>Per-variant INSERTs (variants, classification, criterion) fire</td></tr>
+      <tr><td><code>test_ingest_invalid_key_format</code></td><td>Non-VCF key raises <code>ValueError</code></td></tr>
+      <tr><td><code>test_ingest_schema_validation_failure</code></td><td>Malformed manifest raises <code>ValidationError</code></td></tr>
+      <tr><td><code>test_ingest_manifest_parse_failure</code></td><td>Invalid case_type raises <code>ValueError</code></td></tr>
+      <tr><td><code>test_ingest_exact_duplicate</code></td><td>Existing s3_key raises <code>DuplicateSubmissionError</code></td></tr>
+      <tr><td><code>test_ingest_unique_violation_toctou</code></td><td>DB <code>UniqueViolation</code> is converted to <code>DuplicateSubmissionError</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── SECTION 9: LAMBDA_HANDLER ANNOTATED ──────────────── -->
+<section id="ref-lambda">
+  <h2><span class="sec-num">09</span> <code>lambda_handler.py</code> — Line-by-Line Reference</h2>
+
+  <p>This table covers every non-trivial line. Line numbers refer to the file as merged.</p>
+
+  <table class="code-annot">
+    <thead>
+      <tr>
+        <th style="width:48px">Line</th>
+        <th style="width:42%">Code</th>
+        <th>Explanation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="ln">18</td>
+        <td class="snippet">import boto3</td>
+        <td class="note">The AWS Python SDK. Provides clients for every AWS service. Used here only for S3.</td>
+      </tr>
+      <tr>
+        <td class="ln">19</td>
+        <td class="snippet">import jsonschema</td>
+        <td class="note">Imported here so its <code>ValidationError</code> can be caught in the except clause — the actual validation happens inside <code>ingest_sample()</code>.</td>
+      </tr>
+      <tr>
+        <td class="ln">21</td>
+        <td class="snippet">from app.lib.db import with_transaction</td>
+        <td class="note">A context manager that opens a psycopg2 database connection and wraps it in a transaction. If the <code>with</code> block raises, the transaction is rolled back automatically.</td>
+      </tr>
+      <tr>
+        <td class="ln">54</td>
+        <td class="snippet">records = event.get("Records", [])</td>
+        <td class="note"><code>event</code> is the raw S3 notification payload (a Python dict). <code>.get("Records", [])</code> returns the list of S3 records, defaulting to an empty list if the key is absent — safer than <code>event["Records"]</code> which would raise <code>KeyError</code>.</td>
+      </tr>
+      <tr>
+        <td class="ln">55–57</td>
+        <td class="snippet">if len(records) != 1:
+    raise RuntimeError(...)</td>
+        <td class="note">A hard guard. S3 normally delivers exactly one record per notification. Raising <code>RuntimeError</code> (rather than returning 400) ensures Lambda treats this as a system failure and retries — a batch of records would mean something unexpected has happened at the infrastructure level.</td>
+      </tr>
+      <tr>
+        <td class="ln">58–60</td>
+        <td class="snippet">record  = records[0]["s3"]
+bucket  = record["bucket"]["name"]
+vcf_key = record["object"]["key"]</td>
+        <td class="note">Unpacks the nested S3 event structure. <code>records[0]["s3"]</code> is the S3-specific part of the first (and only) record. <code>bucket</code> is the bucket name string; <code>vcf_key</code> is the object key (file path within the bucket). Note: this key is URL-encoded by AWS — a known issue flagged in review.</td>
+      </tr>
+      <tr>
+        <td class="ln">61</td>
+        <td class="snippet">manifest_key = re.sub(
+  r"\.vcf(\.gz)?$",
+  ".manifest.json",
+  vcf_key)</td>
+        <td class="note">Derives the companion manifest key from the VCF key. The regex <code>\.vcf(\.gz)?$</code> matches either <code>.vcf</code> or <code>.vcf.gz</code> at the end of the string (<code>$</code>). The <code>(\.gz)?</code> part makes <code>.gz</code> optional. Example: <code>runs/sample.vcf.gz</code> → <code>runs/sample.manifest.json</code>.</td>
+      </tr>
+      <tr>
+        <td class="ln">65</td>
+        <td class="snippet">s3 = boto3.client("s3",
+  region_name="eu-west-2")</td>
+        <td class="note">Creates a boto3 S3 client. <code>"s3"</code> is the service name. The region string controls which AWS endpoint to call. Lambda normally sets <code>AWS_REGION</code> automatically — hardcoding <code>eu-west-2</code> is a known issue flagged in review (breaks cross-region deployments). Credentials are injected automatically from the Lambda execution role.</td>
+      </tr>
+      <tr>
+        <td class="ln">66–70</td>
+        <td class="snippet">with with_transaction() as conn:
+    sample_id = ingest_sample(
+        vcf_key, manifest_key,
+        bucket, s3, conn)
+return {"statusCode": 200, ...}</td>
+        <td class="note">Opens a database transaction. If <code>ingest_sample()</code> returns normally, the transaction is committed and the <code>return</code> on line 70 is reached. If it raises, the <code>with</code> block rolls back the transaction and the exception propagates to the outer <code>except</code> clauses.</td>
+      </tr>
+      <tr>
+        <td class="ln">72–74</td>
+        <td class="snippet">except DuplicateSubmissionError as exc:
+    logger.warning(...)
+    return {"statusCode": 409, ...}</td>
+        <td class="note">Catches the expected "already ingested" case. Returns 409 (Conflict) — borrowed from HTTP semantics. Logging at <code>WARNING</code> level because this is an expected business event, not a system fault.</td>
+      </tr>
+      <tr>
+        <td class="ln">76–78</td>
+        <td class="snippet">except (ValueError,
+        jsonschema.ValidationError) as exc:
+    return {"statusCode": 400, ...}</td>
+        <td class="note">Catches bad-input errors. A tuple in <code>except</code> matches either type. Returns 400 (Bad Request). Logging at <code>ERROR</code> level because a bad manifest or key suggests a problem with the upstream pipeline that produced the file.</td>
+      </tr>
+      <tr>
+        <td class="ln">79</td>
+        <td class="snippet"># All other exceptions propagate</td>
+        <td class="note">There is no final <code>except Exception</code> catch-all. Any other exception (database down, network timeout, bug in the code) propagates out of <code>handler()</code>. Lambda catches it, marks the invocation as failed, and retries according to its retry policy.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── SECTION 10: INGEST.PY ANNOTATED ──────────────────── -->
+<section id="ref-ingest">
+  <h2><span class="sec-num">10</span> <code>ingest.py</code> — Line-by-Line Reference</h2>
+
+  <h3>Module-level schema loading</h3>
+  <table class="code-annot">
+    <thead><tr><th style="width:48px">Line</th><th style="width:42%">Code</th><th>Explanation</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="ln">34</td>
+        <td class="snippet">_SCHEMA_PATH = Path(__file__).parent
+  .parent.parent / "config"
+  / "manifest-schema.json"</td>
+        <td class="note"><code>__file__</code> is the absolute path to <code>ingest.py</code> itself. Each <code>.parent</code> goes one directory up: <code>lib/</code> → <code>app/</code> → <code>backend/</code>. Then we join <code>config/manifest-schema.json</code>. This is a portable way to find a sibling directory without hardcoding an absolute path.</td>
+      </tr>
+      <tr>
+        <td class="ln">35</td>
+        <td class="snippet">_MANIFEST_SCHEMA: dict = json.loads(
+  _SCHEMA_PATH.read_text())</td>
+        <td class="note">Reads and parses the JSON Schema file <strong>once at module import time</strong>. The result is cached in the module-level variable <code>_MANIFEST_SCHEMA</code>. This avoids re-reading the file on every invocation in a warm Lambda. The underscore prefix signals it is module-private. Risk: if the file is missing, the import fails — flagged in review.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>The <code>ingest_sample()</code> function body</h3>
+  <table class="code-annot">
+    <thead><tr><th style="width:48px">Line</th><th style="width:42%">Code</th><th>Explanation</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="ln">165–167</td>
+        <td class="snippet">if not (vcf_s3_key.endswith(".vcf")
+        or vcf_s3_key.endswith(".vcf.gz")):
+    raise ValueError(...)</td>
+        <td class="note">Fast-fail guard. Checks the key suffix before any S3 or database activity. The parentheses around the <code>or</code> expression are required because <code>not</code> has higher precedence than <code>or</code> — without them, only the first condition would be negated.</td>
+      </tr>
+      <tr>
+        <td class="ln">171</td>
+        <td class="snippet">with tempfile.TemporaryDirectory(
+        prefix="ingest-") as tmp_dir:</td>
+        <td class="note">Creates a uniquely named temporary directory under <code>/tmp</code> (e.g. <code>/tmp/ingest-abc123/</code>). The <code>with</code> block guarantees the directory and all its contents are deleted when the block exits — even if an exception is raised. The <code>prefix</code> makes the directory identifiable in logs.</td>
+      </tr>
+      <tr>
+        <td class="ln">173–174</td>
+        <td class="snippet">vcf_path = tmp / Path(vcf_s3_key).name
+manifest_path = tmp / Path(
+    manifest_s3_key).name</td>
+        <td class="note"><code>Path(vcf_s3_key).name</code> extracts just the filename portion of the S3 key — e.g. <code>runs/2024/sample.vcf.gz</code> → <code>sample.vcf.gz</code>. This is the local filename within the temp directory. The <code>/</code> operator on a <code>Path</code> joins path segments.</td>
+      </tr>
+      <tr>
+        <td class="ln">177–178</td>
+        <td class="snippet">s3_client.download_file(
+    bucket, vcf_s3_key, str(vcf_path))
+s3_client.download_file(
+    bucket, manifest_s3_key,
+    str(manifest_path))</td>
+        <td class="note"><code>download_file(bucket, key, local_path)</code> is a boto3 S3 method that downloads the named object to a local file. The third argument must be a string (not a <code>Path</code>), hence <code>str(vcf_path)</code>. This blocks until the download completes.</td>
+      </tr>
+      <tr>
+        <td class="ln">181</td>
+        <td class="snippet">raw = json.loads(
+    manifest_path.read_text())</td>
+        <td class="note">Reads the manifest file into a Python string and parses it as JSON in one step. The result is a plain Python <code>dict</code>.</td>
+      </tr>
+      <tr>
+        <td class="ln">182</td>
+        <td class="snippet">jsonschema.validate(raw, _MANIFEST_SCHEMA)</td>
+        <td class="note">Validates the parsed dict against the JSON Schema. Raises <code>jsonschema.ValidationError</code> if any required field is missing, has the wrong type, or violates a constraint. If the manifest is valid, this line is a no-op and execution continues.</td>
+      </tr>
+      <tr>
+        <td class="ln">183</td>
+        <td class="snippet">manifest = parse_manifest(raw)</td>
+        <td class="note">Converts the raw dict into a typed Python object (a dataclass or named tuple defined in <code>fhir_manifest.py</code>). Raises <code>ValueError</code> if the FHIR structure is semantically invalid even though it passed JSON Schema (e.g. an unrecognised <code>case_type</code> value).</td>
+      </tr>
+      <tr>
+        <td class="ln">190</td>
+        <td class="snippet">check_idempotency(
+    vcf_s3_key, lab_number,
+    sample_name, conn)</td>
+        <td class="note">Runs the idempotency SELECT before any INSERT. Must come <em>after</em> the manifest is parsed (so we have <code>lab_number</code> and <code>sample_name</code>) but <em>before</em> any writes. Uses the same <code>conn</code> (database connection) passed in from the Lambda handler, ensuring it participates in the same transaction.</td>
+      </tr>
+      <tr>
+        <td class="ln">193–194</td>
+        <td class="snippet">variants: list[VcfVariant] = []
+meta = parse_vcf(vcf_path,
+    on_variant=variants.append)</td>
+        <td class="note"><code>parse_vcf()</code> uses a callback pattern: instead of returning a list, it calls <code>on_variant</code> for each variant it parses. Passing <code>variants.append</code> collects all variants into the list. This keeps the parser memory-efficient (it can be used in streaming mode) while giving us a full list when needed.</td>
+      </tr>
+      <tr>
+        <td class="ln">195</td>
+        <td class="snippet"># TemporaryDirectory cleaned up here</td>
+        <td class="note">This comment marks where the <code>with tempfile.TemporaryDirectory()</code> block ends. At this point the VCF and manifest files are deleted from <code>/tmp</code>. Everything needed is now in memory: <code>variants</code> (a list of <code>VcfVariant</code> objects) and <code>meta</code> (a <code>VcfMeta</code> with pipeline info).</td>
+      </tr>
+      <tr>
+        <td class="ln">206–208</td>
+        <td class="snippet">pipeline_key = (meta.pipeline_key
+    or manifest.task.pipeline_key)</td>
+        <td class="note">Two sources for the pipeline key. The VCF header is preferred (<code>meta.pipeline_key</code>) because it is authoritative. The manifest task field is a fallback for cases where the VCF header does not contain a recognisable pipeline identifier. Python's <code>or</code> returns the first truthy value.</td>
+      </tr>
+      <tr>
+        <td class="ln">247</td>
+        <td class="snippet">except psycopg2.errors.UniqueViolation
+        as exc:</td>
+        <td class="note"><code>psycopg2.errors.UniqueViolation</code> is a specific PostgreSQL error class (not a generic Python exception). It is raised when an INSERT would violate a UNIQUE constraint. The <code>psycopg2.errors</code> namespace maps every PostgreSQL SQLSTATE code to a named Python class.</td>
+      </tr>
+      <tr>
+        <td class="ln">248–252</td>
+        <td class="snippet">raise DuplicateSubmissionError(
+    f"VCF already ingested...",
+    existing_sample_id=-1,
+    duplicate_type="exact",
+) from exc</td>
+        <td class="note"><code>raise ... from exc</code> chains the exceptions: the new <code>DuplicateSubmissionError</code> is raised, but the original <code>UniqueViolation</code> is stored in its <code>__cause__</code> attribute. This preserves the full traceback for debugging while presenting a clean business error to the caller. <code>existing_sample_id=-1</code> because we cannot easily query the conflicting row at this point.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── SECTION 11: TEST_INGEST.PY ANNOTATED ─────────────── -->
+<section id="ref-tests">
+  <h2><span class="sec-num">11</span> <code>test_ingest.py</code> — Line-by-Line Reference</h2>
+
+  <h3>Key mock patterns</h3>
+  <table class="code-annot">
+    <thead><tr><th style="width:48px">Line</th><th style="width:42%">Code</th><th>Explanation</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="ln">68–70</td>
+        <td class="snippet">mock_cursor.fetchone.side_effect
+    = [None, (patient_id,), (sample_id,)]</td>
+        <td class="note"><code>side_effect</code> with a list makes <code>fetchone()</code> return successive values on each call. First call (idempotency SELECT) → <code>None</code> (no duplicate). Second call (patients RETURNING id) → <code>(patient_id,)</code>. Third call (samples RETURNING id) → <code>(sample_id,)</code>. A tuple is used because psycopg2 returns rows as tuples.</td>
+      </tr>
+      <tr>
+        <td class="ln">54–61</td>
+        <td class="snippet">def download_side_effect(bucket,
+        key, dest):
+    if key.endswith(".manifest.json"):
+        Path(dest).write_text(...)
+    else:
+        Path(dest).write_text(
+            "##fileformat=VCFv4.2\n")</td>
+        <td class="note">The mock replaces boto3's <code>download_file()</code> entirely. Instead of contacting AWS, it writes files locally. <code>dest</code> is the local path that <code>ingest_sample()</code> passed — it is a real path inside a real <code>TemporaryDirectory</code> created by the production code. The mock writes there, so the real file-reading code works normally.</td>
+      </tr>
+      <tr>
+        <td class="ln">80</td>
+        <td class="snippet">@patch("app.lib.ingest.parse_vcf")</td>
+        <td class="note"><code>@patch</code> replaces the named object with a <code>MagicMock</code> for the duration of the test function. The argument <code>"app.lib.ingest.parse_vcf"</code> patches the name as it is used inside <code>ingest.py</code> — not where it is defined. This is a standard Python mocking rule: <em>patch where it is used, not where it is defined</em>.</td>
+      </tr>
+      <tr>
+        <td class="ln">148</td>
+        <td class="snippet">mock_cursor.fetchone.side_effect
+  = [None,(1,),(2,),(3,),(4,)]</td>
+        <td class="note">For the variant test, the sequence is longer: None (idempotency), (1,) patient_id, (2,) sample_id, (3,) variant_id, (4,) classification_id. Each corresponds to a <code>RETURNING id</code> clause in the SQL.</td>
+      </tr>
+      <tr>
+        <td class="ln">231–234</td>
+        <td class="snippet">mock_cursor.execute.side_effect = [
+    None,
+    psycopg2.errors.UniqueViolation(
+        "duplicate key value"),
+]</td>
+        <td class="note">Patches <code>execute()</code> itself rather than <code>fetchone()</code>. The first call (idempotency SELECT) returns normally. The second call raises <code>UniqueViolation</code> to simulate the TOCTOU race. Note: in production the violation would come from the <em>third</em> execute call (the samples INSERT), not the second — this is flagged in the review.</td>
+      </tr>
+      <tr>
+        <td class="ln">113–116</td>
+        <td class="snippet">sqls = [c[0][0].lower()
+    for c in cursor.execute.call_args_list]
+assert any("insert into patients"
+    in s for s in sqls)</td>
+        <td class="note"><code>call_args_list</code> is a Mock attribute containing every call made to <code>execute()</code>. Each entry is a <code>call</code> object; <code>[0][0]</code> extracts the first positional argument (the SQL string). Lowercasing both sides makes the assertion case-insensitive. <code>any(...)</code> returns <code>True</code> if at least one SQL contains the substring.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout green">
+    <span class="tag">Test Philosophy</span>
+    <p>The test suite deliberately avoids integration testing (no real database, no real S3). This makes tests fast and deterministic — they pass in any environment without AWS credentials. The trade-off is that the mock sequences must be kept in sync with the real call order. When the production code changes, the mocks may need updating.</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Briefing prepared by Joo Wook Ahn, 10 May 2026. Source: PR #24 (feat/pr5-lambda-ingest → main), eastgenomics/variant-viewer. Code reviewed: backend/app/lambda_handler.py, backend/app/lib/ingest.py, backend/tests/test_ingest.py.
+</footer>
+
+</body>
+</html>

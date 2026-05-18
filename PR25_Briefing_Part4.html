@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR 25: Auth &amp; Read API — Part 4 · Line-by-line reference</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  /* acb */
+  .acb{margin:20px 0 32px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .acb-header{background:var(--accent-deep);padding:10px 16px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  .acb-fn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#fff;font-weight:700}
+  .acb-desc{font-size:12px;color:#a8c8e8}
+  .acb-code{background:#1e2d3d;overflow-x:auto}
+  .acb-code pre{color:#cdd9e5;font:12.5px/1.9 ui-monospace,Menlo,Consolas,monospace;margin:0;padding:16px 20px;white-space:pre}
+  .acb-annos{border-top:2px solid #2d4a63}
+  .anno-row{display:grid;grid-template-columns:44px 1fr;border-bottom:1px solid var(--line)}
+  .anno-row:last-child{border-bottom:none}
+  .anno-num{background:#f0f4f8;border-right:1px solid var(--line);display:flex;align-items:flex-start;justify-content:center;padding:14px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--accent-deep)}
+  .anno-txt{padding:12px 16px;font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+  .anno-txt strong{color:var(--ink)}
+  .anno-txt code{font-size:12.5px}
+  /* colour tokens for code */
+  .c{color:#6e9cbf}.k{color:#79b8ff}.s{color:#9ecbff}.n{color:#b392f0}.f{color:#85e89d}.t{color:#ffab70}.m{color:#ffeaa7}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR 25 API LAYER<br>12 May 2026</div>
+  <div class="toc-section">Part 4 of 4</div>
+  <ul>
+    <li><a href="#fn-getkey">20 · _get_api_key</a></li>
+    <li><a href="#fn-txn">21 · with_transaction</a></li>
+    <li><a href="#fn-listpatients">22 · list_patients</a></li>
+    <li><a href="#fn-listvariants">23 · list_sample_variants</a></li>
+    <li><a href="#fn-getvariant">24 · get_variant</a></li>
+  </ul>
+  <div class="meta">Final part. Continued from Part 3.<br>Source: PR #25 feat/pr6-read-api</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code Explainer · Clinical Bioinformatics · PR #25</div>
+  <h1>Variant Viewer — Auth &amp; Read API</h1>
+  <p class="sub">Dense line-by-line annotations for the five hardest functions — Part 4 of 4: Line-by-line reference.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 12 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> eastgenomics/variant-viewer #25</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="PR25_Briefing_Part1.html">1 · High-level outline</a>
+  <a href="PR25_Briefing_Part2.html">2 · Key concepts</a>
+  <a href="PR25_Briefing_Part3.html">3 · Function walkthrough</a>
+  <a href="PR25_Briefing_Part4.html" class="current">4 · Line-by-line reference</a>
+</div>
+
+<!-- 20 -->
+<section id="fn-getkey">
+  <h2><span class="sec-num">20</span> <code>_get_api_key()</code> — lazy singleton with Secrets Manager fallback</h2>
+  <p>File: <code>app/middleware/auth.py</code> · lines 19–47. The most important function for understanding how authentication works at startup.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">_get_api_key()</span>
+      <span class="acb-desc">auth.py · resolves the expected API key once per process lifetime</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">def</span> <span class="f">_get_api_key</span>() -> str:
+    <span class="k">global</span> _resolved_key                              <span class="c"># ①</span>
+    <span class="k">if</span> _resolved_key:                                  <span class="c"># ②</span>
+        <span class="k">return</span> _resolved_key
+
+    arn = os.environ.get(<span class="s">"API_KEY_SECRET_ARN"</span>)        <span class="c"># ③</span>
+    <span class="k">if</span> arn:
+        region = os.environ.get(<span class="s">"AWS_REGION"</span>, <span class="s">"eu-west-2"</span>)
+        sm = boto3.client(<span class="s">"secretsmanager"</span>, region_name=region)
+        resp = sm.get_secret_value(SecretId=arn)       <span class="c"># ④</span>
+        secret = json.loads(resp[<span class="s">"SecretString"</span>])     <span class="c"># ⑤</span>
+        <span class="k">if</span> <span class="s">"api_key"</span> <span class="k">not in</span> secret:                   <span class="c"># ⑥</span>
+            <span class="k">raise</span> RuntimeError(
+                <span class="k">f</span><span class="s">"Secrets Manager secret {arn!r} must contain an 'api_key' field"</span>
+            )
+        _resolved_key = secret[<span class="s">"api_key"</span>]             <span class="c"># ⑦</span>
+    <span class="k">else</span>:
+        _resolved_key = os.environ.get(<span class="s">"API_KEY"</span>)    <span class="c"># ⑧</span>
+
+    <span class="k">if not</span> _resolved_key:                             <span class="c"># ⑨</span>
+        <span class="k">raise</span> RuntimeError(
+            <span class="s">"API_KEY or API_KEY_SECRET_ARN must be set"</span>
+        )
+    <span class="k">return</span> _resolved_key</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong><code>global _resolved_key</code></strong> — tells Python that the name <code>_resolved_key</code> inside this function refers to the module-level variable, not a new local. Without this, the assignment on line ⑦ or ⑧ would create a function-local variable that disappears when the function returns, and the singleton would never be cached.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Cache hit check</strong> — the fast path. After the first successful resolution, every subsequent call returns here immediately without touching the environment or network. This is the "lazy" part of the lazy singleton: no work is done at import time.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Resolution order branch</strong> — checks for the Secrets Manager ARN first. If the env var is absent, <code>os.environ.get</code> returns <code>None</code> and the <code>if arn:</code> branch is skipped, falling straight to the <code>else</code> which reads the plain env var. This gives operators the choice of two deployment modes without changing code.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Synchronous network call</strong> — <code>get_secret_value</code> makes an HTTPS request to the AWS Secrets Manager regional endpoint. This is a blocking call and runs on the FastAPI event loop thread (because <code>_get_api_key</code> is called from inside the <code>async def require_api_key</code> dependency). For ECS long-lived containers this is acceptable because it only happens once at cold start.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong><code>json.loads(resp["SecretString"])</code></strong> — Secrets Manager returns the secret value as a JSON-encoded string in the <code>SecretString</code> key. <code>json.loads</code> parses it into a Python dict. The expected shape is <code>{"api_key": "the-actual-key"}</code>. If the operator stored the raw key without JSON-encoding it, this line would raise <code>json.JSONDecodeError</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>Field presence check</strong> — added after code review. Without this guard, <code>secret["api_key"]</code> on line ⑦ would raise a bare <code>KeyError</code> if the secret was created with a different field name (e.g. <code>"API_KEY"</code>). A <code>KeyError</code> propagates as HTTP 500 with a traceback that doesn't mention the configuration problem. The explicit <code>RuntimeError</code> names both the ARN and the expected field, making the misconfiguration immediately diagnosable.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>Cache write</strong> — stores the resolved key in the module-level variable. All future calls to <code>_get_api_key()</code> in this process will return this cached value without touching Secrets Manager again.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong>Env var fallback</strong> — the development/CI path. The operator sets <code>API_KEY=dev-api-key</code> in their <code>.env</code> file. <code>os.environ.get</code> returns <code>None</code> if the variable is unset (not <code>KeyError</code> — this is the safe variant). The sentinel check on line ⑨ catches the case where the variable is set but empty.</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>Final sentinel</strong> — catches all paths that produced no key: neither env var was set, or <code>API_KEY</code> was set to an empty string. Raising here rather than letting <code>secrets.compare_digest(None, expected)</code> fail with a <code>TypeError</code> gives a much clearer error message.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 21 -->
+<section id="fn-txn">
+  <h2><span class="sec-num">21</span> <code>with_transaction()</code> — BEGIN / COMMIT / ROLLBACK context manager</h2>
+  <p>File: <code>app/lib/db.py</code> · lines 81–92. Understanding this function is prerequisite for understanding <code>run_in_transaction</code> and all write routes in PR 7.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">with_transaction()</span>
+      <span class="acb-desc">db.py · wraps a block of DB operations in an explicit transaction</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">@contextmanager</span>
+<span class="k">def</span> <span class="f">with_transaction</span>() -> Generator[psycopg2.extensions.connection, <span class="k">None</span>, <span class="k">None</span>]:
+    <span class="k">with</span> _get_connection() <span class="k">as</span> conn:        <span class="c"># ①</span>
+        <span class="k">try</span>:
+            conn.autocommit = <span class="k">False</span>        <span class="c"># ②</span>
+            <span class="k">yield</span> conn                     <span class="c"># ③</span>
+            conn.commit()                  <span class="c"># ④</span>
+        <span class="k">except</span> Exception:
+            conn.rollback()                <span class="c"># ⑤</span>
+            <span class="k">raise</span>                          <span class="c"># ⑥</span>
+        <span class="k">finally</span>:
+            conn.autocommit = <span class="k">True</span>         <span class="c"># ⑦</span></pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Nested context manager</strong> — borrows a connection from the pool. The outer <code>with _get_connection()</code> guarantees the connection is returned in its own <code>finally</code> block, even if the inner try/except raises. This nesting means you cannot leak a connection from a transaction, regardless of what the caller does.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong><code>conn.autocommit = False</code></strong> — psycopg2 connections start with autocommit off by default, but the pool may have returned a connection that was previously used in autocommit mode. Setting it explicitly here ensures the transaction is always started correctly. The paired reset on line ⑦ returns the connection to a known state before it goes back to the pool.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong><code>yield conn</code></strong> — this is where the caller's <code>with with_transaction() as conn:</code> body runs. The connection is in an open (implicit) transaction at this point — any <code>cursor.execute()</code> the caller issues is part of the transaction. Control returns here when the <code>with</code> body exits, either normally or via exception.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong><code>conn.commit()</code></strong> — runs only when the <code>yield</code> returns normally (no exception). Makes all changes durable and releases any row locks held by the transaction. After this line, the writes are visible to other transactions.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong><code>conn.rollback()</code></strong> — runs when any exception propagates out of the <code>yield</code>. Undoes all changes made since the <code>yield</code>. This includes partial writes — if the caller executes three INSERT statements and the third raises, the first two are also rolled back.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>Bare <code>raise</code></strong> — re-raises the original exception after rolling back. Without this, the exception would be swallowed and the caller would not know the transaction failed. The caller (or FastAPI's error handler) needs to see the exception to return the correct HTTP response.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong><code>finally: conn.autocommit = True</code></strong> — runs unconditionally on exit. Resets autocommit before the connection returns to the pool. Without this, the next caller who borrows this connection would find it in <code>autocommit=False</code> mode and their <code>query()</code> call would silently start an implicit transaction that never gets closed, eventually causing the server to run out of connections.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 22 -->
+<section id="fn-listpatients">
+  <h2><span class="sec-num">22</span> <code>list_patients()</code> — dynamic WHERE + pagination</h2>
+  <p>File: <code>app/routes/patients.py</code> · lines 45–72. Shows the standard pattern for optional filtering and pagination used across the read routes.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">list_patients()</span>
+      <span class="acb-desc">patients.py · GET /api/patients — paginated list with optional search</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">@router</span>.get(<span class="s">""</span>, response_model=PatientListResponse)
+<span class="k">async def</span> <span class="f">list_patients</span>(
+    limit: int = Query(<span class="n">50</span>, ge=<span class="n">1</span>, le=<span class="n">200</span>),    <span class="c"># ①</span>
+    offset: int = Query(<span class="n">0</span>, ge=<span class="n">0</span>),
+    search: str | <span class="k">None</span> = Query(<span class="k">None</span>),
+):
+    where = <span class="s">""</span>
+    base_params: tuple = ()                    <span class="c"># ②</span>
+    <span class="k">if</span> search:
+        where = <span class="s">" WHERE lab_number ILIKE %s OR name ILIKE %s"</span>
+        base_params = (<span class="k">f</span><span class="s">"%{search}%"</span>, <span class="k">f</span><span class="s">"%{search}%"</span>)  <span class="c"># ③</span>
+
+    total_rows = <span class="k">await</span> asyncio.to_thread(      <span class="c"># ④</span>
+        db.query,
+        <span class="s">"SELECT COUNT(*) AS n FROM patients"</span> + where,
+        base_params,
+    )
+    total = total_rows[<span class="n">0</span>][<span class="s">"n"</span>]               <span class="c"># ⑤</span>
+
+    rows = <span class="k">await</span> asyncio.to_thread(
+        db.query,
+        <span class="s">"SELECT id, lab_number, name FROM patients"</span>
+        + where
+        + <span class="s">" ORDER BY lab_number LIMIT %s OFFSET %s"</span>,
+        base_params + (limit, offset),          <span class="c"># ⑥</span>
+    )
+    <span class="k">return</span> PatientListResponse(
+        items=[PatientSummary(**r) <span class="k">for</span> r <span class="k">in</span> rows],  <span class="c"># ⑦</span>
+        total=total,
+        limit=limit,
+        offset=offset,
+    )</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong><code>Query(50, ge=1, le=200)</code></strong> — <code>Query</code> is FastAPI's mechanism for declaring query parameter metadata. <code>ge=1</code> means "greater than or equal to 1"; <code>le=200</code> means "less than or equal to 200". FastAPI validates these constraints before calling the handler. A client sending <code>?limit=0</code> or <code>?limit=999</code> gets HTTP 422 with a clear error message — the handler never runs.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Conditional WHERE construction</strong> — <code>where</code> and <code>base_params</code> start empty. If <code>search</code> is provided, both are populated. This pattern avoids string formatting that could introduce SQL injection. The WHERE clause is concatenated as a constant string; only the search <em>values</em> come from user input, and they go into the params tuple where psycopg2 escapes them.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong><code>f"%{search}%"</code> repeated twice</strong> — the <code>ILIKE</code> wildcard pattern. <code>%</code> is the SQL "any characters" wildcard; wrapping the search term with <code>%</code> on both sides gives a substring match. The pattern appears twice in <code>base_params</code> because the WHERE clause has two <code>%s</code> placeholders (one for <code>lab_number</code>, one for <code>name</code>).</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Count query first</strong> — the total count is fetched in a separate query rather than via a window function (<code>COUNT(*) OVER()</code>) in the main query. This is the simpler approach: it runs two round-trips instead of one, but is easier to read and the performance difference is negligible for expected dataset sizes.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong><code>total_rows[0]["n"]</code></strong> — <code>db.query</code> always returns a list of dicts. <code>COUNT(*)</code> always returns exactly one row; that row has one column aliased as <code>n</code>. The <code>[0]["n"]</code> indexing extracts the integer count. If the table is empty, <code>COUNT(*)</code> returns 0 (not an empty list), so this is safe without a length check.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong><code>base_params + (limit, offset)</code></strong> — tuple concatenation appends the pagination values to the filter values. If <code>search</code> was provided, <code>base_params = ("%Jane%", "%Jane%")</code> and the final params tuple is <code>("%Jane%", "%Jane%", 50, 0)</code>, matching the three <code>%s</code> placeholders in the query (two in WHERE, two in LIMIT/OFFSET).</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>List comprehension with unpacking</strong> — <code>PatientSummary(**r)</code> unpacks each dict row as keyword arguments to the Pydantic model constructor. This works because <code>db.query</code> returns rows where the key names match the SQL column aliases, which in turn match the Pydantic field names exactly. Any extra keys in the dict would be silently ignored by Pydantic v2's default behaviour.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 23 -->
+<section id="fn-listvariants">
+  <h2><span class="sec-num">23</span> <code>list_sample_variants()</code> — existence check + soft-delete join + chromosomal sort</h2>
+  <p>File: <code>app/routes/samples.py</code> · lines 95–148. The most operationally interesting read route; demonstrates three patterns in sequence.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">list_sample_variants()</span>
+      <span class="acb-desc">samples.py · GET /api/samples/{id}/variants</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">async def</span> <span class="f">list_sample_variants</span>(sample_id: int, limit: int = ..., offset: int = ...):
+    sample_rows = <span class="k">await</span> asyncio.to_thread(
+        db.query,
+        <span class="s">"SELECT 1 FROM samples WHERE id = %s"</span>,  <span class="c"># ①</span>
+        (sample_id,),
+    )
+    <span class="k">if not</span> sample_rows:                           <span class="c"># ②</span>
+        <span class="k">raise</span> HTTPException(status_code=<span class="n">404</span>, detail=<span class="s">"Sample not found"</span>)
+
+    total_rows = <span class="k">await</span> asyncio.to_thread(
+        db.query,
+        <span class="s">"SELECT COUNT(*) AS n FROM variants WHERE sample_id = %s"</span>,
+        (sample_id,),
+    )
+    total = total_rows[<span class="n">0</span>][<span class="s">"n"</span>]
+
+    rows = <span class="k">await</span> asyncio.to_thread(
+        db.query,
+        <span class="s">"""
+        SELECT v.id, v.chrom, v.pos, ...,
+               vc.classification, vc.score, vc.framework, vc.locked_at
+        FROM variants v
+        LEFT JOIN variant_classification vc      </span><span class="c"># ③</span>
+               <span class="s">ON vc.variant_id = v.id AND vc.deleted_at IS NULL
+        WHERE v.sample_id = %s
+        -- TODO: assumes bare chrom names ('1'–'22')  </span><span class="c"># ④</span>
+        <span class="s">ORDER BY
+            CASE v.chrom
+                WHEN 'X'  THEN 23
+                WHEN 'Y'  THEN 24
+                WHEN 'MT' THEN 25
+                WHEN 'M'  THEN 25
+                ELSE v.chrom::integer             </span><span class="c"># ⑤</span>
+            <span class="s">END, v.pos
+        LIMIT %s OFFSET %s"""</span>,
+        (sample_id, limit, offset),
+    )
+    <span class="k">return</span> VariantListResponse(
+        items=[VariantSummary(**r) <span class="k">for</span> r <span class="k">in</span> rows],
+        ...
+    )</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong><code>SELECT 1 FROM samples WHERE id = %s</code></strong> — asks the database "does this sample exist?" without fetching any actual data. <code>SELECT 1</code> returns the integer 1 for every matching row. It is faster than <code>SELECT *</code> because PostgreSQL knows it does not need to fetch any column values from the heap pages.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Why not just count variants?</strong> Without this check, a caller asking for variants of sample ID 99999 would receive <code>{"items": [], "total": 0}</code> — indistinguishable from a real sample that has simply not had any variants ingested yet. This makes debugging from the client side very confusing. The explicit 404 signals "this sample does not exist", while a 200 with an empty list signals "this sample exists but has no variants".</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong><code>LEFT JOIN variant_classification ... AND vc.deleted_at IS NULL</code></strong> — the join condition includes the soft-delete filter. An <code>INNER JOIN</code> would drop variants that have no classification at all; a <code>LEFT JOIN</code> without the soft-delete condition would return both active and deleted classifications. The two-part join condition (<code>ON vc.variant_id = v.id AND vc.deleted_at IS NULL</code>) is the only way to get "active classification or nothing" in a single query.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Production caveat comment</strong> — added after code review. The CASE expression assumes chromosomes are stored without the <code>chr</code> prefix. This needs confirming against a real DRAGEN VCF from the lab. The comment is in SQL inside a Python string, so it appears in the query sent to PostgreSQL — PostgreSQL ignores it, but it is visible in any query log or EXPLAIN output.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong><code>ELSE v.chrom::integer</code></strong> — PostgreSQL's <code>::integer</code> cast converts the string <code>'17'</code> to the integer <code>17</code>. If the value is <code>'chr17'</code>, this cast fails with a PostgreSQL error (<code>invalid input syntax for type integer: "chr17"</code>). The surrounding <code>CASE</code> handles <code>'X'</code>, <code>'Y'</code>, <code>'MT'</code>, and <code>'M'</code> before reaching the <code>ELSE</code>, so those values never hit the cast.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 24 -->
+<section id="fn-getvariant">
+  <h2><span class="sec-num">24</span> <code>get_variant()</code> — three sequential queries with conditional assembly</h2>
+  <p>File: <code>app/routes/variants.py</code> · lines 53–102. The most structurally complex route: it conditionally issues a third query only when needed, and assembles a deeply nested response object from flat database rows.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">get_variant()</span>
+      <span class="acb-desc">variants.py · GET /api/variants/{id} — variant + optional classification + criteria</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">async def</span> <span class="f">get_variant</span>(variant_id: int):
+    variant_rows = <span class="k">await</span> asyncio.to_thread(
+        db.query,
+        <span class="s">"""SELECT v.*, s.case_type               </span><span class="c"># ①</span>
+           <span class="s">FROM variants v
+           JOIN samples s ON s.id = v.sample_id
+           WHERE v.id = %s"""</span>,
+        (variant_id,),
+    )
+    <span class="k">if not</span> variant_rows:
+        <span class="k">raise</span> HTTPException(status_code=<span class="n">404</span>, ...)
+
+    variant = variant_rows[<span class="n">0</span>]                   <span class="c"># ②</span>
+
+    classification_rows = <span class="k">await</span> asyncio.to_thread(
+        db.query,
+        <span class="s">"""SELECT id, framework, framework_version, score, classification,
+               locked_at, locked_by
+           FROM variant_classification
+           WHERE variant_id = %s AND deleted_at IS NULL"""</span>,  <span class="c"># ③</span>
+        (variant_id,),
+    )
+
+    active_classification = <span class="k">None</span>                 <span class="c"># ④</span>
+    <span class="k">if</span> classification_rows:
+        clf = classification_rows[<span class="n">0</span>]
+        criteria_rows = <span class="k">await</span> asyncio.to_thread(  <span class="c"># ⑤</span>
+            db.query,
+            <span class="s">"""SELECT id, criterion_code, applied, strength, notes,
+                      evidence_links, pre_computed, pre_computed_value
+               FROM classification_criterion
+               WHERE classification_id = %s ORDER BY id"""</span>,
+            (clf[<span class="s">"id"</span>],),
+        )
+        active_classification = ClassificationDetail(
+            **clf,                                 <span class="c"># ⑥</span>
+            criteria=[CriterionDetail(**c) <span class="k">for</span> c <span class="k">in</span> criteria_rows],
+        )
+
+    <span class="k">return</span> VariantDetailResponse(
+        **{k: variant[k] <span class="k">for</span> k <span class="k">in</span> variant <span class="k">if</span> k != <span class="s">"case_type"</span>},  <span class="c"># ⑦</span>
+        active_classification=active_classification,
+    )</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong><code>v.*, s.case_type</code></strong> — selects all variant columns plus the <code>case_type</code> from the parent sample. <code>case_type</code> is not stored on the variants table (it belongs to samples); the JOIN pulls it in. It is not included in the <code>VariantDetailResponse</code> model — its purpose is to be available to the PR 7 classification routes that call <code>select_framework(case_type, gene)</code> to determine which scoring framework to apply.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong><code>variant = variant_rows[0]</code></strong> — the query has a <code>WHERE v.id = %s</code> condition, and variant IDs are unique (primary key), so at most one row can be returned. Assigning to <code>variant</code> rather than destructuring immediately makes the subsequent field access more readable.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong><code>WHERE variant_id = %s AND deleted_at IS NULL</code></strong> — the soft-delete filter. A partially unique index on <code>(variant_id) WHERE deleted_at IS NULL</code> enforces that at most one active classification exists per variant at the database level. If the PR 7 classify-persist route is called twice concurrently for the same variant, the second INSERT will violate this constraint; the route handles that via a <code>UniqueViolation</code> catch.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong><code>active_classification = None</code></strong> — the default value for an unclassified variant. The <code>VariantDetailResponse</code> model declares this field as <code>ClassificationDetail | None</code>, so FastAPI will serialise it as <code>"active_classification": null</code> in the JSON response. Frontend components can check for <code>null</code> to decide whether to show a "not yet classified" state.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>Conditional third query</strong> — issued only if query 2 found an active classification. For unclassified variants, this <code>await</code> is never reached, saving a database round-trip. For classified variants, the criteria are fetched by <code>classification_id</code> (not <code>variant_id</code>) because each classification has its own set of criteria records — a reset operation creates a new blank classification with zero criteria.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong><code>ClassificationDetail(**clf, criteria=[...])</code></strong> — <code>**clf</code> unpacks the classification row dict as keyword arguments. The <code>criteria</code> field is not in the DB row (it comes from query 3), so it is passed as an explicit keyword argument alongside the unpacked dict. Pydantic's constructor accepts this mix; fields in <code>clf</code> that match model field names are used, and any extras are discarded.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>Excluding <code>case_type</code></strong> — the actual code unpacks all variant fields individually by name rather than using a dict comprehension; shown here as a dict comprehension for clarity. The key point is that <code>case_type</code> is present in the <code>variant</code> dict (from the JOIN in query 1) but is <em>not</em> a field of <code>VariantDetailResponse</code>. Passing it via <code>**variant</code> directly would cause a Pydantic validation error in strict mode, so it is omitted from the response construction.</div></div>
+    </div>
+  </div>
+
+  <div class="callout green">
+    <span class="tag">End of series</span>
+    <p>This is Part 4 of 4. You have now seen the full request lifecycle — from API key resolution at cold start, through the auth dependency gate, into the async dispatch layer, and through each route handler's query logic. The write routes in PR 7 follow the same patterns, adding <code>db.run_in_transaction</code> and audit log inserts for every mutation.</p>
+  </div>
+
+  <div class="series-nav">
+    <a href="PR25_Briefing_Part1.html">1 · High-level outline</a>
+    <a href="PR25_Briefing_Part2.html">2 · Key concepts</a>
+    <a href="PR25_Briefing_Part3.html">3 · Function walkthrough</a>
+    <a href="PR25_Briefing_Part4.html" class="current">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Continued from Part 3. Joo Wook Ahn · 12 May 2026 · Code explainer for eastgenomics/variant-viewer PR #25 (feat/pr6-read-api) · Source: github.com/eastgenomics/variant-viewer.
+</footer>
+</body>
+</html>

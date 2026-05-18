@@ -14,11 +14,28 @@ Genomic variant review and classification web app.
 **Option A: FastAPI backend + React SPA frontend** (refactor in progress)
 
 ```
-backend/    Python/FastAPI — API routes, business logic, Lambda handler
-frontend/   React SPA (Vite + React Router) — UI components
-migrations/ PostgreSQL schema migrations
-terraform/  AWS infrastructure (ECS Fargate, RDS, S3, Lambda)
+backend/       Python/FastAPI — API routes, business logic, Lambda handler
+frontend/      React SPA (Vite + React Router) — UI components
+migrations/    PostgreSQL schema migrations
+terraform/     AWS infrastructure (ECS Fargate, RDS, S3, Lambda)
+specification/ Design and build specs for each PR group
 ```
+
+## Refactor status
+
+| PR | Description | Status |
+|---|---|---|
+| 1 | Scaffold — wipe + new structure | Merged |
+| 2 | Database layer (db.py, models.py) | Merged |
+| 3 | VCF parser + FHIR manifest | Merged |
+| 4 | Classification engine + pre-compute criteria | Merged |
+| 5 | Lambda ingest pipeline + cyvcf2 migration | In review (PR #24) |
+| 6 | Auth middleware + read-only API routes | In review (PR #25) |
+| 7 | Write API routes (classification, workflow, upload) | Pending |
+| 8–11 | React SPA frontend | Pending |
+| 12 | Infrastructure (Dockerfile, ECS, Lambda runtime) | Pending |
+
+Spec documents for each phase: `specification/` (PRs 2–5) and `specification/api/` (PRs 6–7).
 
 ## Discovery branches
 

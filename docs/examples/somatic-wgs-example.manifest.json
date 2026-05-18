@@ -10,15 +10,16 @@
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2025-00789"
           }
-        ],
-        "birthDate": "1971-03-07"
+        ]
       }
     },
     {
       "resource": {
         "resourceType": "Specimen",
         "identifier": [
-          { "value": "26055S0112-T" }
+          {
+            "value": "26055S0112-T"
+          }
         ],
         "extension": [
           {
@@ -29,7 +30,7 @@
         "type": {
           "coding": [
             {
-              "display": "Fresh frozen tumour — WGS"
+              "display": "Fresh frozen tumour \u2014 WGS"
             }
           ]
         },
@@ -43,20 +44,26 @@
         "resourceType": "Task",
         "status": "completed",
         "identifier": [
-          { "value": "RUN-20250114-003" }
+          {
+            "value": "RUN-20250114-003"
+          }
         ],
         "code": {
           "text": "strelka2"
         },
         "input": [
           {
-            "type": { "text": "pipeline_version" },
+            "type": {
+              "text": "pipeline_version"
+            },
             "valueString": "2.9.10"
           }
         ],
         "output": [
           {
-            "type": { "text": "vcf" },
+            "type": {
+              "text": "vcf"
+            },
             "valueString": "somatic-wgs-example.vcf.gz"
           }
         ]

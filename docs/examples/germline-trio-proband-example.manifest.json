@@ -10,15 +10,16 @@
             "system": "https://fhir.example-lab.org/Id/lab-number",
             "value": "LAB-2025-00667"
           }
-        ],
-        "birthDate": "2018-06-14"
+        ]
       }
     },
     {
       "resource": {
         "resourceType": "Specimen",
         "identifier": [
-          { "value": "26055S0412" }
+          {
+            "value": "26055S0412"
+          }
         ],
         "extension": [
           {
@@ -47,24 +48,32 @@
         "resourceType": "Task",
         "status": "completed",
         "identifier": [
-          { "value": "RUN-20250301-009" }
+          {
+            "value": "RUN-20250301-009"
+          }
         ],
         "code": {
           "text": "dragen_germline"
         },
         "input": [
           {
-            "type": { "text": "pipeline_version" },
+            "type": {
+              "text": "pipeline_version"
+            },
             "valueString": "4.2.4"
           },
           {
-            "type": { "text": "analysis_type" },
+            "type": {
+              "text": "analysis_type"
+            },
             "valueString": "trio"
           }
         ],
         "output": [
           {
-            "type": { "text": "vcf" },
+            "type": {
+              "text": "vcf"
+            },
             "valueString": "germline-trio-proband-example.vcf.gz"
           }
         ]

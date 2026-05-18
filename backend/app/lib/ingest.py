@@ -1,14 +1,57 @@
-"""VCF ingest idempotency guard and duplicate-submission exception.
+"""VCF ingest pipeline: idempotency guard, orchestration, and DB persistence.
 
-Provides ``DuplicateSubmissionError`` and ``check_idempotency()``,
-which together prevent the same VCF file from being ingested more than
-once.  The full ingest pipeline (download → validate → parse → persist)
-resides in ``ingest_sample()`` in PR 5.
+Provides three public symbols:
+
+``DuplicateSubmissionError``
+    Structured exception raised when a re-upload of an existing VCF is
+    detected, either by the pre-check or by a DB ``UniqueViolation``.
+
+``check_idempotency(s3_key, lab_number, sample_name, conn)``
+    Lightweight s3_key uniqueness check run before any DB writes.
+
+``ingest_sample(vcf_s3_key, manifest_s3_key, bucket, s3_client, conn)``
+    Full ingest pipeline: download → validate → parse → persist.
 """
 
 from __future__ import annotations
 
+import json
+import logging
+import tempfile
+from pathlib import Path
+from typing import Any
+
+import jsonschema
 import psycopg2.extensions
+
+from app.lib.classification_engine import get_framework_version, select_framework
+from app.lib.fhir_manifest import parse_manifest
+from app.lib.pre_compute_criteria import pre_compute_criteria
+from app.lib.vcf_parser import VcfVariant, parse_vcf
+
+logger = logging.getLogger(__name__)
+
+_SCHEMA_PATH = Path(__file__).parent.parent.parent / "config" / "manifest-schema.json"
+_MANIFEST_SCHEMA: dict | None = None
+
+
+def _get_manifest_schema() -> dict:
+    """Return the manifest JSON Schema, loading it on first call.
+
+    Lazy-loading avoids a ``FileNotFoundError`` at module import time
+    (which would crash every Lambda invocation before ``handler()`` is
+    reached) and instead raises a ``RuntimeError`` with a clear message
+    the first time ``ingest_sample()`` is called.
+    """
+    global _MANIFEST_SCHEMA
+    if _MANIFEST_SCHEMA is None:
+        try:
+            _MANIFEST_SCHEMA = json.loads(_SCHEMA_PATH.read_text())
+        except FileNotFoundError as exc:
+            raise RuntimeError(
+                f"Schema file missing from deployment package: {_SCHEMA_PATH}"
+            ) from exc
+    return _MANIFEST_SCHEMA
 
 
 class DuplicateSubmissionError(Exception):
@@ -30,6 +73,14 @@ class DuplicateSubmissionError(Exception):
         existing_sample_id: int,
         duplicate_type: str,
     ) -> None:
+        """Initialise with a human-readable message and structured metadata.
+
+        Args:
+            message: Human-readable description of the conflict.
+            existing_sample_id: Primary key of the conflicting ``samples``
+                row, or ``-1`` when the row ID is unavailable (TOCTOU race).
+            duplicate_type: ``"exact"`` — the only currently raised type.
+        """
         super().__init__(message)
         self.existing_sample_id = existing_sample_id
         self.duplicate_type = duplicate_type
@@ -84,3 +135,216 @@ def check_idempotency(
                 existing_sample_id=row[0],
                 duplicate_type="exact",
             )
+
+def ingest_sample(
+    vcf_s3_key: str,
+    manifest_s3_key: str,
+    bucket: str,
+    s3_client: Any,
+    conn: psycopg2.extensions.connection,
+) -> int:
+    """Download, validate, parse, and persist a VCF + manifest from S3.
+
+    Downloads the VCF and manifest to an invocation-scoped temporary
+    directory (auto-deleted on exit), validates the manifest against
+    ``config/manifest-schema.json``, parses the FHIR R4 Bundle, checks
+    idempotency, parses the VCF, and atomically inserts patient, sample,
+    variant, classification-shell, pre-computed criteria, and workflow
+    rows into the database.
+
+    Multiple VCFs for the same patient and specimen name are explicitly
+    permitted (e.g. different gene panels from one specimen barcode);
+    only re-uploading the identical VCF file (same ``s3_key``) is
+    rejected.
+
+    Args:
+        vcf_s3_key: S3 object key of the VCF file.  Must end with
+            ``.vcf`` or ``.vcf.gz``.
+        manifest_s3_key: S3 object key of the FHIR R4 Bundle sidecar
+            manifest (JSON).
+        bucket: Name of the S3 bucket containing both files.
+        s3_client: Boto3 S3 client — injected for testability.
+        conn: Active psycopg2 connection already inside a transaction
+            (caller wraps with ``db.with_transaction()``).
+
+    Returns:
+        The ``id`` (integer) of the newly inserted ``samples`` row.
+
+    Raises:
+        ValueError: VCF key format is not ``.vcf`` / ``.vcf.gz``, or
+            the FHIR manifest is structurally invalid.
+        jsonschema.ValidationError: Manifest JSON does not satisfy
+            ``config/manifest-schema.json``.
+        DuplicateSubmissionError: The same ``s3_key`` is already present
+            in the ``samples`` table, or a concurrent ingest caused a DB
+            ``UniqueViolation`` (TOCTOU race).
+        psycopg2.OperationalError: A database operation failed.
+    """
+    # 1. Validate VCF key format
+    if not (vcf_s3_key.endswith(".vcf") or vcf_s3_key.endswith(".vcf.gz")):
+        raise ValueError(f"Unsupported VCF key format: {vcf_s3_key!r}")
+
+    # 2. Idempotency pre-check — run before S3 downloads to short-circuit wasted
+    # I/O for already-ingested keys.  lab_number and sample_name are not yet
+    # known here; the underlying query uses only s3_key (the other parameters
+    # are kept in the signature for future logging context).
+    check_idempotency(vcf_s3_key, "", "", conn)
+
+    # 3-8. Download, validate, parse inside an invocation-scoped temp directory.
+    # Auto-cleaned on exit so warm Lambda containers don't accumulate files and
+    # exhaust /tmp storage.
+    with tempfile.TemporaryDirectory(prefix="ingest-") as tmp_dir:
+        tmp = Path(tmp_dir)
+        vcf_path      = tmp / Path(vcf_s3_key).name
+        manifest_path = tmp / Path(manifest_s3_key).name
+
+        # 3. Download from S3
+        s3_client.download_file(bucket, vcf_s3_key, str(vcf_path))
+        s3_client.download_file(bucket, manifest_s3_key, str(manifest_path))
+
+        # 4-6. Load, validate, and parse manifest
+        raw = json.loads(manifest_path.read_text())
+        jsonschema.validate(raw, _get_manifest_schema())   # raises ValidationError on bad manifest
+        manifest = parse_manifest(raw)               # raises ValueError on structural errors
+
+        lab_number  = manifest.patient.lab_number
+        sample_name = manifest.specimen.sample_name
+        case_type   = manifest.specimen.case_type
+
+        # 7. Cross-check manifest vcf_filename against the S3 key basename.
+        # A mismatch means the manifest was paired with the wrong VCF upload.
+        if manifest.task.vcf_filename and (
+            Path(manifest.task.vcf_filename).name != Path(vcf_s3_key).name
+        ):
+            raise ValueError(
+                f"Manifest vcf_filename {manifest.task.vcf_filename!r} does not "
+                f"match uploaded VCF basename {Path(vcf_s3_key).name!r}"
+            )
+
+        # 8. Parse VCF (cyvcf2) - file access ends here
+        variants: list[VcfVariant] = []
+        meta = parse_vcf(vcf_path, on_variant=variants.append)
+    # TemporaryDirectory cleaned up; variants + meta are plain Python objects
+
+    logger.info(
+        "ingest_sample: vcf=%s pipeline=%s variants=%d",
+        vcf_s3_key, meta.pipeline_key, len(variants),
+    )
+
+    # 9. DB writes (conn is already inside a transaction from caller)
+    # Catch UniqueViolation to handle the TOCTOU race documented in
+    # check_idempotency(): two concurrent ingests can both pass the pre-check
+    # before either INSERT runs; the loser gets UniqueViolation from the DB.
+    try:
+        with conn.cursor() as cur:
+            # 9a. Upsert patient by lab_number
+            cur.execute(
+                """
+                INSERT INTO patients (lab_number, name)
+                VALUES (%s, %s)
+                ON CONFLICT (lab_number) DO UPDATE
+                  SET name = COALESCE(EXCLUDED.name, patients.name)
+                RETURNING id
+                """,
+                (lab_number, manifest.patient.name),
+            )
+            patient_id: int = cur.fetchone()[0]
+
+            # 9b. Insert sample
+            pipeline_key = meta.pipeline_key or manifest.task.pipeline_key
+            cur.execute(
+                """
+                INSERT INTO samples
+                  (patient_id, name, vcf_filename, s3_key, pipeline_key,
+                   case_type, tissue, sequencing_date)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    patient_id,
+                    sample_name,
+                    manifest.task.vcf_filename or Path(vcf_s3_key).name,
+                    vcf_s3_key,
+                    pipeline_key,
+                    case_type,
+                    manifest.specimen.tissue,
+                    manifest.specimen.sequencing_date,
+                ),
+            )
+            sample_id: int = cur.fetchone()[0]
+
+            # 9c. Insert variants + pre-computed criteria
+            for variant in variants:
+                cur.execute(
+                    """
+                    INSERT INTO variants
+                      (sample_id, chrom, pos, ref, alt, qual, filter, gene,
+                       consequence, hgvs_c, hgvs_p, gnomad_af, clinvar_sig,
+                       revel_score, spliceai_max, info_json)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        sample_id,
+                        variant.chrom, variant.pos, variant.ref, variant.alt,
+                        variant.qual, variant.filter, variant.gene,
+                        variant.consequence, variant.hgvs_c, variant.hgvs_p,
+                        variant.gnomad_af, variant.clinvar_sig,
+                        variant.revel_score, variant.spliceai_max,
+                        json.dumps(variant.info_json),
+                    ),
+                )
+                variant_id: int = cur.fetchone()[0]
+
+                # Create pending classification shell for pre-computed criteria
+                framework, _ = select_framework(case_type, variant.gene)
+                framework_version = get_framework_version(framework)
+                cur.execute(
+                    """
+                    INSERT INTO variant_classification
+                      (variant_id, framework, framework_version)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                    """,
+                    (variant_id, framework, framework_version),
+                )
+                classification_id: int = cur.fetchone()[0]
+
+                suggestions = pre_compute_criteria(variant, case_type)
+                for suggestion in suggestions:
+                    cur.execute(
+                        """
+                        INSERT INTO classification_criterion
+                          (classification_id, criterion_code, applied,
+                           strength, pre_computed, pre_computed_value)
+                        VALUES (%s, %s, FALSE, %s, TRUE, %s)
+                        """,
+                        (
+                            classification_id,
+                            suggestion.criterion_code,
+                            suggestion.suggested_strength,
+                            suggestion.pre_computed_value,
+                        ),
+                    )
+
+            # 9d. Insert workflow record
+            cur.execute(
+                "INSERT INTO workflow (sample_id) VALUES (%s)",
+                (sample_id,),
+            )
+
+    except psycopg2.errors.UniqueViolation as exc:
+        # Only the INSERT INTO samples statement carries a UNIQUE constraint on
+        # s3_key that can fire in the TOCTOU race.  The patients upsert uses
+        # ON CONFLICT DO UPDATE and will never raise UniqueViolation.  Re-raise
+        # any violation from a different constraint so bugs aren't swallowed.
+        if exc.diag.constraint_name != "samples_s3_key_key":
+            raise
+        raise DuplicateSubmissionError(
+            f"VCF already ingested (concurrent ingest race): s3_key={vcf_s3_key!r}",
+            existing_sample_id=-1,
+            duplicate_type="exact",
+        ) from exc
+
+    return sample_id
