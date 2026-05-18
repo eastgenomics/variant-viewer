@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR 28 — Write API Routes · Part 1: High-level outline</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+  @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;border-top:3px solid var(--accent)}
+  .stat .n{font-size:26px;font-weight:800;color:var(--accent-deep);line-height:1.1;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
+  @media(max-width:640px){.card-grid{grid-template-columns:1fr}}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:var(--shadow)}
+  .card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .card-name{font-weight:700;font-size:14.5px;color:var(--ink);line-height:1.2}
+  .card-sub{font-size:11.5px;color:var(--muted)}
+  .card p{font-size:13.5px;margin:0 0 10px}
+  .card p:last-child{margin:0}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+  .pill.amber{background:var(--amber-soft);color:var(--amber)}
+  .pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill.purple{background:var(--purple-soft);color:var(--purple)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .method-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:.04em;margin-right:4px}
+  .method-badge.post{background:#e0f0e8;color:#1a6e47}
+  .method-badge.put{background:#fdf0e0;color:#b35c00}
+  .method-badge.delete{background:#fce8ea;color:#9b2335}
+  .endpoint-row td:first-child{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR 28 WRITE API<br>18 May 2026</div>
+  <div class="toc-section">Part 1 of 4</div>
+  <ul>
+    <li><a href="#what">01 What this PR delivers</a></li>
+    <li><a href="#stack">02 Tech stack</a></li>
+    <li><a href="#lifecycle">03 Request lifecycle</a></li>
+    <li><a href="#inventory">04 Endpoint &amp; function inventory</a></li>
+    <li><a href="#conventions">05 Module structure &amp; conventions</a></li>
+  </ul>
+  <div class="meta">Part 1 of 4<br>variant-viewer · feat/pr7-write-api<br>Commit be5c577</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Code Review Briefing · variant-viewer backend</div>
+  <h1>PR 28 — Write API Routes</h1>
+  <p class="sub">A complete orientation to the write API layer added in PR 28: upload URL generation, manual ingest, workflow state machine, and classification persistence — Part 1 of 4: High-level outline.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 18 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> #28 · feat/pr7-write-api</span>
+    <span class="meta-item"><strong>Commit</strong> be5c577</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260518_PR28_Write_API_Part1.html" class="current">1 · High-level outline</a>
+  <a href="260518_PR28_Write_API_Part2.html">2 · Key concepts</a>
+  <a href="260518_PR28_Write_API_Part3.html">3 · Function walkthrough</a>
+  <a href="260518_PR28_Write_API_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+<!-- 01 ─────────────────────────────────────────────────── -->
+<section id="what">
+  <h2><span class="sec-num">01</span> What this PR delivers</h2>
+
+  <p>PR 28 completes the HTTP API layer for the Variant Viewer backend. The preceding PRs (2–6) built the underlying machinery — database connection pool, VCF parser, classification engine, Lambda ingest pipeline, authentication middleware, and read-only query routes. This PR adds the <strong>write side</strong>: everything a user needs to submit data, advance a clinical review, and record a classification decision.</p>
+
+  <p>Four new route modules are added, each in its own file under <code>backend/app/routes/</code>. Together they expose six HTTP endpoints and implement three significant patterns: presigned S3 URL generation, a four-state workflow machine with optimistic concurrency control, and a soft-delete / append-only classification history.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="n">6</div><div class="l">New HTTP endpoints</div></div>
+    <div class="stat"><div class="n">4</div><div class="l">New route modules</div></div>
+    <div class="stat"><div class="n">258</div><div class="l">Tests passing</div></div>
+    <div class="stat"><div class="n">96%</div><div class="l">Code coverage</div></div>
+  </div>
+
+  <div class="callout blue">
+    <span class="tag">Scope boundary</span>
+    <p>This PR adds write routes only. It does not change the DB schema, the Lambda function, the classification engine, or the authentication mechanism — all of those landed in PRs 2–6. The PR also does not add any frontend code; the React SPA is scheduled for PRs 8–11.</p>
+  </div>
+
+  <h3>The six endpoints at a glance</h3>
+  <table>
+    <thead><tr><th>Method</th><th>Path</th><th>Purpose</th><th>Module</th></tr></thead>
+    <tbody>
+      <tr><td><span class="method-badge post">POST</span></td><td><code>/api/upload-url</code></td><td>Return presigned S3 PUT URLs so the client can upload a VCF + manifest directly to S3 without routing file data through the API server</td><td><code>upload.py</code></td></tr>
+      <tr><td><span class="method-badge post">POST</span></td><td><code>/api/ingest</code></td><td>Manually trigger ingestion of a VCF already in S3 — useful when the Lambda trigger misfires or a re-ingest is needed</td><td><code>ingest.py</code></td></tr>
+      <tr><td><span class="method-badge put">PUT</span></td><td><code>/api/workflow/{sample_id}</code></td><td>Advance or archive a sample's review status (pending → reviewing → reported → archived)</td><td><code>workflow.py</code></td></tr>
+      <tr><td><span class="method-badge post">POST</span></td><td><code>/api/variants/{id}/classify</code></td><td>Score a set of applied criteria using the classification engine — <em>no DB write</em>, useful for previewing a score before committing</td><td><code>classification.py</code></td></tr>
+      <tr><td><span class="method-badge put">PUT</span></td><td><code>/api/variants/{id}/classification</code></td><td>Score and persist a classification, locking it to the named analyst. Soft-deletes any existing active classification first</td><td><code>classification.py</code></td></tr>
+      <tr><td><span class="method-badge delete">DELETE</span></td><td><code>/api/variants/{id}/classification/{cid}</code></td><td>Reset a classification: soft-delete the existing record and insert a blank replacement ready for re-classification</td><td><code>classification.py</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 02 ─────────────────────────────────────────────────── -->
+<section id="stack">
+  <h2><span class="sec-num">02</span> Tech stack</h2>
+
+  <p>If you are coming to this codebase fresh, the following libraries will appear throughout the code. This section explains what each one does and <em>why</em> it is used here — before you need to understand any particular function.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--accent-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="FastAPI logo">
+            <rect width="20" height="20" rx="4" fill="#003d78"/>
+            <text x="3" y="14" font-size="10" font-weight="700" fill="#ffffff">FA</text>
+          </svg>
+        </div>
+        <div><div class="card-name">FastAPI</div><div class="card-sub">Web framework</div></div>
+      </div>
+      <p>A Python web framework that turns annotated functions into HTTP endpoints. You declare what a route expects (path parameters, a JSON body, a header) using Python type hints, and FastAPI handles parsing, validation, and error responses automatically. It is built on Starlette (the async HTTP layer) and uses Pydantic for data validation.</p>
+      <span class="pill blue">async-native</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--green-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pydantic icon">
+            <rect width="20" height="20" rx="4" fill="#1a6e47"/>
+            <text x="3" y="14" font-size="10" font-weight="700" fill="#ffffff">Py</text>
+          </svg>
+        </div>
+        <div><div class="card-name">Pydantic v2</div><div class="card-sub">Data validation</div></div>
+      </div>
+      <p>When the server receives a JSON body, Pydantic checks that all required fields are present, that types match, and that any constraints (e.g. <code>Literal["acgs_snv", "svig"]</code>) are satisfied — returning a structured Python object if valid, or an automatic 422 response if not. Think of it as a schema enforcer at the boundary.</p>
+      <span class="pill green">type-safe</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--amber-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="boto3 icon">
+            <rect width="20" height="20" rx="4" fill="#b35c00"/>
+            <text x="3" y="14" font-size="9" font-weight="700" fill="#ffffff">AWS</text>
+          </svg>
+        </div>
+        <div><div class="card-name">boto3</div><div class="card-sub">AWS SDK for Python</div></div>
+      </div>
+      <p>The official Python library for interacting with AWS services. In this PR it is used in two ways: <code>boto3.client("s3")</code> to generate presigned URLs that allow a browser to PUT files directly to S3, and implicitly by the auth and DB modules to resolve secrets from AWS Secrets Manager.</p>
+      <span class="pill amber">AWS SDK</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--purple-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="psycopg2 icon">
+            <rect width="20" height="20" rx="4" fill="#4b2d8e"/>
+            <text x="3" y="14" font-size="9" font-weight="700" fill="#ffffff">PG</text>
+          </svg>
+        </div>
+        <div><div class="card-name">psycopg2</div><div class="card-sub">PostgreSQL driver</div></div>
+      </div>
+      <p>A synchronous Python library for talking to PostgreSQL. All DB reads and writes go through it. Because it is synchronous (blocking), the routes use <code>asyncio.to_thread()</code> to run DB work on a background thread so the async event loop stays responsive. <code>psycopg2.extras.Json()</code> is used to serialise Python lists to PostgreSQL JSONB columns correctly.</p>
+      <span class="pill purple">sync driver</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--accent-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="asyncio icon">
+            <circle cx="10" cy="10" r="9" fill="none" stroke="#003d78" stroke-width="2"/>
+            <text x="4" y="14" font-size="9" font-weight="700" fill="#003d78">&#945;</text>
+          </svg>
+        </div>
+        <div><div class="card-name">asyncio</div><div class="card-sub">Python async runtime</div></div>
+      </div>
+      <p>Python's built-in concurrency library. FastAPI routes are declared <code>async def</code>, meaning they can yield control while waiting for I/O (network, disk) without blocking other requests. The key function used here is <code>asyncio.to_thread(fn)</code>, which runs a blocking function in a thread pool and awaits the result without stalling the event loop.</p>
+      <span class="pill blue">concurrency</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--green-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="secrets icon">
+            <rect width="20" height="20" rx="4" fill="#1a6e47"/>
+            <text x="5" y="14" font-size="11" font-weight="700" fill="#ffffff">&#128274;</text>
+          </svg>
+        </div>
+        <div><div class="card-name">auth middleware</div><div class="card-sub">API key validation (PR 6)</div></div>
+      </div>
+      <p>Every write route carries <code>dependencies=[Depends(require_api_key)]</code>. FastAPI calls the <code>require_api_key</code> dependency before the route handler runs. It reads the <code>X-API-Key</code> header, compares it against the resolved key (from <code>API_KEY</code> env var or AWS Secrets Manager) using <code>secrets.compare_digest</code> to prevent timing attacks, and returns 401 if the key is absent or wrong.</p>
+      <span class="pill green">security</span>
+    </div>
+  </div>
+</section>
+
+<!-- 03 ─────────────────────────────────────────────────── -->
+<section id="lifecycle">
+  <h2><span class="sec-num">03</span> Request lifecycle</h2>
+
+  <p>Every write request goes through the same sequence of stages. Understanding this sequence is the key to reading any of the four route modules — they all follow the same pattern, varying only in which stages involve S3 versus DB versus the classification engine.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Request lifecycle flow diagram showing five stages from client through auth, validation, async dispatch, and DB/S3 to response">
+    <style>
+      .lbl{font:13px -apple-system,BlinkMacSystemFont,Segoe UI,Inter,sans-serif}
+      .sub{font:11px -apple-system,BlinkMacSystemFont,Segoe UI,Inter,sans-serif}
+      .stg{font:12px -apple-system,BlinkMacSystemFont,Segoe UI,Inter,sans-serif;font-weight:700}
+    </style>
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0,8 3,0 6" fill="#6b7c8d"/>
+      </marker>
+    </defs>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">REQUEST LIFECYCLE</text>
+
+    <!-- Stage boxes -->
+    <!-- Client -->
+    <rect x="20" y="50" width="100" height="56" rx="8" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="70" y="76" text-anchor="middle" class="stg" fill="#003d78">Client</text>
+    <text x="70" y="93" text-anchor="middle" class="sub" fill="#6b7c8d">HTTP request</text>
+
+    <!-- Auth -->
+    <rect x="160" y="50" width="120" height="56" rx="8" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="220" y="70" text-anchor="middle" class="stg" fill="#4b2d8e">Auth check</text>
+    <text x="220" y="87" text-anchor="middle" class="sub" fill="#6b7c8d">X-API-Key header</text>
+    <text x="220" y="101" text-anchor="middle" class="sub" fill="#6b7c8d">compare_digest</text>
+
+    <!-- Validation -->
+    <rect x="330" y="50" width="130" height="56" rx="8" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+    <text x="395" y="70" text-anchor="middle" class="stg" fill="#b35c00">Input validation</text>
+    <text x="395" y="87" text-anchor="middle" class="sub" fill="#6b7c8d">Pydantic model</text>
+    <text x="395" y="101" text-anchor="middle" class="sub" fill="#6b7c8d">route-level checks</text>
+
+    <!-- Async dispatch -->
+    <rect x="510" y="50" width="130" height="56" rx="8" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="575" y="70" text-anchor="middle" class="stg" fill="#1a6e47">Async dispatch</text>
+    <text x="575" y="87" text-anchor="middle" class="sub" fill="#6b7c8d">asyncio.to_thread</text>
+    <text x="575" y="101" text-anchor="middle" class="sub" fill="#6b7c8d">thread pool</text>
+
+    <!-- Response -->
+    <rect x="690" y="50" width="110" height="56" rx="8" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="745" y="76" text-anchor="middle" class="stg" fill="#003d78">Response</text>
+    <text x="745" y="93" text-anchor="middle" class="sub" fill="#6b7c8d">JSON body</text>
+
+    <!-- Arrows top -->
+    <line x1="120" y1="78" x2="158" y2="78" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="280" y1="78" x2="328" y2="78" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="460" y1="78" x2="508" y2="78" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="640" y1="78" x2="688" y2="78" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- 401 branch -->
+    <line x1="220" y1="106" x2="220" y2="145" stroke="#9b2335" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+    <rect x="160" y="148" width="120" height="36" rx="6" fill="#fce8ea" stroke="#9b2335" stroke-width="1"/>
+    <text x="220" y="169" text-anchor="middle" class="sub" fill="#9b2335">HTTP 401 Unauthorized</text>
+
+    <!-- 400/422 branch -->
+    <line x1="395" y1="106" x2="395" y2="145" stroke="#b35c00" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+    <rect x="330" y="148" width="130" height="36" rx="6" fill="#fdf0e0" stroke="#b35c00" stroke-width="1"/>
+    <text x="395" y="164" text-anchor="middle" class="sub" fill="#b35c00">HTTP 400 / 422</text>
+    <text x="395" y="178" text-anchor="middle" class="sub" fill="#b35c00">Bad request / invalid body</text>
+
+    <!-- Thread pool workloads -->
+    <rect x="430" y="210" width="360" height="110" rx="8" fill="#f7f9fb" stroke="#e0e7ef" stroke-width="1.5"/>
+    <text x="610" y="232" text-anchor="middle" font-size="11" letter-spacing="2" fill="#6b7c8d">THREAD POOL (blocking I/O)</text>
+
+    <rect x="445" y="242" width="100" height="64" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1"/>
+    <text x="495" y="267" text-anchor="middle" class="sub" fill="#003d78" font-weight="700">DB transaction</text>
+    <text x="495" y="282" text-anchor="middle" class="sub" fill="#6b7c8d">run_in_transaction</text>
+    <text x="495" y="297" text-anchor="middle" class="sub" fill="#6b7c8d">psycopg2 / SQL</text>
+
+    <rect x="570" y="242" width="100" height="64" rx="6" fill="#fdf0e0" stroke="#b35c00" stroke-width="1"/>
+    <text x="620" y="267" text-anchor="middle" class="sub" fill="#b35c00" font-weight="700">S3 API call</text>
+    <text x="620" y="282" text-anchor="middle" class="sub" fill="#6b7c8d">boto3 client</text>
+    <text x="620" y="297" text-anchor="middle" class="sub" fill="#6b7c8d">presigned URL</text>
+
+    <rect x="695" y="242" width="85" height="64" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1"/>
+    <text x="737" y="267" text-anchor="middle" class="sub" fill="#1a6e47" font-weight="700">Classify</text>
+    <text x="737" y="282" text-anchor="middle" class="sub" fill="#6b7c8d">pure function</text>
+    <text x="737" y="297" text-anchor="middle" class="sub" fill="#6b7c8d">no I/O</text>
+
+    <!-- connector from async dispatch to thread pool -->
+    <line x1="575" y1="106" x2="575" y2="208" stroke="#1a6e47" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+  </svg>
+  </div>
+  <figcaption>Figure 1 · Request lifecycle for all write routes. Auth and input validation run in the async event loop before any blocking I/O is dispatched to the thread pool.</figcaption>
+  </figure>
+
+  <h3>Stage-by-stage breakdown</h3>
+
+  <div class="timeline-item" style="display:grid;grid-template-columns:110px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)">
+    <div style="font-weight:700;font-size:13px;color:var(--accent-deep);padding-top:2px">① Auth check</div>
+    <div style="font-size:14px;color:var(--ink-soft)"><strong style="color:var(--ink);display:block;margin-bottom:3px">FastAPI dependency injection</strong>Every router in this PR declares <code>dependencies=[Depends(require_api_key)]</code>. FastAPI calls this before the route function body runs. If the header is missing or wrong, a 401 is returned immediately — no route logic executes.</div>
+  </div>
+  <div class="timeline-item" style="display:grid;grid-template-columns:110px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)">
+    <div style="font-weight:700;font-size:13px;color:var(--accent-deep);padding-top:2px">② Pydantic parse</div>
+    <div style="font-size:14px;color:var(--ink-soft)"><strong style="color:var(--ink);display:block;margin-bottom:3px">Automatic schema enforcement</strong>FastAPI passes the JSON request body through the route's Pydantic model. If required fields are missing or types are wrong (e.g. <code>"framework": "unknown"</code> when only <code>"acgs_snv"</code> or <code>"svig"</code> are valid), FastAPI returns a 422 with a detailed error — before any handler code runs.</div>
+  </div>
+  <div class="timeline-item" style="display:grid;grid-template-columns:110px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)">
+    <div style="font-weight:700;font-size:13px;color:var(--accent-deep);padding-top:2px">③ Route guards</div>
+    <div style="font-size:14px;color:var(--ink-soft)"><strong style="color:var(--ink);display:block;margin-bottom:3px">Business-rule validation</strong>Each handler applies additional checks that Pydantic cannot express: file extension validation (<code>_VCF_RE</code>), path-traversal rejection, calendar-valid date parsing via <code>strptime</code>, env-var presence, and workflow state-machine legality. These run synchronously in the async event loop — they do no I/O so this is fine.</div>
+  </div>
+  <div class="timeline-item" style="display:grid;grid-template-columns:110px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)">
+    <div style="font-weight:700;font-size:13px;color:var(--accent-deep);padding-top:2px">④ to_thread</div>
+    <div style="font-size:14px;color:var(--ink-soft)"><strong style="color:var(--ink);display:block;margin-bottom:3px">Blocking I/O off the event loop</strong>Database queries and S3 calls are synchronous (blocking). If run directly in an <code>async def</code> function they would freeze the event loop, preventing any other request from being handled. <code>await asyncio.to_thread(fn, arg)</code> runs <code>fn(arg)</code> in a thread pool and awaits the result without blocking.</div>
+  </div>
+  <div class="timeline-item" style="display:grid;grid-template-columns:110px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)">
+    <div style="font-weight:700;font-size:13px;color:var(--accent-deep);padding-top:2px">⑤ Exception map</div>
+    <div style="font-size:14px;color:var(--ink-soft)"><strong style="color:var(--ink);display:block;margin-bottom:3px">Domain exceptions → HTTP status codes</strong>Each handler wraps the <code>to_thread</code> call in a <code>try/except</code> block that converts known domain exceptions to appropriate HTTP responses: <code>DuplicateSubmissionError</code> → 409, <code>UniqueViolation</code> → 409, <code>ValueError</code> → 400, <code>_ConcurrentModification</code> → 409.</div>
+  </div>
+</section>
+
+<!-- 04 ─────────────────────────────────────────────────── -->
+<section id="inventory">
+  <h2><span class="sec-num">04</span> Endpoint &amp; function inventory</h2>
+
+  <p>The following table lists every public function and class in the four new modules, together with its approximate line range and one-line purpose. Use this as a navigation map when reading the source files.</p>
+
+  <h3>upload.py</h3>
+  <table>
+    <thead><tr><th>Name</th><th>Lines</th><th>Type</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>UploadUrlRequest</code></td><td>22–25</td><td>Pydantic model</td><td>Request body: <code>vcf_filename</code> (required) + <code>run_date</code> (optional)</td></tr>
+      <tr><td><code>UploadUrlResponse</code></td><td>28–34</td><td>Pydantic model</td><td>Response body: two signed URLs, two S3 keys, expiry seconds</td></tr>
+      <tr><td><code>get_upload_url</code></td><td>37–82</td><td>Route handler</td><td>Validate inputs, build S3 key paths, generate two presigned PUT URLs</td></tr>
+    </tbody>
+  </table>
+
+  <h3>ingest.py</h3>
+  <table>
+    <thead><tr><th>Name</th><th>Lines</th><th>Type</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>IngestRequest</code></td><td>26–29</td><td>Pydantic model</td><td>Request body: <code>vcf_s3_key</code> + <code>user_id</code></td></tr>
+      <tr><td><code>_manifest_key</code></td><td>32–33</td><td>Helper</td><td>Derive companion manifest S3 key by replacing VCF extension with <code>.manifest.json</code></td></tr>
+      <tr><td><code>manual_ingest</code></td><td>36–73</td><td>Route handler</td><td>Validate key, call <code>ingest_sample</code> in a DB transaction, write audit entry, map exceptions to HTTP status codes</td></tr>
+    </tbody>
+  </table>
+
+  <h3>workflow.py</h3>
+  <table>
+    <thead><tr><th>Name</th><th>Lines</th><th>Type</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>_ConcurrentModification</code></td><td>25–26</td><td>Exception class</td><td>Sentinel raised inside the DB callback when optimistic lock fails; converted to 409 in the handler</td></tr>
+      <tr><td><code>VALID_TRANSITIONS</code></td><td>28–33</td><td>Constant dict</td><td>State machine allowlist: maps each status to the list of states it may legally transition to</td></tr>
+      <tr><td><code>WorkflowUpdateRequest</code></td><td>36–38</td><td>Pydantic model</td><td>Request body: <code>status</code> (constrained Literal) + <code>user_id</code></td></tr>
+      <tr><td><code>update_workflow</code></td><td>41–85</td><td>Route handler</td><td>Read current status, validate transition, UPDATE with optimistic lock check, INSERT audit log</td></tr>
+    </tbody>
+  </table>
+
+  <h3>classification.py</h3>
+  <table>
+    <thead><tr><th>Name</th><th>Lines</th><th>Type</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>CriterionIn</code></td><td>39–47</td><td>Pydantic model</td><td>One applied criterion: code, applied flag, strength, optional notes/evidence/pre-compute fields</td></tr>
+      <tr><td><code>CombinationRuleIn</code></td><td>50–53</td><td>Pydantic model</td><td>Pairwise conflict rule: rule name, list of criterion codes, warning message</td></tr>
+      <tr><td><code>ClassifyRequest</code></td><td>56–59</td><td>Pydantic model</td><td>Score-only request: criteria list + constrained framework + optional combination rules</td></tr>
+      <tr><td><code>ClassificationSubmitRequest</code></td><td>62–68</td><td>Pydantic model</td><td>Persist request: adds <code>locked_by</code> and <code>user_id</code> to the score-only fields</td></tr>
+      <tr><td><code>ResetRequest</code></td><td>71–72</td><td>Pydantic model</td><td>Reset request: only <code>user_id</code> for audit trail</td></tr>
+      <tr><td><code>_build_criteria</code></td><td>76–82</td><td>Helper</td><td>Convert Pydantic <code>CriterionIn</code> list to engine's <code>AppliedCriterion</code> dataclass list</td></tr>
+      <tr><td><code>_build_rules</code></td><td>85–86</td><td>Helper</td><td>Convert Pydantic <code>CombinationRuleIn</code> list to engine's <code>CombinationRule</code> dataclass list</td></tr>
+      <tr><td><code>score_classification</code></td><td>90–97</td><td>Route handler</td><td>Run classification engine, return score — no DB write</td></tr>
+      <tr><td><code>submit_classification</code></td><td>100–175</td><td>Route handler</td><td>Verify variant exists, score, soft-delete existing, INSERT new classification + criteria + audit log</td></tr>
+      <tr><td><code>reset_classification</code></td><td>178–230</td><td>Route handler</td><td>Verify ownership (variant_id + classification_id), soft-delete, INSERT blank replacement + audit log</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 05 ─────────────────────────────────────────────────── -->
+<section id="conventions">
+  <h2><span class="sec-num">05</span> Module structure &amp; conventions</h2>
+
+  <h3>File organisation</h3>
+  <p>Each route module follows the same top-to-bottom layout:</p>
+  <ol>
+    <li><strong>Module docstring</strong> — lists every HTTP endpoint the file exposes</li>
+    <li><strong>Imports</strong> — standard library, then third-party, then internal (<code>app.lib.*</code>, <code>app.middleware.*</code>)</li>
+    <li><strong>Module-level constants</strong> — compiled regexes (<code>_VCF_RE</code>, <code>_DATE_RE</code>), expiry constants, state machine dicts</li>
+    <li><strong>Router declaration</strong> — <code>router = APIRouter(prefix=…, dependencies=[Depends(require_api_key)])</code></li>
+    <li><strong>Pydantic models</strong> — request and response classes</li>
+    <li><strong>Private helpers</strong> — underscore-prefixed functions that support the handlers</li>
+    <li><strong>Route handlers</strong> — the public <code>async def</code> functions decorated with <code>@router.post/put/delete</code></li>
+  </ol>
+
+  <h3>Naming conventions</h3>
+  <table>
+    <thead><tr><th>Pattern</th><th>Meaning</th><th>Examples</th></tr></thead>
+    <tbody>
+      <tr><td><code>_VCF_RE</code>, <code>_DATE_RE</code></td><td>Module-level compiled regex constants; underscore prefix = private to module</td><td><code>re.compile(r"\.vcf(\.gz)?$")</code></td></tr>
+      <tr><td><code>_do(conn)</code></td><td>Inner function passed to <code>run_in_transaction</code>; contains all SQL for a single atomic operation</td><td>In <code>manual_ingest</code>, <code>update_workflow</code>, <code>submit_classification</code>, <code>reset_classification</code></td></tr>
+      <tr><td><code>_ConcurrentModification</code></td><td>Private sentinel exception class; used to carry a domain signal out of a DB callback without coupling the callback to HTTP</td><td><code>workflow.py</code> line 25</td></tr>
+      <tr><td><code>*Request</code> / <code>*Response</code></td><td>Pydantic models for HTTP request bodies and structured response bodies</td><td><code>UploadUrlRequest</code>, <code>UploadUrlResponse</code></td></tr>
+      <tr><td><code>*In</code></td><td>Pydantic models for nested input objects (as opposed to top-level request bodies)</td><td><code>CriterionIn</code>, <code>CombinationRuleIn</code></td></tr>
+      <tr><td><code>_build_*</code></td><td>Private helpers that translate Pydantic input models to engine dataclasses</td><td><code>_build_criteria</code>, <code>_build_rules</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>The _do closure pattern</h3>
+  <p>Three of the four handlers (<code>manual_ingest</code>, <code>update_workflow</code>, <code>submit_classification</code>, <code>reset_classification</code>) use the same structural pattern: an inner function <code>_do(conn)</code> is defined inside the route handler, capturing the validated request fields from the outer scope via closure. This function is then passed to <code>db.run_in_transaction</code> — which opens a connection, calls <code>_do(conn)</code>, and commits or rolls back. The pattern cleanly separates "what SQL to run" from "how to manage the transaction".</p>
+
+  <div class="callout green">
+    <span class="tag">Design rationale</span>
+    <p>The <code>_do</code> closure raises only domain exceptions (like <code>_ConcurrentModification</code>), never <code>HTTPException</code>. The outer route handler catches domain exceptions and converts them to HTTP status codes. This keeps the DB layer free of HTTP knowledge — a deliberate architectural boundary.</p>
+  </div>
+
+  <div class="series-nav">
+    <a href="260518_PR28_Write_API_Part1.html" class="current">1 · High-level outline</a>
+    <a href="260518_PR28_Write_API_Part2.html">2 · Key concepts</a>
+    <a href="260518_PR28_Write_API_Part3.html">3 · Function walkthrough</a>
+    <a href="260518_PR28_Write_API_Part4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+<footer>
+  PR 28 Write API Routes — Code Review Briefing · Author: Joo Wook Ahn · 18 May 2026 · Source: eastgenomics/variant-viewer commit be5c577. Continues in Part 2.
+</footer>
+</body>
+</html>

@@ -31,7 +31,7 @@ specification/ Design and build specs for each PR group
 | 4 | Classification engine + pre-compute criteria | Merged |
 | 5 | Lambda ingest pipeline + cyvcf2 migration | Merged |
 | 6 | Auth middleware + read-only API routes | Merged |
-| 7 | Write API routes (classification, workflow, upload) | Pending |
+| 7 | Write API routes (classification, workflow, upload) | In review (PR #28) |
 | 8–11 | React SPA frontend | Pending |
 | 12 | Infrastructure (Dockerfile, ECS, Lambda runtime) | Pending |
 

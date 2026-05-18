@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR 28 — Write API Routes · Part 2: Key concepts</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}
+  .cb .k{color:#79b8ff}
+  .cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}
+  .cb .f{color:#85e89d}
+  .cb .t{color:#ffab70}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .concept{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .concept-header{background:var(--accent-deep);padding:12px 18px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .concept-title{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#fff;font-weight:700}
+  .concept-plain{font-size:12px;color:#a8c8e8}
+  .concept-body{padding:18px}
+  .concept-body p{margin-bottom:10px}
+  .in-this-file{background:var(--green-soft);border:1px solid #a8d4bb;border-radius:6px;padding:12px 16px;margin-top:12px;font-size:13.5px;color:var(--ink-soft)}
+  .in-this-file strong{color:var(--green);font-size:11px;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR 28 WRITE API<br>18 May 2026</div>
+  <div class="toc-section">Part 2 of 4</div>
+  <ul>
+    <li><a href="#fastapi-routing">06 FastAPI routing &amp; dependency injection</a></li>
+    <li><a href="#pydantic">07 Pydantic request models</a></li>
+    <li><a href="#async">08 async/await &amp; to_thread</a></li>
+    <li><a href="#transactions">09 psycopg2 transactions</a></li>
+    <li><a href="#presigned">10 Presigned S3 URLs</a></li>
+    <li><a href="#domain">11 Domain patterns</a></li>
+  </ul>
+  <div class="meta">Part 2 of 4<br>Continued from Part 1</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Code Review Briefing · variant-viewer backend</div>
+  <h1>PR 28 — Write API Routes</h1>
+  <p class="sub">Every concept you need before the code makes sense: FastAPI routing, Pydantic validation, async threading, transactions, presigned URLs, and domain patterns — Part 2 of 4: Key concepts.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 18 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> #28 · feat/pr7-write-api</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260518_PR28_Write_API_Part1.html">1 · High-level outline</a>
+  <a href="260518_PR28_Write_API_Part2.html" class="current">2 · Key concepts</a>
+  <a href="260518_PR28_Write_API_Part3.html">3 · Function walkthrough</a>
+  <a href="260518_PR28_Write_API_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+<!-- 06 ─────────────────────────────────────────────────── -->
+<section id="fastapi-routing">
+  <h2><span class="sec-num">06</span> FastAPI routing &amp; dependency injection</h2>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">APIRouter + @router.post/put/delete</span>
+      <span class="concept-plain">Declaring HTTP endpoints as Python functions</span>
+    </div>
+    <div class="concept-body">
+      <p>In FastAPI you declare an HTTP endpoint by decorating an <code>async def</code> function. The decorator specifies the HTTP method and the URL path. Path parameters (like <code>{sample_id}</code>) become function arguments automatically. FastAPI reads the type annotations to know what to extract from the URL, the request body, and the headers.</p>
+      <div class="cb"><pre><span class="k">from</span> fastapi <span class="k">import</span> APIRouter
+router = APIRouter(prefix=<span class="s">"/api/workflow"</span>)
+
+<span class="c"># Handles PUT /api/workflow/42</span>
+<span class="k">@router</span>.put(<span class="s">"/{sample_id}"</span>)
+<span class="k">async def</span> <span class="f">update_workflow</span>(sample_id: <span class="t">int</span>, body: <span class="t">WorkflowUpdateRequest</span>) -> <span class="t">dict</span>:
+    ...  <span class="c"># sample_id comes from the URL; body comes from the JSON request body</span></pre></div>
+      <p>An <code>APIRouter</code> is a mini-application that groups related routes. It is registered with the main <code>FastAPI</code> app in <code>main.py</code> via <code>app.include_router(workflow.router)</code>. The <code>prefix</code> argument is prepended to every route path — so <code>prefix="/api/workflow"</code> with <code>"/{sample_id}"</code> produces <code>/api/workflow/{sample_id}</code>.</p>
+      <div class="in-this-file"><strong>In this file</strong>Each of the four modules declares its own router with a different prefix: <code>/api</code> for upload and ingest, <code>/api/workflow</code> for workflow, and <code>/api/variants</code> for classification. All four routers are registered in <code>app/main.py</code>.</div>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">Depends(require_api_key)</span>
+      <span class="concept-plain">Dependency injection for authentication</span>
+    </div>
+    <div class="concept-body">
+      <p>FastAPI's dependency injection system lets you declare "this route needs X before it can run" using <code>Depends(fn)</code>. If <code>fn</code> raises an <code>HTTPException</code>, FastAPI returns that response instead of calling the route handler. If it returns a value, that value is available as a function argument.</p>
+      <div class="cb"><pre><span class="c"># Declared at router level — applies to every route in the module</span>
+router = APIRouter(
+    prefix=<span class="s">"/api/workflow"</span>,
+    dependencies=[Depends(require_api_key)]  <span class="c"># runs before EVERY handler</span>
+)
+
+<span class="c"># require_api_key checks X-API-Key header; raises 401 if absent or wrong</span>
+<span class="k">async def</span> <span class="f">require_api_key</span>(api_key: str | <span class="t">None</span> = Security(_api_key_header)) -> str:
+    expected = _get_api_key()
+    <span class="k">if not</span> api_key <span class="k">or not</span> secrets.compare_digest(api_key, expected):
+        <span class="k">raise</span> HTTPException(status_code=<span class="n">401</span>, detail=<span class="s">"Invalid or missing API key"</span>)
+    <span class="k">return</span> api_key</pre></div>
+      <div class="in-this-file"><strong>In this file</strong>All four routers declare <code>dependencies=[Depends(require_api_key)]</code> at the router level, not per-route. This guarantees every endpoint in every module requires authentication — it is impossible to forget it on a new route added to these modules.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 07 ─────────────────────────────────────────────────── -->
+<section id="pydantic">
+  <h2><span class="sec-num">07</span> Pydantic request models</h2>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">class XRequest(BaseModel)</span>
+      <span class="concept-plain">Automatic JSON parsing, type coercion, and validation</span>
+    </div>
+    <div class="concept-body">
+      <p>A Pydantic <code>BaseModel</code> subclass is a schema. When FastAPI receives a JSON body, it passes the parsed JSON to the model's constructor. Pydantic checks that required fields are present, that types are correct (coercing where safe — e.g. <code>"42"</code> to <code>int</code>), and that any constraints are met. If anything fails, FastAPI returns a 422 Unprocessable Entity with a machine-readable error list — no handler code runs.</p>
+      <div class="cb"><pre><span class="k">from</span> pydantic <span class="k">import</span> BaseModel
+<span class="k">from</span> typing <span class="k">import</span> Literal
+
+<span class="k">class</span> <span class="t">ClassifyRequest</span>(BaseModel):
+    criteria: list[<span class="t">CriterionIn</span>]               <span class="c"># required; must be a JSON array</span>
+    framework: Literal[<span class="s">"acgs_snv"</span>, <span class="s">"svig"</span>]    <span class="c"># only these two values allowed</span>
+    combination_rules: list[<span class="t">CombinationRuleIn</span>] = []  <span class="c"># optional; defaults to []</span>
+
+<span class="c"># Sending {"framework": "unknown"} → automatic HTTP 422, no handler code runs</span>
+<span class="c"># Sending {"criteria": [...], "framework": "acgs_snv"} → body: ClassifyRequest instance</span></pre></div>
+      <p>The <code>Literal[...]</code> type annotation is a built-in Python typing construct that restricts a field to a specific set of values. At runtime, Pydantic enforces this and rejects anything outside the set with a clear error message.</p>
+      <div class="in-this-file"><strong>In this file</strong><code>ClassifyRequest</code> and <code>ClassificationSubmitRequest</code> use <code>Literal["acgs_snv", "svig"]</code> for the <code>framework</code> field. This prevents an unknown framework string from silently reaching the classification engine and producing an undefined result.</div>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">Nested models (CriterionIn inside ClassifyRequest)</span>
+      <span class="concept-plain">Composing complex request schemas</span>
+    </div>
+    <div class="concept-body">
+      <p>Pydantic models can contain other Pydantic models as field types. The outer model validates the outer structure; each inner model validates its own fields. This is how <code>ClassifyRequest.criteria</code> is declared as <code>list[CriterionIn]</code> — each element of the JSON array must satisfy the <code>CriterionIn</code> schema.</p>
+      <div class="cb"><pre><span class="k">class</span> <span class="t">CriterionIn</span>(BaseModel):
+    criterion_code: str           <span class="c"># e.g. "PVS1"</span>
+    applied: bool                 <span class="c"># whether the analyst applied this criterion</span>
+    strength: str                 <span class="c"># e.g. "very_strong", "supporting"</span>
+    notes: str | <span class="t">None</span> = <span class="t">None</span>     <span class="c"># optional free text</span>
+    evidence_links: list[str] = [] <span class="c"># URLs; defaults to empty list</span>
+    pre_computed: bool = <span class="t">False</span>
+    pre_computed_value: str | <span class="t">None</span> = <span class="t">None</span>
+
+<span class="c"># Only criterion_code, applied, strength are passed to the engine's</span>
+<span class="c"># AppliedCriterion dataclass — the extra fields go to the DB only.</span></pre></div>
+      <div class="in-this-file"><strong>In this file</strong>The <code>_build_criteria</code> helper explicitly maps only the three engine-relevant fields (<code>criterion_code</code>, <code>applied</code>, <code>strength</code>) from the Pydantic model to the engine's <code>AppliedCriterion</code> dataclass. The remaining fields (<code>notes</code>, <code>evidence_links</code>, etc.) are written to the DB but do not affect scoring.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 08 ─────────────────────────────────────────────────── -->
+<section id="async">
+  <h2><span class="sec-num">08</span> async/await and asyncio.to_thread</h2>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">async def + await</span>
+      <span class="concept-plain">Why route handlers are declared async</span>
+    </div>
+    <div class="concept-body">
+      <p>FastAPI runs on an async event loop (via Starlette / uvicorn). When a route handler is declared <code>async def</code>, it can <em>yield control</em> to the event loop while waiting for I/O — the server can then handle another incoming request in the meantime. A regular (synchronous) route handler would block the entire server thread for the duration of every DB query or network call.</p>
+      <div class="cb"><pre><span class="c"># Synchronous — blocks the event loop during the DB call</span>
+<span class="k">def</span> <span class="f">bad_route</span>():
+    result = db.query(<span class="s">"SELECT ..."</span>)  <span class="c"># blocks for 50ms → no other requests handled</span>
+    <span class="k">return</span> result
+
+<span class="c"># Async — yields during the wait; event loop handles other requests</span>
+<span class="k">async def</span> <span class="f">good_route</span>():
+    result = <span class="k">await</span> asyncio.to_thread(db.query, <span class="s">"SELECT ..."</span>)
+    <span class="k">return</span> result</pre></div>
+      <div class="in-this-file"><strong>In this file</strong>All four route handlers are <code>async def</code>. They use <code>await asyncio.to_thread(db.query, ...))</code> and <code>await asyncio.to_thread(db.run_in_transaction, _do)</code> for every database operation.</div>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">asyncio.to_thread(fn, *args)</span>
+      <span class="concept-plain">Running synchronous (blocking) code without freezing the event loop</span>
+    </div>
+    <div class="concept-body">
+      <p><code>psycopg2</code> and <code>boto3</code> are synchronous libraries — their functions block the calling thread until the operation completes. You cannot call them directly inside an <code>async def</code> function without freezing the event loop. <code>asyncio.to_thread(fn, arg1, arg2)</code> is the solution: it runs <code>fn(arg1, arg2)</code> on a background thread from the default executor thread pool, and returns an awaitable that resolves to the function's return value.</p>
+      <div class="cb"><pre><span class="c"># Pattern used throughout this PR:</span>
+sample_id = <span class="k">await</span> asyncio.to_thread(db.run_in_transaction, _do)
+<span class="c">#                  ^^^^^^^^^^^^^^^^^^^</span>
+<span class="c"># Runs db.run_in_transaction(_do) on a background thread.</span>
+<span class="c"># The event loop is free to handle other requests while this blocks.</span>
+<span class="c"># When the thread finishes, execution resumes here with the return value.</span></pre></div>
+      <div class="callout amber">
+        <span class="tag">Important caveat</span>
+        <p>Code inside the <code>_do(conn)</code> function runs on the background thread, not on the event loop. This means you must not use <code>await</code> inside <code>_do</code>, and you must not share mutable state between <code>_do</code> and the event loop without locks. In practice, <code>_do</code> only calls synchronous psycopg2 methods and reads from the request body (via closure) — both are safe.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 09 ─────────────────────────────────────────────────── -->
+<section id="transactions">
+  <h2><span class="sec-num">09</span> psycopg2 transactions &amp; the _do closure</h2>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">db.run_in_transaction(_do)</span>
+      <span class="concept-plain">Atomicity: all SQL succeeds together or none of it does</span>
+    </div>
+    <div class="concept-body">
+      <p>A database transaction groups multiple SQL statements into one atomic unit. If any statement raises an exception, all changes are rolled back — the database is left as if none of the statements ran. <code>db.run_in_transaction</code> is a wrapper that opens a connection, calls <code>_do(conn)</code>, commits if no exception is raised, or rolls back if one is.</p>
+      <div class="cb"><pre><span class="c"># In app/lib/db.py (PR 2, unchanged):</span>
+<span class="k">@contextmanager</span>
+<span class="k">def</span> <span class="f">with_transaction</span>():
+    <span class="k">with</span> _get_connection() <span class="k">as</span> conn:
+        <span class="k">try</span>:
+            conn.autocommit = <span class="t">False</span>
+            <span class="k">yield</span> conn
+            conn.commit()      <span class="c"># ← reached only if no exception</span>
+        <span class="k">except</span> Exception:
+            conn.rollback()    <span class="c"># ← undo everything on any error</span>
+            <span class="k">raise</span>            <span class="c"># ← re-raise so the caller knows what happened</span>
+
+<span class="k">def</span> <span class="f">run_in_transaction</span>(fn):
+    <span class="k">with</span> with_transaction() <span class="k">as</span> conn:
+        <span class="k">return</span> fn(conn)    <span class="c"># fn is the _do closure from the route handler</span></pre></div>
+      <p>In the write routes, the <code>_do(conn)</code> function typically performs two or more SQL statements: an INSERT or UPDATE to the main table, and an INSERT to the <code>audit_log</code> table. Wrapping them in a transaction guarantees the audit record always exists when the main record exists, and vice versa.</p>
+      <div class="in-this-file"><strong>In this file</strong><code>manual_ingest</code> wraps <code>ingest_sample</code> + an audit INSERT. <code>update_workflow</code> wraps a conditional UPDATE + an audit INSERT. <code>submit_classification</code> wraps a soft-delete UPDATE + a classification INSERT + N criterion INSERTs + an audit INSERT. All four must succeed together or none do.</div>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">conn.cursor() as a context manager</span>
+      <span class="concept-plain">Executing SQL and reading results</span>
+    </div>
+    <div class="concept-body">
+      <p>A psycopg2 <em>cursor</em> is the object that executes SQL statements. <code>cursor.execute(sql, params)</code> runs a parameterised query — <code>%s</code> placeholders are replaced with the values in the <code>params</code> tuple, with automatic escaping to prevent SQL injection. Always use parameterised queries; never format values directly into the SQL string.</p>
+      <div class="cb"><pre><span class="k">with</span> conn.cursor() <span class="k">as</span> c:
+    c.execute(
+        <span class="s">"UPDATE workflow SET status=%s WHERE sample_id=%s AND status=%s"</span>,
+        (body.status, sample_id, current),   <span class="c"># ← params tuple; never f-string</span>
+    )
+    <span class="k">if</span> c.rowcount == <span class="n">0</span>:   <span class="c"># ← how many rows the UPDATE touched</span>
+        <span class="k">raise</span> _ConcurrentModification()
+
+    c.execute(
+        <span class="s">"INSERT INTO audit_log (...) VALUES (%s, %s, %s, %s, %s, %s)"</span>,
+        (...),
+    )
+<span class="c"># cursor is closed automatically when the `with` block exits</span></pre></div>
+      <p>After an INSERT with <code>RETURNING id</code>, the generated ID is retrieved with <code>c.fetchone()[0]</code>. After an UPDATE, <code>c.rowcount</code> tells you how many rows were changed — used here for optimistic locking.</p>
+      <div class="in-this-file"><strong>In this file</strong>All SQL in the <code>_do</code> closures uses <code>with conn.cursor() as c:</code>. The <code>RETURNING id</code> pattern appears in <code>submit_classification</code> and <code>reset_classification</code> to get the auto-generated primary key of the newly inserted classification row.</div>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">psycopg2.extras.Json(value)</span>
+      <span class="concept-plain">Serialising Python objects to PostgreSQL JSONB columns</span>
+    </div>
+    <div class="concept-body">
+      <p>PostgreSQL's <code>JSONB</code> column type stores structured JSON data. psycopg2 does not automatically serialise Python lists or dicts to JSONB — if you pass a Python list as a parameter, psycopg2 will try to bind it as a PostgreSQL ARRAY (different type). <code>psycopg2.extras.Json(value)</code> wraps the value in an adapter that tells psycopg2 to serialise it as JSON, which PostgreSQL will then store as JSONB.</p>
+      <div class="cb"><pre><span class="k">import</span> psycopg2.extras
+
+<span class="c"># Wrong: passes ["http://..."] as a PostgreSQL ARRAY</span>
+c.execute(<span class="s">"INSERT INTO t (links) VALUES (%s)"</span>, ([<span class="s">"http://..."</span>],))
+
+<span class="c"># Correct: serialises to JSON string, accepted by JSONB column</span>
+c.execute(<span class="s">"INSERT INTO t (links) VALUES (%s)"</span>,
+          (psycopg2.extras.Json([<span class="s">"http://..."</span>]),))</pre></div>
+      <div class="in-this-file"><strong>In this file</strong><code>submit_classification</code> stores each criterion's <code>evidence_links</code> field (a <code>list[str]</code>) using <code>psycopg2.extras.Json(crit.evidence_links)</code> to correctly target the <code>evidence_links JSONB</code> column in the <code>classification_criterion</code> table.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 ─────────────────────────────────────────────────── -->
+<section id="presigned">
+  <h2><span class="sec-num">10</span> Presigned S3 URLs</h2>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">s3.generate_presigned_url("put_object", ...)</span>
+      <span class="concept-plain">Letting the client upload directly to S3 without routing through the API server</span>
+    </div>
+    <div class="concept-body">
+      <p>Normally, if a client wants to upload a file to S3 it must route the file data through the API server (the server receives the file and then forwards it to S3). This is wasteful — large VCF files would saturate the API server's bandwidth and memory. Presigned URLs solve this: the API server generates a time-limited signed URL that grants the bearer permission to PUT a specific object to a specific S3 key, and gives that URL to the client. The client then uploads the file <em>directly</em> to S3 using a standard HTTP PUT — the file never touches the API server.</p>
+      <figure>
+      <div class="fig-wrap">
+      <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Presigned URL flow: client asks API for URLs, API generates them from S3, returns to client, client PUTs directly to S3">
+        <style>.lbl{font:13px -apple-system,Segoe UI,Inter,sans-serif}.sub{font:11px -apple-system,Segoe UI,Inter,sans-serif}</style>
+        <defs>
+          <marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#6b7c8d"/></marker>
+        </defs>
+        <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">PRESIGNED URL FLOW</text>
+        <rect x="20" y="60" width="100" height="50" rx="8" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+        <text x="70" y="89" text-anchor="middle" class="lbl" fill="#003d78" font-weight="700">Client</text>
+        <rect x="280" y="60" width="120" height="50" rx="8" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+        <text x="340" y="82" text-anchor="middle" class="lbl" fill="#1a6e47" font-weight="700">API server</text>
+        <text x="340" y="99" text-anchor="middle" class="sub" fill="#6b7c8d">POST /api/upload-url</text>
+        <rect x="560" y="60" width="120" height="50" rx="8" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+        <text x="620" y="82" text-anchor="middle" class="lbl" fill="#b35c00" font-weight="700">Amazon S3</text>
+        <text x="620" y="99" text-anchor="middle" class="sub" fill="#6b7c8d">VCF bucket</text>
+        <line x1="120" y1="78" x2="278" y2="78" stroke="#005eb8" stroke-width="1.5" marker-end="url(#arr2)"/>
+        <text x="200" y="70" text-anchor="middle" class="sub" fill="#005eb8">1. POST upload-url request</text>
+        <line x1="400" y1="82" x2="558" y2="82" stroke="#1a6e47" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+        <text x="480" y="74" text-anchor="middle" class="sub" fill="#1a6e47">2. sign URL (boto3)</text>
+        <line x1="400" y1="95" x2="122" y2="95" stroke="#1a6e47" stroke-width="1.5" marker-end="url(#arr2)"/>
+        <text x="260" y="112" text-anchor="middle" class="sub" fill="#1a6e47">3. return signed URLs</text>
+        <line x1="120" y1="125" x2="558" y2="138" stroke="#9b2335" stroke-width="2" marker-end="url(#arr2)"/>
+        <text x="340" y="162" text-anchor="middle" class="sub" fill="#9b2335">4. client PUT directly to S3 (file never touches API server)</text>
+      </svg>
+      </div>
+      <figcaption>Figure 2 · Presigned URL flow. The API server generates a signed URL using its AWS credentials; the client uses that URL to PUT the file directly to S3.</figcaption>
+      </figure>
+      <p>The signed URL embeds the bucket name, the object key, an expiry time, and an AWS Signature V4 HMAC. S3 validates the signature when the PUT arrives. The signature can only be generated by someone with valid AWS credentials (the API server), but using the URL requires no credentials.</p>
+      <div class="in-this-file"><strong>In this file</strong><code>get_upload_url</code> generates <em>two</em> presigned URLs per request — one for the VCF file (<code>.vcf.gz</code>) and one for its companion FHIR manifest (<code>.manifest.json</code>). Both are PUT URLs. The manifest key is derived from the VCF key by replacing the file extension. The expiry is 3600 seconds (1 hour).</div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 ─────────────────────────────────────────────────── -->
+<section id="domain">
+  <h2><span class="sec-num">11</span> Domain patterns</h2>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">Optimistic locking (workflow.py)</span>
+      <span class="concept-plain">Detecting concurrent modifications without a database lock</span>
+    </div>
+    <div class="concept-body">
+      <p>A race condition can occur when two requests both read the same workflow status and both decide they are allowed to change it. Without any protection, both would succeed, leaving the DB in an inconsistent state. <em>Optimistic locking</em> avoids this without holding a database row lock for the duration of the request. The trick: include the value you <em>read</em> as a condition in the UPDATE — if it has changed since you read it, the UPDATE will touch zero rows.</p>
+      <div class="cb"><pre><span class="c"># Step 1 — READ the current status (no lock held)</span>
+rows = <span class="k">await</span> asyncio.to_thread(db.query,
+    <span class="s">"SELECT status FROM workflow WHERE sample_id = %s"</span>, (sample_id,))
+current = rows[<span class="n">0</span>][<span class="s">"status"</span>]  <span class="c"># e.g. "pending"</span>
+
+<span class="c"># Step 2 — UPDATE only if status is still what we read</span>
+c.execute(
+    <span class="s">"UPDATE workflow SET status=%s ... WHERE sample_id=%s AND status=%s"</span>,
+    (new_status, sample_id, current),  <span class="c"># ← current is the guard condition</span>
+)
+
+<span class="c"># Step 3 — If another request changed it first, rowcount == 0</span>
+<span class="k">if</span> c.rowcount == <span class="n">0</span>:
+    <span class="k">raise</span> _ConcurrentModification()   <span class="c"># → HTTP 409</span></pre></div>
+      <div class="in-this-file"><strong>In this file</strong><code>update_workflow</code> uses this pattern. The <code>_ConcurrentModification</code> sentinel exception is private to the module — it exists purely to carry the signal out of the <code>_do</code> closure (which cannot raise <code>HTTPException</code> directly without coupling the DB layer to HTTP).</div>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">Soft deletes + append-only history (classification.py)</span>
+      <span class="concept-plain">Never destroying clinical records; always leaving an audit trail</span>
+    </div>
+    <div class="concept-body">
+      <p>A <em>soft delete</em> marks a record as deleted without removing it from the database. Here, <code>deleted_at</code> is set to <code>NOW()</code> instead of issuing a <code>DELETE</code> statement. Active records have <code>deleted_at IS NULL</code>; deleted records have a timestamp. This design guarantees the full classification history is always preserved — essential in a clinical context where audit trails are a regulatory requirement.</p>
+      <div class="cb"><pre><span class="c"># Soft-delete the existing active classification</span>
+c.execute(
+    <span class="s">"UPDATE variant_classification SET deleted_at=NOW() "</span>
+    <span class="s">"WHERE variant_id=%s AND deleted_at IS NULL"</span>,
+    (variant_id,),
+)
+
+<span class="c"># Insert the new one — the old one is still in the table, just invisible to</span>
+<span class="c"># queries that filter WHERE deleted_at IS NULL</span>
+c.execute(
+    <span class="s">"INSERT INTO variant_classification (variant_id, framework, ...) "</span>
+    <span class="s">"VALUES (%s, %s, ...) RETURNING id"</span>, ...)
+classification_id = c.fetchone()[<span class="n">0</span>]</pre></div>
+      <div class="in-this-file"><strong>In this file</strong>Both <code>submit_classification</code> (PUT) and <code>reset_classification</code> (DELETE) soft-delete before inserting. The ownership check in <code>reset_classification</code> queries <code>WHERE id = %s AND variant_id = %s AND deleted_at IS NULL</code> — all three conditions must match, preventing cross-variant resets.</div>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="concept-header">
+      <span class="concept-title">Audit log</span>
+      <span class="concept-plain">An immutable record of every state-changing action</span>
+    </div>
+    <div class="concept-body">
+      <p>Every write operation in this PR appends a row to the <code>audit_log</code> table inside the same transaction as the main change. The row records who did it (<code>user_id</code>), what action was taken (<code>action</code>), what entity type and ID was affected, and the before/after values as JSON strings. Because the INSERT is in the same transaction, the audit record can only exist if the main change also succeeded — there can never be an orphaned audit entry.</p>
+      <div class="cb"><pre>c.execute(
+    <span class="s">"INSERT INTO audit_log "</span>
+    <span class="s">"(user_id, action, entity_type, entity_id, old_value, new_value) "</span>
+    <span class="s">"VALUES (%s, %s, %s, %s, %s, %s)"</span>,
+    (
+        body.user_id,
+        <span class="s">"update_workflow"</span>,   <span class="c"># human-readable action name</span>
+        <span class="s">"workflow"</span>,          <span class="c"># entity type</span>
+        sample_id,            <span class="c"># entity ID</span>
+        json.dumps({<span class="s">"status"</span>: current}),   <span class="c"># before</span>
+        json.dumps({<span class="s">"status"</span>: body.status}),  <span class="c"># after</span>
+    ),
+)</pre></div>
+      <div class="in-this-file"><strong>In this file</strong>All four write handlers insert an audit entry. The ingest route logs the triggering user and resulting sample ID. The workflow route logs the status transition. The classification routes log the scoring result or the reset action.</div>
+    </div>
+  </div>
+
+  <div class="series-nav">
+    <a href="260518_PR28_Write_API_Part1.html">1 · High-level outline</a>
+    <a href="260518_PR28_Write_API_Part2.html" class="current">2 · Key concepts</a>
+    <a href="260518_PR28_Write_API_Part3.html">3 · Function walkthrough</a>
+    <a href="260518_PR28_Write_API_Part4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+<footer>
+  PR 28 Write API Routes — Code Review Briefing · Author: Joo Wook Ahn · 18 May 2026 · Source: eastgenomics/variant-viewer commit be5c577. Continued from Part 1. Continues in Part 3.
+</footer>
+</body>
+</html>
