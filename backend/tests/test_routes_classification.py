@@ -1,0 +1,147 @@
+"""Tests for PR 7 classification routes: score-only, persist, reset."""
+import pytest
+from unittest.mock import MagicMock
+from fastapi.testclient import TestClient
+import app.middleware.auth as auth_module
+
+HEADERS = {"X-API-Key": "test-key"}
+
+
+@pytest.fixture(autouse=True)
+def reset_auth(monkeypatch):
+    monkeypatch.setattr(auth_module, "_resolved_key", None)
+
+
+@pytest.fixture
+def client(monkeypatch):
+    monkeypatch.setenv("API_KEY", "test-key")
+    from app.main import app
+    with TestClient(app) as c:
+        yield c
+
+
+_ACGS_CRITERIA_PAYLOAD = {
+    "criteria": [
+        {"criterion_code": "PVS1", "applied": True, "strength": "very_strong"},
+        {"criterion_code": "PM2",  "applied": True, "strength": "supporting"},
+    ],
+    "framework": "acgs_snv",
+    "combination_rules": [],
+    "locked_by": "analyst-1",
+    "user_id": "analyst-1",
+}
+
+
+def test_classify_score_only_no_persist(client, monkeypatch):
+    """POST /classify returns score without writing to DB."""
+    call_log: list[str] = []
+    monkeypatch.setattr("app.lib.db.run_in_transaction",
+        lambda fn: call_log.append("CALLED") or None)
+
+    r = client.post("/api/variants/100/classify",
+                    json={k: v for k, v in _ACGS_CRITERIA_PAYLOAD.items()
+                          if k in ("criteria", "framework", "combination_rules")},
+                    headers=HEADERS)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["score"] == 9
+    assert body["classification"] == "Likely_Pathogenic"
+    assert call_log == []   # no DB write
+
+
+def test_classify_persist_locks_classification(client, monkeypatch):
+    """PUT /classification persists and locks the record."""
+    monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [
+        {"id": 100, "case_type": "germline", "gene": "BRCA1"}
+    ] if "FROM variants" in sql else [
+        {"id": 50, "framework": "acgs_snv", "framework_version": "ACGS 2024",
+         "score": None, "classification": None, "locked_at": None, "locked_by": None}
+    ] if "variant_classification" in sql else [])
+
+    inserted: list[str] = []
+
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.__enter__ = lambda s: s
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        mock_cursor.fetchone.return_value = (99,)  # new classification_id
+        mock_cursor.execute.side_effect = lambda sql, p=(): inserted.append(sql)
+        mock_conn.cursor.return_value = mock_cursor
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+
+    r = client.put("/api/variants/100/classification",
+                   json=_ACGS_CRITERIA_PAYLOAD, headers=HEADERS)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["score"] == 9
+    assert body["classification"] == "Likely_Pathogenic"
+    assert any("INSERT INTO variant_classification" in s for s in inserted)
+    assert any("INSERT INTO classification_criterion" in s for s in inserted)
+    assert any("INSERT INTO audit_log" in s for s in inserted)
+
+
+def test_classify_persist_soft_deletes_existing(client, monkeypatch):
+    """PUT /classification soft-deletes any existing active classification first."""
+    monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [
+        {"id": 100, "case_type": "germline", "gene": "BRCA1"}
+    ] if "FROM variants" in sql else [
+        {"id": 50}   # existing active classification
+    ] if "variant_classification" in sql else [])
+
+    executed: list[str] = []
+
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mc = MagicMock()
+        mc.__enter__ = lambda s: s
+        mc.__exit__ = MagicMock(return_value=False)
+        mc.fetchone.return_value = (99,)
+        mc.execute.side_effect = lambda sql, p=(): executed.append(sql)
+        mock_conn.cursor.return_value = mc
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+
+    client.put("/api/variants/100/classification",
+               json=_ACGS_CRITERIA_PAYLOAD, headers=HEADERS)
+    assert any("deleted_at" in s and "UPDATE" in s for s in executed)
+
+
+def test_classify_reset_soft_deletes_and_creates_blank(client, monkeypatch):
+    """DELETE /classification/{id} soft-deletes and inserts a blank replacement."""
+    monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [
+        {"id": 50, "variant_id": 100, "framework": "acgs_snv",
+         "framework_version": "ACGS 2024"}
+    ])
+
+    executed: list[str] = []
+
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mc = MagicMock()
+        mc.__enter__ = lambda s: s
+        mc.__exit__ = MagicMock(return_value=False)
+        mc.fetchone.return_value = (51,)
+        mc.execute.side_effect = lambda sql, p=(): executed.append(sql)
+        mock_conn.cursor.return_value = mc
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+
+    r = client.request("DELETE", "/api/variants/100/classification/50",
+                        json={"user_id": "analyst-1"}, headers=HEADERS)
+    assert r.status_code == 200
+    assert r.json()["new_classification_id"] == 51
+    assert any("deleted_at" in s for s in executed)
+    assert any("INSERT INTO variant_classification" in s for s in executed)
+    assert any("INSERT INTO audit_log" in s for s in executed)
+
+
+def test_classify_reset_not_found(client, monkeypatch):
+    monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [])
+    r = client.request("DELETE", "/api/variants/100/classification/999",
+                        json={"user_id": "analyst-1"}, headers=HEADERS)
+    assert r.status_code == 404
