@@ -115,7 +115,7 @@ def test_classify_reset_soft_deletes_and_creates_blank(client, monkeypatch):
     monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [
         {"id": 50, "variant_id": 100, "framework": "acgs_snv",
          "framework_version": "ACGS 2024"}
-    ])
+    ] if params == (50, 100) else [])
 
     executed: list[str] = []
 

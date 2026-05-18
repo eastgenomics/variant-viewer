@@ -15,6 +15,7 @@ from app.middleware.auth import require_api_key
 router = APIRouter(prefix="/api", dependencies=[Depends(require_api_key)])
 
 _VCF_RE = re.compile(r"\.vcf(\.gz)?$")
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _EXPIRES = 3600
 
 
@@ -40,10 +41,23 @@ async def get_upload_url(body: UploadUrlRequest) -> UploadUrlResponse:
             detail=f"vcf_filename must end with .vcf or .vcf.gz: {body.vcf_filename!r}",
         )
 
+    # Reject filenames that could escape the runs/{date}/ key prefix.
+    safe_filename = body.vcf_filename
+    if "/" in safe_filename or ".." in safe_filename:
+        raise HTTPException(
+            status_code=400,
+            detail="vcf_filename must not contain '/' or '..'",
+        )
+
     bucket = os.environ.get("VCF_BUCKET_NAME")
     if not bucket:
         raise HTTPException(status_code=500, detail="VCF_BUCKET_NAME not configured")
 
+    if body.run_date is not None and not _DATE_RE.match(body.run_date):
+        raise HTTPException(
+            status_code=400,
+            detail=f"run_date must be YYYY-MM-DD, got {body.run_date!r}",
+        )
     date_prefix = body.run_date or datetime.today().strftime("%Y-%m-%d")
     vcf_key = f"runs/{date_prefix}/{body.vcf_filename}"
     manifest_key = _VCF_RE.sub(".manifest.json", vcf_key)

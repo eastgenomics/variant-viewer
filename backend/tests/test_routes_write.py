@@ -1,5 +1,4 @@
 """Tests for PR 7 write routes: upload-url, ingest, workflow."""
-import json
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
@@ -66,7 +65,23 @@ def test_upload_url_rejects_non_vcf_filename(client, monkeypatch):
     assert r.status_code == 400
 
 
-# ─── Ingest ───────────────────────────────────────────────────────────────────
+def test_upload_url_rejects_path_traversal_filename(client, monkeypatch):
+    monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
+    r = client.post("/api/upload-url",
+                    json={"vcf_filename": "../secret.vcf.gz"},
+                    headers=HEADERS)
+    assert r.status_code == 400
+
+
+def test_upload_url_rejects_invalid_run_date(client, monkeypatch):
+    monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
+    r = client.post("/api/upload-url",
+                    json={"vcf_filename": "sample.vcf.gz", "run_date": "not-a-date"},
+                    headers=HEADERS)
+    assert r.status_code == 400
+
+
+
 
 def test_ingest_success(client, monkeypatch):
     monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
@@ -161,6 +176,17 @@ def test_workflow_invalid_transition_returns_422(client, monkeypatch):
                    headers=HEADERS)
     assert r.status_code == 422
     assert "pending" in r.json()["detail"] and "reported" in r.json()["detail"]
+
+
+def test_workflow_archived_terminal_returns_422(client, monkeypatch):
+    """Attempting to transition out of archived (terminal) state returns 422."""
+    monkeypatch.setattr("app.lib.db.query",
+        lambda sql, params=(): [{"status": "archived"}])
+    r = client.put("/api/workflow/10",
+                   json={"status": "reviewing", "user_id": "analyst-1"},
+                   headers=HEADERS)
+    assert r.status_code == 422
+    assert "archived" in r.json()["detail"]
 
 
 def test_workflow_sample_not_found(client, monkeypatch):

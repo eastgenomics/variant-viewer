@@ -15,6 +15,7 @@ import asyncio
 import json
 from typing import Any
 
+import psycopg2.extras
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -169,7 +170,7 @@ async def submit_classification(
                         crit.applied,
                         crit.strength,
                         crit.notes,
-                        json.dumps(crit.evidence_links),
+                        psycopg2.extras.Json(crit.evidence_links),
                         crit.pre_computed,
                         crit.pre_computed_value,
                     ),
@@ -215,8 +216,8 @@ async def reset_classification(
     rows = await asyncio.to_thread(
         db.query,
         "SELECT id, variant_id, framework, framework_version "
-        "FROM variant_classification WHERE id = %s AND deleted_at IS NULL",
-        (classification_id,),
+        "FROM variant_classification WHERE id = %s AND variant_id = %s AND deleted_at IS NULL",
+        (classification_id, variant_id),
     )
     if not rows:
         raise HTTPException(status_code=404, detail="Classification not found")

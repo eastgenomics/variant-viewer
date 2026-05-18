@@ -57,9 +57,15 @@ async def update_workflow(sample_id: int, body: WorkflowUpdateRequest) -> dict:
         with conn.cursor() as c:
             c.execute(
                 "UPDATE workflow SET status=%s, updated_at=NOW(), updated_by=%s "
-                "WHERE sample_id=%s",
-                (body.status, body.user_id, sample_id),
+                "WHERE sample_id=%s AND status=%s",
+                (body.status, body.user_id, sample_id, current),
             )
+            if c.rowcount == 0:
+                # Concurrent request changed the status between our SELECT and UPDATE.
+                raise HTTPException(
+                    status_code=409,
+                    detail="Concurrent modification: workflow status changed, please retry",
+                )
             c.execute(
                 "INSERT INTO audit_log "
                 "(user_id, action, entity_type, entity_id, old_value, new_value) "
