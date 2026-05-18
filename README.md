@@ -29,8 +29,8 @@ specification/ Design and build specs for each PR group
 | 2 | Database layer (db.py, models.py) | Merged |
 | 3 | VCF parser + FHIR manifest | Merged |
 | 4 | Classification engine + pre-compute criteria | Merged |
-| 5 | Lambda ingest pipeline + cyvcf2 migration | In review (PR #24) |
-| 6 | Auth middleware + read-only API routes | In review (PR #25) |
+| 5 | Lambda ingest pipeline + cyvcf2 migration | Merged |
+| 6 | Auth middleware + read-only API routes | Merged |
 | 7 | Write API routes (classification, workflow, upload) | Pending |
 | 8–11 | React SPA frontend | Pending |
 | 12 | Infrastructure (Dockerfile, ECS, Lambda runtime) | Pending |
