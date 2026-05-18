@@ -34,6 +34,12 @@ def _manifest_key(vcf_key: str) -> str:
 @router.post("/ingest")
 async def manual_ingest(body: IngestRequest) -> dict:
     """Trigger an ingest for a VCF already uploaded to S3."""
+    if not _VCF_RE.search(body.vcf_s3_key):
+        raise HTTPException(
+            status_code=400,
+            detail=f"vcf_s3_key must end with .vcf or .vcf.gz: {body.vcf_s3_key!r}",
+        )
+
     bucket = os.environ.get("VCF_BUCKET_NAME")
     if not bucket:
         raise HTTPException(status_code=500, detail="VCF_BUCKET_NAME not configured")

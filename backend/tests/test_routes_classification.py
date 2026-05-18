@@ -145,3 +145,12 @@ def test_classify_reset_not_found(client, monkeypatch):
     r = client.request("DELETE", "/api/variants/100/classification/999",
                         json={"user_id": "analyst-1"}, headers=HEADERS)
     assert r.status_code == 404
+
+
+def test_classify_unknown_framework_returns_422(client, monkeypatch):
+    """Sending an unknown framework value must return 422 from Pydantic validation."""
+    r = client.post("/api/variants/100/classify",
+                    json={"criteria": [], "framework": "unknown_framework",
+                          "combination_rules": []},
+                    headers=HEADERS)
+    assert r.status_code == 422

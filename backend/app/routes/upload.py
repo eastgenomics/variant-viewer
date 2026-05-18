@@ -49,15 +49,16 @@ async def get_upload_url(body: UploadUrlRequest) -> UploadUrlResponse:
             detail="vcf_filename must not contain '/' or '..'",
         )
 
-    bucket = os.environ.get("VCF_BUCKET_NAME")
-    if not bucket:
-        raise HTTPException(status_code=500, detail="VCF_BUCKET_NAME not configured")
-
     if body.run_date is not None and not _DATE_RE.match(body.run_date):
         raise HTTPException(
             status_code=400,
             detail=f"run_date must be YYYY-MM-DD, got {body.run_date!r}",
         )
+
+    bucket = os.environ.get("VCF_BUCKET_NAME")
+    if not bucket:
+        raise HTTPException(status_code=500, detail="VCF_BUCKET_NAME not configured")
+
     date_prefix = body.run_date or datetime.today().strftime("%Y-%m-%d")
     vcf_key = f"runs/{date_prefix}/{safe_filename}"
     manifest_key = _VCF_RE.sub(".manifest.json", vcf_key)
