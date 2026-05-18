@@ -53,10 +53,7 @@ def test_classify_persist_locks_classification(client, monkeypatch):
     """PUT /classification persists and locks the record."""
     monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [
         {"id": 100, "case_type": "germline", "gene": "BRCA1"}
-    ] if "FROM variants" in sql else [
-        {"id": 50, "framework": "acgs_snv", "framework_version": "ACGS 2024",
-         "score": None, "classification": None, "locked_at": None, "locked_by": None}
-    ] if "variant_classification" in sql else [])
+    ] if "FROM variants" in sql else [])
 
     inserted: list[str] = []
 
@@ -87,9 +84,7 @@ def test_classify_persist_soft_deletes_existing(client, monkeypatch):
     """PUT /classification soft-deletes any existing active classification first."""
     monkeypatch.setattr("app.lib.db.query", lambda sql, params=(): [
         {"id": 100, "case_type": "germline", "gene": "BRCA1"}
-    ] if "FROM variants" in sql else [
-        {"id": 50}   # existing active classification
-    ] if "variant_classification" in sql else [])
+    ] if "FROM variants" in sql else [])
 
     executed: list[str] = []
 
