@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR 28 — Write API Routes · Part 4: Line-by-line reference</title>
+<style>
+  :root{--ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;--line:#e0e7ef;--line-strong:#c5d0db;--bg:#f7f9fb;--paper:#ffffff;--accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;--green:#1a6e47;--green-soft:#e0f0e8;--amber:#b35c00;--amber-soft:#fdf0e0;--red:#9b2335;--red-soft:#fce8ea;--purple:#4b2d8e;--purple-soft:#ede8f8;--shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08)}
+  *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent-mid);text-decoration:none}a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}@media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  p{margin-bottom:13px;color:var(--ink-soft)}strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}.hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}.callout.green{border-color:#a8d4bb;background:var(--green-soft)}.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}.callout.green .tag{color:var(--green)}.callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .acb{margin:20px 0 32px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .acb-header{background:var(--accent-deep);padding:10px 16px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  .acb-fn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#fff;font-weight:700}
+  .acb-desc{font-size:12px;color:#a8c8e8}
+  .acb-code{background:#1e2d3d;overflow-x:auto}
+  .acb-code pre{color:#cdd9e5;font:12.5px/1.9 ui-monospace,Menlo,Consolas,monospace;margin:0;padding:16px 20px;white-space:pre}
+  .acb-annos{border-top:2px solid #2d4a63}
+  .anno-row{display:grid;grid-template-columns:44px 1fr;border-bottom:1px solid var(--line)}
+  .anno-row:last-child{border-bottom:none}
+  .anno-num{background:#f0f4f8;border-right:1px solid var(--line);display:flex;align-items:flex-start;justify-content:center;padding:14px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--accent-deep)}
+  .anno-txt{padding:12px 16px;font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+  .anno-txt strong{color:var(--ink)}.anno-txt code{font-size:12.5px}
+  .c{color:#6e9cbf}.k{color:#79b8ff}.s{color:#9ecbff}.n2{color:#b392f0}.f{color:#85e89d}.t{color:#ffab70}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR 28 WRITE API<br>18 May 2026</div>
+  <div class="toc-section">Part 4 of 4</div>
+  <ul>
+    <li><a href="#get-upload-url">16 get_upload_url</a></li>
+    <li><a href="#manual-ingest">17 manual_ingest · _do</a></li>
+    <li><a href="#update-workflow">18 update_workflow</a></li>
+    <li><a href="#submit-classification">19 submit_classification · _do</a></li>
+  </ul>
+  <div class="meta">Part 4 of 4<br>Continued from Part 3</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Code Review Briefing · variant-viewer backend</div>
+  <h1>PR 28 — Write API Routes</h1>
+  <p class="sub">Dense line-by-line annotations for the four most complex functions — answering why each line is written the way it is — Part 4 of 4: Line-by-line reference.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 18 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> #28 · feat/pr7-write-api</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260518_PR28_Write_API_Part1.html">1 · High-level outline</a>
+  <a href="260518_PR28_Write_API_Part2.html">2 · Key concepts</a>
+  <a href="260518_PR28_Write_API_Part3.html">3 · Function walkthrough</a>
+  <a href="260518_PR28_Write_API_Part4.html" class="current">4 · Line-by-line reference</a>
+</div>
+
+<!-- 16 ─────────────────────────────────────────────────── -->
+<section id="get-upload-url">
+  <h2><span class="sec-num">16</span> get_upload_url — validation chain</h2>
+  <p>Selected because the validation logic has a deliberate ordering that is not obvious from reading the code alone. Each guard protects a different thing, and their order matters.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">get_upload_url</span>
+      <span class="acb-desc">upload.py · lines 37–82 · POST /api/upload-url</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">@router</span>.post(<span class="s">"/upload-url"</span>, response_model=<span class="t">UploadUrlResponse</span>)
+<span class="k">async def</span> <span class="f">get_upload_url</span>(body: <span class="t">UploadUrlRequest</span>) -> <span class="t">UploadUrlResponse</span>:
+    <span class="k">if not</span> _VCF_RE.search(body.vcf_filename):           <span class="c"># ①</span>
+        <span class="k">raise</span> HTTPException(status_code=<span class="n2">400</span>, ...)
+
+    safe_filename = body.vcf_filename                    <span class="c"># ②</span>
+    <span class="k">if</span> <span class="s">"/"</span> <span class="k">in</span> safe_filename <span class="k">or</span> <span class="s">".."</span> <span class="k">in</span> safe_filename:  <span class="c"># ③</span>
+        <span class="k">raise</span> HTTPException(status_code=<span class="n2">400</span>, ...)
+
+    <span class="k">if</span> body.run_date <span class="k">is not None</span>:                       <span class="c"># ④</span>
+        <span class="k">try</span>:
+            datetime.strptime(body.run_date, <span class="s">"%Y-%m-%d"</span>)
+        <span class="k">except</span> ValueError:
+            <span class="k">raise</span> HTTPException(status_code=<span class="n2">400</span>, ...)
+
+    bucket = os.environ.get(<span class="s">"VCF_BUCKET_NAME"</span>)         <span class="c"># ⑤</span>
+    <span class="k">if not</span> bucket:
+        <span class="k">raise</span> HTTPException(status_code=<span class="n2">500</span>, ...)
+
+    date_prefix = body.run_date <span class="k">or</span> datetime.today().strftime(<span class="s">"%Y-%m-%d"</span>)  <span class="c"># ⑥</span>
+    vcf_key = <span class="s">f"runs/{date_prefix}/{safe_filename}"</span>      <span class="c"># ⑦</span>
+    manifest_key = _VCF_RE.sub(<span class="s">".manifest.json"</span>, vcf_key)  <span class="c"># ⑧</span>
+
+    region = os.environ.get(<span class="s">"AWS_REGION"</span>, <span class="s">"eu-west-2"</span>)
+    s3 = boto3.client(<span class="s">"s3"</span>, region_name=region)         <span class="c"># ⑨</span>
+
+    vcf_url = s3.generate_presigned_url(                 <span class="c"># ⑩</span>
+        <span class="s">"put_object"</span>,
+        Params={<span class="s">"Bucket"</span>: bucket, <span class="s">"Key"</span>: vcf_key},
+        ExpiresIn=<span class="n2">3600</span>,
+    )
+    manifest_url = s3.generate_presigned_url(            <span class="c"># ⑪</span>
+        <span class="s">"put_object"</span>,
+        Params={<span class="s">"Bucket"</span>: bucket, <span class="s">"Key"</span>: manifest_key},
+        ExpiresIn=<span class="n2">3600</span>,
+    )
+    <span class="k">return</span> UploadUrlResponse(                            <span class="c"># ⑫</span>
+        vcf_url=vcf_url, manifest_url=manifest_url,
+        vcf_key=vcf_key, manifest_key=manifest_key,
+        expires_in=<span class="n2">3600</span>,
+    )</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Extension guard (400).</strong> <code>_VCF_RE = re.compile(r"\.vcf(\.gz)?$")</code> was compiled once at module load time. Using <code>.search()</code> rather than <code>.match()</code> finds the pattern anywhere in the string, including after a path prefix — but at this point the filename should not have a path, which is enforced by check ③.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Alias before mutation.</strong> <code>safe_filename</code> is assigned as a local name for the validated filename. The alias makes the intent explicit: from this point, only <code>safe_filename</code> should be used in key construction. Using <code>body.vcf_filename</code> later would be a bug — the alias is a named contract.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Path traversal guard (400).</strong> Without this check, a client could send <code>vcf_filename: "../secret.vcf.gz"</code>, which would produce S3 key <code>runs/2024-11-05/../secret.vcf.gz</code>. S3 resolves this to <code>runs/secret.vcf.gz</code>, escaping the <code>runs/{date}/</code> namespace and potentially overwriting another object. Rejecting <code>/</code> and <code>..</code> prevents this entirely.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Calendar-valid date check (400).</strong> <code>datetime.strptime(run_date, "%Y-%m-%d")</code> validates both format and calendar: it raises <code>ValueError</code> for <code>"2024-13-45"</code> (month 13 does not exist) where a regex like <code>\d{4}-\d{2}-\d{2}</code> would not. The date object returned is immediately discarded — we only call this to validate. This check runs before the bucket env-var check so a client with a bad date always gets 400, not 500.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>Bucket guard (500).</strong> This is a server configuration error, not a client error — hence 500 not 400. It is checked after all input validation so a bad client request always gets a client error regardless of server state. If it were checked first, a misconfigured server would return 500 even for requests with invalid filenames, hiding the true client error.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>Date prefix fallback.</strong> <code>body.run_date or datetime.today().strftime("%Y-%m-%d")</code> — if the client provided a date (and it passed check ④), use it; otherwise default to today. <code>datetime.today()</code> uses server local time — acceptable here since the date prefix is only organisational, not a precise timestamp.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>Key construction uses safe_filename, not body.vcf_filename.</strong> This is the consequence of the alias at ②. Using <code>body.vcf_filename</code> here would be correct in practice (since a filename with <code>/</code> or <code>..</code> would have been rejected at ③), but it would be semantically wrong — the convention is clear: after the alias is created, only the alias may be used.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong>Manifest key derivation.</strong> <code>_VCF_RE.sub(".manifest.json", vcf_key)</code> replaces the VCF extension in the <em>full key string</em>, not just the filename. So <code>runs/2024-11-05/sample.vcf.gz</code> becomes <code>runs/2024-11-05/sample.manifest.json</code>. Because <code>vcf_key</code> was constructed from <code>safe_filename</code> (already validated to end with <code>.vcf</code> or <code>.vcf.gz</code>), the substitution is guaranteed to match exactly once.</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>S3 client created per request.</strong> <code>boto3.client("s3")</code> is not cached globally — a new client is created on each call. This is intentional: in a Lambda context, boto3 clients are lightweight and may need refreshed credentials from the instance metadata service. For long-running ECS tasks, caching would be a minor optimisation, but correctness comes first.</div></div>
+      <div class="anno-row"><div class="anno-num">⑩</div><div class="anno-txt"><strong>Presigned PUT URL for VCF.</strong> <code>"put_object"</code> is the S3 API operation name. The URL will grant the bearer permission to PUT exactly the object at <code>Key</code> in <code>Bucket</code>. The bearer needs no AWS credentials. After <code>ExpiresIn=3600</code> seconds, the URL becomes invalid and S3 will reject it with a 403.</div></div>
+      <div class="anno-row"><div class="anno-num">⑪</div><div class="anno-txt"><strong>Presigned PUT URL for manifest.</strong> A second signed URL is generated for the companion <code>.manifest.json</code> file. The Lambda ingest trigger and the manual ingest route both expect VCF and manifest to co-exist in S3 — providing both URLs in one response is essential so the client can upload both files before triggering ingest.</div></div>
+      <div class="anno-row"><div class="anno-num">⑫</div><div class="anno-txt"><strong>Return both keys alongside the URLs.</strong> The keys are returned even though the client could theoretically extract them from the URL. Returning them explicitly decouples the client from URL structure and makes the subsequent <code>POST /api/ingest</code> call straightforward: the client passes <code>vcf_key</code> directly as <code>vcf_s3_key</code>.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 17 ─────────────────────────────────────────────────── -->
+<section id="manual-ingest">
+  <h2><span class="sec-num">17</span> manual_ingest — _do closure &amp; exception handling</h2>
+  <p>Selected because the <code>_do</code> closure and exception chain are the two patterns a reviewer is most likely to question.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">manual_ingest · _do closure</span>
+      <span class="acb-desc">ingest.py · lines 36–73 · POST /api/ingest</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">@router</span>.post(<span class="s">"/ingest"</span>)
+<span class="k">async def</span> <span class="f">manual_ingest</span>(body: <span class="t">IngestRequest</span>) -> dict:
+    <span class="k">if not</span> _VCF_RE.search(body.vcf_s3_key):              <span class="c"># ①</span>
+        <span class="k">raise</span> HTTPException(status_code=<span class="n2">400</span>, ...)
+
+    bucket = os.environ.get(<span class="s">"VCF_BUCKET_NAME"</span>)
+    <span class="k">if not</span> bucket:
+        <span class="k">raise</span> HTTPException(status_code=<span class="n2">500</span>, ...)      <span class="c"># ②</span>
+
+    s3 = boto3.client(<span class="s">"s3"</span>, region_name=region)
+    manifest_key = _manifest_key(body.vcf_s3_key)        <span class="c"># ③</span>
+
+    <span class="k">def</span> <span class="f">_do</span>(conn):                                        <span class="c"># ④</span>
+        sample_id = ingest_sample(                        <span class="c"># ⑤</span>
+            body.vcf_s3_key, manifest_key, bucket, s3, conn
+        )
+        <span class="k">with</span> conn.cursor() <span class="k">as</span> c:                         <span class="c"># ⑥</span>
+            c.execute(
+                <span class="s">"INSERT INTO audit_log (...) VALUES (%s,'ingest','sample',%s,NULL,NULL)"</span>,
+                (body.user_id, sample_id),
+            )
+        <span class="k">return</span> sample_id                                  <span class="c"># ⑦</span>
+
+    <span class="k">try</span>:
+        sample_id = <span class="k">await</span> asyncio.to_thread(             <span class="c"># ⑧</span>
+            db.run_in_transaction, _do
+        )
+        <span class="k">return</span> {<span class="s">"sample_id"</span>: sample_id}
+    <span class="k">except</span> DuplicateSubmissionError <span class="k">as</span> exc:              <span class="c"># ⑨</span>
+        <span class="k">raise</span> HTTPException(<span class="n2">409</span>, ...) <span class="k">from</span> exc
+    <span class="k">except</span> psycopg2.errors.UniqueViolation <span class="k">as</span> exc:       <span class="c"># ⑩</span>
+        <span class="k">raise</span> HTTPException(<span class="n2">409</span>, ...) <span class="k">from</span> exc
+    <span class="k">except</span> ValueError <span class="k">as</span> exc:                             <span class="c"># ⑪</span>
+        <span class="k">raise</span> HTTPException(<span class="n2">400</span>, detail=str(exc)) <span class="k">from</span> exc</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Route-level key guard.</strong> Validates the S3 key before any network call. Without this, a key like <code>runs/2024/sample.bam</code> would pass to <code>_manifest_key()</code>, which would return the input unchanged (no regex match), producing a manifest key identical to the VCF key — a silent and confusing error deep in <code>ingest_sample</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Bucket guard after key check.</strong> Input validation (①) runs first. A request with a non-VCF key always returns 400, not 500 — the server configuration problem is not visible to a client that also sent an invalid request.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>_manifest_key called after guard ①.</strong> This is only safe because guard ① has already confirmed the key ends with <code>.vcf</code> or <code>.vcf.gz</code>. See Part 3 for why this ordering is important.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>_do closure captures outer scope.</strong> <code>_do</code> is an inner function. It captures <code>body</code>, <code>manifest_key</code>, <code>bucket</code>, and <code>s3</code> from the enclosing <code>manual_ingest</code> scope automatically. No arguments need to be passed explicitly — the closure mechanism handles it. The only argument <code>_do</code> receives is <code>conn</code>, supplied by <code>run_in_transaction</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>ingest_sample owns the heavy work.</strong> This function (from PR 5) downloads both S3 files to a temp directory, validates the manifest against the JSON schema, parses the FHIR bundle, checks idempotency, parses the VCF with cyvcf2, and writes all DB rows — all using the supplied <code>conn</code>. It does not commit; that happens in <code>with_transaction</code> after <code>_do</code> returns.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>Audit INSERT in the same transaction.</strong> The cursor is opened on the same <code>conn</code> connection that <code>ingest_sample</code> used. All SQL statements on the same connection share the same transaction. If <code>ingest_sample</code> inserted 200 variant rows and then the audit INSERT failed, <code>with_transaction</code> would roll back all 201 writes atomically.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>Return value propagated.</strong> <code>run_in_transaction(fn)</code> returns whatever <code>fn(conn)</code> returns. <code>_do</code> returns <code>sample_id</code>, which surfaces as the return value of <code>await asyncio.to_thread(db.run_in_transaction, _do)</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong>asyncio.to_thread offloads blocking I/O.</strong> <code>db.run_in_transaction</code> (and <code>ingest_sample</code> inside it) make synchronous network calls to S3 and synchronous DB calls via psycopg2. Running them on a thread prevents the event loop from stalling. The <code>await</code> keyword suspends <code>manual_ingest</code> until the thread finishes, then resumes with the return value.</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>DuplicateSubmissionError → 409.</strong> <code>ingest_sample</code> calls an idempotency check early in its flow. If the same VCF has been ingested before (exact or near-duplicate), it raises this custom exception. <code>raise ... from exc</code> sets <code>exc.__cause__</code> on the new <code>HTTPException</code>, which means the original stack trace is preserved in logs even though a different exception is raised to FastAPI.</div></div>
+      <div class="anno-row"><div class="anno-num">⑩</div><div class="anno-txt"><strong>UniqueViolation → 409 (TOCTOU race).</strong> There is a time window between the idempotency check (SELECT) and the INSERT where a concurrent request could slip through and create the same row first. The second request then hits a PostgreSQL UNIQUE constraint violation. Mapping this to 409 (not 500) ensures the client sees a retryable conflict, not an internal error.</div></div>
+      <div class="anno-row"><div class="anno-num">⑪</div><div class="anno-txt"><strong>ValueError → 400.</strong> <code>ingest_sample</code> raises <code>ValueError</code> for bad manifest JSON, missing required fields, or unsupported VCF format. The detail message from the original exception is forwarded to the client — it is safe to expose because it comes from the validation layer, not from internal infrastructure.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 18 ─────────────────────────────────────────────────── -->
+<section id="update-workflow">
+  <h2><span class="sec-num">18</span> update_workflow — optimistic locking in full</h2>
+  <p>Selected because the two-phase read-then-conditional-update pattern is the subtlest piece of logic in the PR, and the sentinel exception pattern is worth examining closely.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">update_workflow</span>
+      <span class="acb-desc">workflow.py · lines 41–85 · PUT /api/workflow/{sample_id}</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">@router</span>.put(<span class="s">"/{sample_id}"</span>)
+<span class="k">async def</span> <span class="f">update_workflow</span>(sample_id: <span class="t">int</span>, body: <span class="t">WorkflowUpdateRequest</span>) -> dict:
+    rows = <span class="k">await</span> asyncio.to_thread(                     <span class="c"># ①</span>
+        db.query,
+        <span class="s">"SELECT status FROM workflow WHERE sample_id = %s"</span>,
+        (sample_id,),
+    )
+    <span class="k">if not</span> rows:                                          <span class="c"># ②</span>
+        <span class="k">raise</span> HTTPException(status_code=<span class="n2">404</span>, ...)
+
+    current: str = rows[<span class="n2">0</span>][<span class="s">"status"</span>]                    <span class="c"># ③</span>
+    <span class="k">if</span> body.status <span class="k">not in</span> VALID_TRANSITIONS.get(current, []):  <span class="c"># ④</span>
+        <span class="k">raise</span> HTTPException(status_code=<span class="n2">422</span>, detail=<span class="s">f"Invalid transition: {current} → {body.status}"</span>)
+
+    <span class="k">def</span> <span class="f">_do</span>(conn) -> <span class="t">None</span>:
+        <span class="k">with</span> conn.cursor() <span class="k">as</span> c:
+            c.execute(                                    <span class="c"># ⑤</span>
+                <span class="s">"UPDATE workflow SET status=%s, updated_at=NOW(), updated_by=%s "</span>
+                <span class="s">"WHERE sample_id=%s AND status=%s"</span>,
+                (body.status, body.user_id, sample_id, current),
+            )
+            <span class="k">if</span> c.rowcount == <span class="n2">0</span>:                          <span class="c"># ⑥</span>
+                <span class="k">raise</span> _ConcurrentModification()
+            c.execute(                                    <span class="c"># ⑦</span>
+                <span class="s">"INSERT INTO audit_log (...) VALUES (%s,%s,%s,%s,%s,%s)"</span>,
+                (body.user_id, <span class="s">"update_workflow"</span>, <span class="s">"workflow"</span>,
+                 sample_id, json.dumps({<span class="s">"status"</span>: current}),
+                 json.dumps({<span class="s">"status"</span>: body.status})),
+            )
+
+    <span class="k">try</span>:
+        <span class="k">await</span> asyncio.to_thread(db.run_in_transaction, _do)  <span class="c"># ⑧</span>
+    <span class="k">except</span> _ConcurrentModification:                       <span class="c"># ⑨</span>
+        <span class="k">raise</span> HTTPException(status_code=<span class="n2">409</span>, detail=<span class="s">"Concurrent modification..."</span>)
+    <span class="k">return</span> {<span class="s">"sample_id"</span>: sample_id, <span class="s">"status"</span>: body.status}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Read current status outside the transaction.</strong> <code>db.query</code> is a read-only SELECT that does not hold a row lock. This is intentional — holding a lock here would block concurrent readers for the duration of the entire request handling. The tradeoff is that a concurrent writer could change the status between this read and the UPDATE (which is why the optimistic lock at ⑤–⑥ exists).</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>404 for unknown sample.</strong> An empty result means the sample ID does not exist in the workflow table. This is a client error (wrong ID), not a server error — hence 404 not 500.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>current is captured by closure.</strong> <code>current</code> is assigned here in the outer function scope. It is later referenced inside <code>_do</code> (lines ⑤ and ⑦) via Python's closure mechanism — <code>_do</code> captures the variable by reference at definition time. Since <code>current</code> is never reassigned after this line, the closure sees the value read at ①.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>State machine check before opening a transaction.</strong> The transition validity check runs synchronously in the event loop, before any DB write is attempted. This avoids opening a transaction for a request that will definitely fail. <code>VALID_TRANSITIONS.get(current, [])</code> handles the edge case where <code>current</code> is an unrecognised status by returning an empty list (all transitions invalid) rather than raising <code>KeyError</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>Optimistic lock: AND status=%s in WHERE clause.</strong> The UPDATE will only affect a row if <code>sample_id</code> matches AND the current <code>status</code> still matches what was read at ①. If another request changed the status between ① and this UPDATE, the WHERE clause will not match any row, and the UPDATE will be a no-op. This is the "optimistic" part — we do not prevent the race; we detect it after the fact.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>rowcount == 0 means the race was lost.</strong> psycopg2 sets <code>cursor.rowcount</code> to the number of rows affected by the most recent DML statement. Zero means the WHERE clause matched nothing. The only way this happens (given we already verified the row exists at ②) is that the status changed between ① and ⑤. <code>_ConcurrentModification</code> is raised to signal this — it is a private exception class, not <code>HTTPException</code>, to keep the DB callback layer-clean.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>Audit INSERT only after successful UPDATE.</strong> The audit log INSERT runs only if the rowcount check at ⑥ passes. If the audit INSERT were placed before the rowcount check, it would be rolled back by the <code>_ConcurrentModification</code> exception anyway (since the whole transaction rolls back), but placing it after makes the intention explicit: we audit only confirmed changes.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong>_do is passed as a callable, not called.</strong> <code>asyncio.to_thread(db.run_in_transaction, _do)</code> — <code>_do</code> is not invoked here; it is passed as an argument. <code>run_in_transaction</code> calls <code>_do(conn)</code> on the background thread after opening a connection. A common mistake is accidentally writing <code>asyncio.to_thread(db.run_in_transaction(_do))</code>, which would call <code>_do</code> before the thread starts.</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>_ConcurrentModification is caught here, not inside _do.</strong> The exception propagates out of <code>_do</code>, through <code>run_in_transaction</code> (which rolls back the transaction and re-raises), through <code>asyncio.to_thread</code> (which re-raises on the event loop), and is caught here. At this point we are back in FastAPI's context and it is appropriate to raise <code>HTTPException</code>.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 19 ─────────────────────────────────────────────────── -->
+<section id="submit-classification">
+  <h2><span class="sec-num">19</span> submit_classification — the _do transaction body</h2>
+  <p>Selected because the <code>_do</code> closure performs four distinct SQL operations and the ordering and dependency between them is non-obvious.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">submit_classification · _do</span>
+      <span class="acb-desc">classification.py · lines 100–175 · PUT /api/variants/{id}/classification</span>
+    </div>
+    <div class="acb-code"><pre><span class="c"># Before _do — runs in the event loop (async, non-blocking)</span>
+variant_rows = <span class="k">await</span> asyncio.to_thread(db.query,         <span class="c"># ①</span>
+    <span class="s">"SELECT id, case_type, gene FROM variants WHERE id = %s"</span>, (variant_id,))
+<span class="k">if not</span> variant_rows:
+    <span class="k">raise</span> HTTPException(status_code=<span class="n2">404</span>, detail=<span class="s">"Variant not found"</span>)
+
+result = classify(                                         <span class="c"># ②</span>
+    _build_criteria(body.criteria),
+    body.framework,
+    _build_rules(body.combination_rules),
+)
+framework_version = get_framework_version(body.framework)  <span class="c"># ③</span>
+
+<span class="k">def</span> <span class="f">_do</span>(conn) -> <span class="t">int</span>:
+    <span class="k">with</span> conn.cursor() <span class="k">as</span> c:
+        c.execute(                                         <span class="c"># ④</span>
+            <span class="s">"UPDATE variant_classification SET deleted_at=NOW() "</span>
+            <span class="s">"WHERE variant_id=%s AND deleted_at IS NULL"</span>,
+            (variant_id,),
+        )
+        c.execute(                                         <span class="c"># ⑤</span>
+            <span class="s">"INSERT INTO variant_classification "</span>
+            <span class="s">"(variant_id, framework, framework_version, score, "</span>
+            <span class="s">" classification, locked_at, locked_by) "</span>
+            <span class="s">"VALUES (%s,%s,%s,%s,%s,NOW(),%s) RETURNING id"</span>,
+            (variant_id, body.framework, framework_version,
+             result.score, result.classification, body.locked_by),
+        )
+        classification_id: int = c.fetchone()[<span class="n2">0</span>]           <span class="c"># ⑥</span>
+
+        <span class="k">for</span> crit <span class="k">in</span> body.criteria:                         <span class="c"># ⑦</span>
+            c.execute(
+                <span class="s">"INSERT INTO classification_criterion (...) VALUES (...)"</span>,
+                (..., psycopg2.extras.Json(crit.evidence_links), ...),  <span class="c"># ⑧</span>
+            )
+
+        c.execute(                                         <span class="c"># ⑨</span>
+            <span class="s">"INSERT INTO audit_log (...) VALUES (%s,'classify','classification',%s,NULL,%s)"</span>,
+            (body.user_id, classification_id,
+             json.dumps({<span class="s">"score"</span>: result.score,
+                          <span class="s">"classification"</span>: result.classification,
+                          <span class="s">"framework"</span>: body.framework})),
+        )
+    <span class="k">return</span> classification_id                               <span class="c"># ⑩</span>
+
+classification_id = <span class="k">await</span> asyncio.to_thread(db.run_in_transaction, _do)</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Variant existence check before the transaction.</strong> The SELECT runs outside <code>_do</code>, before any transaction is opened. If the variant does not exist, we return 404 immediately without touching the DB write path. Checking inside <code>_do</code> would work but would acquire a connection from the pool unnecessarily for every 404 request.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>classify() runs before the transaction.</strong> The classification engine is a pure function — no I/O, no side effects. It is called synchronously in the event loop before <code>asyncio.to_thread</code>. If the engine raises (e.g. unrecognised criterion code), the transaction never opens. Separating scoring from persistence also means the score-only endpoint (<code>POST /classify</code>) and this endpoint share the exact same engine call.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>framework_version resolved before _do.</strong> <code>get_framework_version()</code> maps <code>"acgs_snv"</code> to <code>"ACGS 2024 Best Practice Guidelines"</code> etc. It is called here (outside <code>_do</code>) so the value is available as a closure variable. The <code>framework_version</code> column is NOT NULL in the schema — if this call returned <code>None</code> (it does not, but defensively), the INSERT at ⑤ would raise a constraint violation.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Soft-delete existing active classification.</strong> <code>WHERE deleted_at IS NULL</code> targets only the current active record. If there is no active classification (first submission for this variant), the UPDATE affects zero rows — which is fine, not an error. This must happen before ⑤ so there is never more than one active classification per variant at any point in the transaction.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>INSERT with RETURNING id.</strong> PostgreSQL's <code>RETURNING id</code> clause returns the auto-generated primary key in the result set of the INSERT statement — as if it were a SELECT. Without <code>RETURNING</code>, you would need a separate <code>SELECT lastval()</code> or <code>SELECT currval('seq')</code> call, which is less reliable in concurrent environments.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>fetchone()[0] extracts the returned ID.</strong> After an INSERT with <code>RETURNING id</code>, psycopg2 makes the result available via the cursor's standard fetch methods. <code>fetchone()</code> returns the single result row as a tuple; <code>[0]</code> extracts the first (and only) column value. This ID is then used in ⑦ and ⑨ to link criteria and the audit entry to the correct classification record.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>One INSERT per criterion.</strong> Each criterion in <code>body.criteria</code> gets its own row in <code>classification_criterion</code>. The loop runs synchronously inside <code>_do</code> on the background thread — all N INSERTs share the same cursor and transaction. If any INSERT fails (e.g. a constraint violation), all previous criterion INSERTs and the classification INSERT at ⑤ are rolled back.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong>psycopg2.extras.Json() for the JSONB column.</strong> <code>crit.evidence_links</code> is a Python <code>list[str]</code>. Without the <code>Json()</code> wrapper, psycopg2 would attempt to bind it as a PostgreSQL ARRAY type, which is incompatible with a <code>JSONB</code> column. <code>Json()</code> serialises the list to a JSON string, which PostgreSQL accepts and stores as JSONB.</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>Audit log records the scoring outcome, not just the action.</strong> The <code>new_value</code> JSON includes <code>score</code>, <code>classification</code>, and <code>framework</code> — not just the fact that a classification was submitted. This makes the audit trail self-contained: a reader can reconstruct what was classified and how, without joining to the <code>variant_classification</code> table.</div></div>
+      <div class="anno-row"><div class="anno-num">⑩</div><div class="anno-txt"><strong>Return value propagated all the way to the HTTP response.</strong> <code>_do</code> returns <code>classification_id</code> → <code>run_in_transaction</code> returns it → <code>asyncio.to_thread</code> resolves to it → assigned to <code>classification_id</code> in the outer handler → included in the JSON response body. This chain is the mechanism by which a value created inside a background thread ends up in the HTTP response.</div></div>
+    </div>
+  </div>
+
+  <div class="series-nav">
+    <a href="260518_PR28_Write_API_Part1.html">1 · High-level outline</a>
+    <a href="260518_PR28_Write_API_Part2.html">2 · Key concepts</a>
+    <a href="260518_PR28_Write_API_Part3.html">3 · Function walkthrough</a>
+    <a href="260518_PR28_Write_API_Part4.html" class="current">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+<footer>
+  PR 28 Write API Routes — Code Review Briefing · Author: Joo Wook Ahn · 18 May 2026 · Source: eastgenomics/variant-viewer commit be5c577. End of series.
+</footer>
+</body>
+</html>
