@@ -90,6 +90,23 @@ def test_upload_url_rejects_semantically_invalid_run_date(client, monkeypatch):
     assert r.status_code == 400
 
 
+def test_upload_url_missing_bucket_returns_500(client):
+    """VCF_BUCKET_NAME not set → 500 before any S3 call."""
+    r = client.post("/api/upload-url",
+                    json={"vcf_filename": "sample.vcf.gz"},
+                    headers=HEADERS)
+    assert r.status_code == 500
+    assert "VCF_BUCKET_NAME" in r.json()["detail"]
+
+
+def test_ingest_missing_bucket_returns_500(client):
+    """VCF_BUCKET_NAME not set → 500 before any S3/DB work."""
+    r = client.post("/api/ingest",
+                    json={"vcf_s3_key": "runs/2024-11-05/s.vcf.gz",
+                          "user_id": "analyst-1"},
+                    headers=HEADERS)
+    assert r.status_code == 500
+    assert "VCF_BUCKET_NAME" in r.json()["detail"]
 
 
 def test_ingest_success(client, monkeypatch):
