@@ -121,7 +121,8 @@ def test_classify_persist_soft_deletes_existing(client, monkeypatch):
         None,
     )
     assert soft_delete is not None, "Soft-delete UPDATE not found"
-    assert soft_delete[1][0] == 100, "Soft-delete WHERE must use variant_id=100"
+    _, soft_delete_params = soft_delete
+    assert soft_delete_params[0] == 100, "Soft-delete WHERE must use variant_id=100"
 
 
 def test_classify_reset_soft_deletes_and_creates_blank(client, monkeypatch):

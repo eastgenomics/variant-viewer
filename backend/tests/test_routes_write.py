@@ -242,10 +242,11 @@ def test_workflow_update_success(client, monkeypatch):
         None,
     )
     assert audit is not None, "Audit INSERT not found"
-    assert audit[1][0] == "analyst-1"                                    # user_id
-    assert audit[1][3] == 10                                             # entity_id (sample_id)
-    assert json.loads(audit[1][4]) == {"status": "pending"}             # old_value
-    assert json.loads(audit[1][5]) == {"status": "reviewing"}           # new_value
+    _, audit_params = audit
+    assert audit_params[0] == "analyst-1"                                    # user_id
+    assert audit_params[3] == 10                                             # entity_id (sample_id)
+    assert json.loads(audit_params[4]) == {"status": "pending"}             # old_value
+    assert json.loads(audit_params[5]) == {"status": "reviewing"}           # new_value
 
 
 def test_workflow_invalid_transition_returns_422(client, monkeypatch):
