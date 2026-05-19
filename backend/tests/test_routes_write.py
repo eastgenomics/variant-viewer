@@ -1,6 +1,8 @@
 """Tests for PR 7 write routes: upload-url, ingest, workflow."""
 import json
+import re
 import pytest
+import psycopg2.errors
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 import app.middleware.auth as auth_module
@@ -54,7 +56,6 @@ def test_upload_url_defaults_run_date_to_today(client, monkeypatch):
                         json={"vcf_filename": "sample.vcf.gz"},
                         headers=HEADERS)
     assert r.status_code == 200
-    import re
     assert re.match(r"runs/\d{4}-\d{2}-\d{2}/", r.json()["vcf_key"])
 
 
@@ -170,7 +171,6 @@ def test_ingest_duplicate_returns_409(client, monkeypatch):
 def test_ingest_unique_violation_returns_409(client, monkeypatch):
     """TOCTOU race: UniqueViolation from DB must map to 409, not 500."""
     monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
-    import psycopg2.errors
     with patch("app.routes.ingest.ingest_sample",
                side_effect=psycopg2.errors.UniqueViolation()):
         with patch("app.lib.db.run_in_transaction", side_effect=lambda fn: fn(MagicMock())):
