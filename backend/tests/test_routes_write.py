@@ -1,4 +1,5 @@
 """Tests for PR 7 write routes: upload-url, ingest, workflow."""
+import json
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
@@ -236,7 +237,6 @@ def test_workflow_update_success(client, monkeypatch):
     assert any("INSERT INTO audit_log" in s for s in sqls)
 
     # Assert audit INSERT carries the correct user_id, sample_id, and status transition
-    import json as _json
     audit = next(
         ((s, p) for s, p in executed_sqls if "INSERT INTO audit_log" in s),
         None,
@@ -244,8 +244,8 @@ def test_workflow_update_success(client, monkeypatch):
     assert audit is not None, "Audit INSERT not found"
     assert audit[1][0] == "analyst-1"                                    # user_id
     assert audit[1][3] == 10                                             # entity_id (sample_id)
-    assert _json.loads(audit[1][4]) == {"status": "pending"}             # old_value
-    assert _json.loads(audit[1][5]) == {"status": "reviewing"}           # new_value
+    assert json.loads(audit[1][4]) == {"status": "pending"}             # old_value
+    assert json.loads(audit[1][5]) == {"status": "reviewing"}           # new_value
 
 
 def test_workflow_invalid_transition_returns_422(client, monkeypatch):

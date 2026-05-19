@@ -82,14 +82,14 @@ def test_classify_persist_locks_classification(client, monkeypatch):
     assert any("INSERT INTO audit_log" in s for s in sqls)
 
     # Assert the classification INSERT carries the correct variant_id, framework, locked_by
-    cls_insert = next(
+    cls_params = next(
         (p for s, p in calls if "INSERT INTO variant_classification" in s and "locked_by" in s),
         None,
     )
-    assert cls_insert is not None, "Classification INSERT not found"
-    assert cls_insert[0] == 100          # variant_id
-    assert cls_insert[1] == "acgs_snv"   # framework
-    assert cls_insert[5] == "analyst-1"  # locked_by
+    assert cls_params is not None, "Classification INSERT not found"
+    assert cls_params[0] == 100          # variant_id
+    assert cls_params[1] == "acgs_snv"   # framework
+    assert cls_params[5] == "analyst-1"  # locked_by
 
 
 def test_classify_persist_soft_deletes_existing(client, monkeypatch):
@@ -131,7 +131,7 @@ def test_classify_reset_soft_deletes_and_creates_blank(client, monkeypatch):
          "framework_version": "ACGS 2024"}
     ] if params == (50, 100) else [])
 
-    executed: list[str] = []
+    calls: list[tuple] = []  # (sql, params) pairs
 
     def fake_transaction(fn):
         mock_conn = MagicMock()
@@ -139,7 +139,8 @@ def test_classify_reset_soft_deletes_and_creates_blank(client, monkeypatch):
         mc.__enter__ = lambda s: s
         mc.__exit__ = MagicMock(return_value=False)
         mc.fetchone.return_value = (51,)
-        mc.execute.side_effect = lambda sql, p=(): executed.append(sql)
+        mc.rowcount = 1
+        mc.execute.side_effect = lambda sql, p=(): calls.append((sql, p))
         mock_conn.cursor.return_value = mc
         return fn(mock_conn)
 
@@ -149,9 +150,25 @@ def test_classify_reset_soft_deletes_and_creates_blank(client, monkeypatch):
                         json={"user_id": "analyst-1"}, headers=HEADERS)
     assert r.status_code == 200
     assert r.json()["new_classification_id"] == 51
-    assert any("deleted_at" in s for s in executed)
-    assert any("INSERT INTO variant_classification" in s for s in executed)
-    assert any("INSERT INTO audit_log" in s for s in executed)
+
+    sqls = [s for s, _ in calls]
+    assert any("deleted_at" in s for s in sqls)
+    assert any("INSERT INTO variant_classification" in s for s in sqls)
+    assert any("INSERT INTO audit_log" in s for s in sqls)
+
+    # Soft-delete targets the correct classification_id
+    soft_delete_params = next(
+        (p for s, p in calls if "deleted_at" in s and "UPDATE" in s), None
+    )
+    assert soft_delete_params is not None, "Soft-delete UPDATE not found"
+    assert soft_delete_params[0] == 50  # classification_id
+
+    # Blank replacement INSERT carries the correct variant_id
+    blank_params = next(
+        (p for s, p in calls if "INSERT INTO variant_classification" in s), None
+    )
+    assert blank_params is not None, "Blank INSERT not found"
+    assert blank_params[0] == 100  # variant_id
 
 
 def test_classify_reset_concurrent_modification_returns_409(client, monkeypatch):
