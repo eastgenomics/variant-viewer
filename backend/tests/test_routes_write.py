@@ -151,8 +151,9 @@ def test_ingest_success(client, monkeypatch):
         None,
     )
     assert audit is not None, "Audit INSERT not found"
-    assert audit[1][0] == "analyst-1"  # user_id
-    assert audit[1][1] == 42           # entity_id (sample_id)
+    _, audit_params = audit
+    assert audit_params[0] == "analyst-1"  # user_id
+    assert audit_params[1] == 42           # entity_id (sample_id)
 
 
 def test_ingest_duplicate_returns_409(client, monkeypatch):
