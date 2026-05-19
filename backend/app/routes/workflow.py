@@ -83,9 +83,9 @@ async def update_workflow(sample_id: int, body: WorkflowUpdateRequest) -> dict:
 
     try:
         await asyncio.to_thread(db.run_in_transaction, _do)
-    except _ConcurrentModification:
+    except _ConcurrentModification as exc:
         raise HTTPException(
             status_code=409,
             detail="Concurrent modification: workflow status changed, please retry",
-        )
+        ) from exc
     return {"sample_id": sample_id, "status": body.status}

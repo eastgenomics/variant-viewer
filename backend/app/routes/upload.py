@@ -51,11 +51,11 @@ async def get_upload_url(body: UploadUrlRequest) -> UploadUrlResponse:
     if body.run_date is not None:
         try:
             datetime.strptime(body.run_date, "%Y-%m-%d")
-        except ValueError:
+        except ValueError as exc:
             raise HTTPException(
                 status_code=400,
                 detail=f"run_date must be a valid YYYY-MM-DD date, got {body.run_date!r}",
-            )
+            ) from exc
 
     bucket = os.environ.get("VCF_BUCKET_NAME")
     if not bucket:

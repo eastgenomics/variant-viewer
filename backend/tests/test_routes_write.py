@@ -90,6 +90,15 @@ def test_upload_url_rejects_semantically_invalid_run_date(client, monkeypatch):
     assert r.status_code == 400
 
 
+def test_upload_url_rejects_impossible_calendar_date(client, monkeypatch):
+    """A date that looks plausible but is impossible (Feb 31) returns 400."""
+    monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
+    r = client.post("/api/upload-url",
+                    json={"vcf_filename": "sample.vcf.gz", "run_date": "2026-02-31"},
+                    headers=HEADERS)
+    assert r.status_code == 400
+
+
 def test_upload_url_missing_bucket_returns_500(client, monkeypatch):
     """VCF_BUCKET_NAME not set → 500 before any S3 call."""
     monkeypatch.delenv("VCF_BUCKET_NAME", raising=False)
@@ -114,14 +123,14 @@ def test_ingest_missing_bucket_returns_500(client, monkeypatch):
 def test_ingest_success(client, monkeypatch):
     monkeypatch.setenv("VCF_BUCKET_NAME", "test-bucket")
 
-    executed_sqls: list[str] = []
+    executed_sqls: list[tuple] = []  # (sql, params) pairs
 
     def mock_transaction(fn):
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
         mock_cursor.__enter__ = lambda s: s
         mock_cursor.__exit__ = MagicMock(return_value=False)
-        mock_cursor.execute.side_effect = lambda sql, p=(): executed_sqls.append(sql)
+        mock_cursor.execute.side_effect = lambda sql, p=(): executed_sqls.append((sql, p))
         mock_conn.cursor.return_value = mock_cursor
         return fn(mock_conn)
 
@@ -133,7 +142,15 @@ def test_ingest_success(client, monkeypatch):
                         headers=HEADERS)
     assert r.status_code == 200
     assert r.json()["sample_id"] == 42
-    assert any("INSERT INTO audit_log" in s for s in executed_sqls)
+
+    # Verify audit INSERT was called with the correct user_id and sample_id
+    audit = next(
+        ((s, p) for s, p in executed_sqls if "INSERT INTO audit_log" in s),
+        None,
+    )
+    assert audit is not None, "Audit INSERT not found"
+    assert audit[1][0] == "analyst-1"  # user_id
+    assert audit[1][1] == 42           # entity_id (sample_id)
 
 
 def test_ingest_duplicate_returns_409(client, monkeypatch):
@@ -194,14 +211,15 @@ def test_workflow_update_success(client, monkeypatch):
     monkeypatch.setattr("app.lib.db.query",
         lambda sql, params=(): [{"status": "pending"}] if "SELECT" in sql else [])
 
-    executed_sqls: list[str] = []
+    executed_sqls: list[tuple] = []  # (sql, params) pairs
 
     def fake_transaction(fn):
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
         mock_cursor.__enter__ = lambda s: s
         mock_cursor.__exit__ = MagicMock(return_value=False)
-        mock_cursor.execute.side_effect = lambda sql, p=(): executed_sqls.append(sql)
+        mock_cursor.rowcount = 1
+        mock_cursor.execute.side_effect = lambda sql, p=(): executed_sqls.append((sql, p))
         mock_conn.cursor.return_value = mock_cursor
         return fn(mock_conn)
 
@@ -212,8 +230,22 @@ def test_workflow_update_success(client, monkeypatch):
                    headers=HEADERS)
     assert r.status_code == 200
     assert r.json()["status"] == "reviewing"
-    assert any("UPDATE workflow" in s for s in executed_sqls)
-    assert any("INSERT INTO audit_log" in s for s in executed_sqls)
+
+    sqls = [s for s, _ in executed_sqls]
+    assert any("UPDATE workflow" in s for s in sqls)
+    assert any("INSERT INTO audit_log" in s for s in sqls)
+
+    # Assert audit INSERT carries the correct user_id, sample_id, and status transition
+    import json as _json
+    audit = next(
+        ((s, p) for s, p in executed_sqls if "INSERT INTO audit_log" in s),
+        None,
+    )
+    assert audit is not None, "Audit INSERT not found"
+    assert audit[1][0] == "analyst-1"                                    # user_id
+    assert audit[1][3] == 10                                             # entity_id (sample_id)
+    assert _json.loads(audit[1][4]) == {"status": "pending"}             # old_value
+    assert _json.loads(audit[1][5]) == {"status": "reviewing"}           # new_value
 
 
 def test_workflow_invalid_transition_returns_422(client, monkeypatch):

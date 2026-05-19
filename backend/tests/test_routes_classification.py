@@ -55,7 +55,7 @@ def test_classify_persist_locks_classification(client, monkeypatch):
         {"id": 100, "case_type": "germline", "gene": "BRCA1"}
     ] if "FROM variants" in sql else [])
 
-    inserted: list[str] = []
+    calls: list[tuple] = []  # (sql, params) pairs
 
     def fake_transaction(fn):
         mock_conn = MagicMock()
@@ -63,7 +63,7 @@ def test_classify_persist_locks_classification(client, monkeypatch):
         mock_cursor.__enter__ = lambda s: s
         mock_cursor.__exit__ = MagicMock(return_value=False)
         mock_cursor.fetchone.return_value = (99,)  # new classification_id
-        mock_cursor.execute.side_effect = lambda sql, p=(): inserted.append(sql)
+        mock_cursor.execute.side_effect = lambda sql, p=(): calls.append((sql, p))
         mock_conn.cursor.return_value = mock_cursor
         return fn(mock_conn)
 
@@ -75,9 +75,21 @@ def test_classify_persist_locks_classification(client, monkeypatch):
     body = r.json()
     assert body["score"] == 9
     assert body["classification"] == "Likely_Pathogenic"
-    assert any("INSERT INTO variant_classification" in s for s in inserted)
-    assert any("INSERT INTO classification_criterion" in s for s in inserted)
-    assert any("INSERT INTO audit_log" in s for s in inserted)
+
+    sqls = [s for s, _ in calls]
+    assert any("INSERT INTO variant_classification" in s for s in sqls)
+    assert any("INSERT INTO classification_criterion" in s for s in sqls)
+    assert any("INSERT INTO audit_log" in s for s in sqls)
+
+    # Assert the classification INSERT carries the correct variant_id, framework, locked_by
+    cls_insert = next(
+        (p for s, p in calls if "INSERT INTO variant_classification" in s and "locked_by" in s),
+        None,
+    )
+    assert cls_insert is not None, "Classification INSERT not found"
+    assert cls_insert[0] == 100          # variant_id
+    assert cls_insert[1] == "acgs_snv"   # framework
+    assert cls_insert[5] == "analyst-1"  # locked_by
 
 
 def test_classify_persist_soft_deletes_existing(client, monkeypatch):
@@ -86,7 +98,7 @@ def test_classify_persist_soft_deletes_existing(client, monkeypatch):
         {"id": 100, "case_type": "germline", "gene": "BRCA1"}
     ] if "FROM variants" in sql else [])
 
-    executed: list[str] = []
+    calls: list[tuple] = []  # (sql, params) pairs
 
     def fake_transaction(fn):
         mock_conn = MagicMock()
@@ -94,7 +106,7 @@ def test_classify_persist_soft_deletes_existing(client, monkeypatch):
         mc.__enter__ = lambda s: s
         mc.__exit__ = MagicMock(return_value=False)
         mc.fetchone.return_value = (99,)
-        mc.execute.side_effect = lambda sql, p=(): executed.append(sql)
+        mc.execute.side_effect = lambda sql, p=(): calls.append((sql, p))
         mock_conn.cursor.return_value = mc
         return fn(mock_conn)
 
@@ -102,7 +114,14 @@ def test_classify_persist_soft_deletes_existing(client, monkeypatch):
 
     client.put("/api/variants/100/classification",
                json=_ACGS_CRITERIA_PAYLOAD, headers=HEADERS)
-    assert any("deleted_at" in s and "UPDATE" in s for s in executed)
+
+    # Soft-delete UPDATE must target the correct variant_id
+    soft_delete = next(
+        ((s, p) for s, p in calls if "deleted_at" in s and "UPDATE" in s),
+        None,
+    )
+    assert soft_delete is not None, "Soft-delete UPDATE not found"
+    assert soft_delete[1][0] == 100, "Soft-delete WHERE must use variant_id=100"
 
 
 def test_classify_reset_soft_deletes_and_creates_blank(client, monkeypatch):
