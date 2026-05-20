@@ -7,7 +7,7 @@ liveness probe.  Routes are added in subsequent PRs.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import health, patients, samples, variants, config
+from app.routes import health, patients, samples, variants, config, upload, ingest, workflow, classification
 
 app = FastAPI(
     title="Variant Viewer API",
@@ -28,3 +28,7 @@ app.include_router(patients.router)
 app.include_router(samples.router)
 app.include_router(variants.router)
 app.include_router(config.router)
+app.include_router(upload.router)
+app.include_router(ingest.router)
+app.include_router(workflow.router)
+app.include_router(classification.router)

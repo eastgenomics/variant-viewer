@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR 28 — Write API Routes · Part 3: Function walkthrough</title>
+<style>
+  :root{--ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;--line:#e0e7ef;--line-strong:#c5d0db;--bg:#f7f9fb;--paper:#ffffff;--accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;--green:#1a6e47;--green-soft:#e0f0e8;--amber:#b35c00;--amber-soft:#fdf0e0;--red:#9b2335;--red-soft:#fce8ea;--purple:#4b2d8e;--purple-soft:#ede8f8;--shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08)}
+  *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent-mid);text-decoration:none}a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}.hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}.callout.green{border-color:#a8d4bb;background:var(--green-soft)}.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}.callout.green .tag{color:var(--green)}.callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}tr:hover td{background:#fafbfd}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}.cb .k{color:#79b8ff}.cb .s{color:#9ecbff}.cb .n{color:#b392f0}.cb .f{color:#85e89d}.cb .t{color:#ffab70}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .fn-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .fn-header{background:var(--accent-deep);padding:14px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .fn-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:#fff;font-weight:700}
+  .fn-lines{font-size:12px;color:#a8c8e8}
+  .fn-phase{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+  .fn-phase.upload{background:#005eb8;color:#fff}.fn-phase.ingest{background:#1a6e47;color:#fff}
+  .fn-phase.workflow{background:#b35c00;color:#fff}.fn-phase.classify{background:#4b2d8e;color:#fff}
+  .fn-body{padding:18px}.fn-body p{margin-bottom:10px}
+  .io-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .io-box{background:#f7f9fb;border:1px solid var(--line);border-radius:6px;padding:12px}
+  .io-box h4{margin:0 0 6px}.io-box ul{margin:0;padding-left:18px}.io-box li{font-size:13px;margin:3px 0}
+  .file-banner{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f0f4f8;border:1px solid var(--line);border-radius:6px;margin:20px 0 8px;font-size:13px}
+  .file-banner .fb-name{font-weight:700;color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR 28 WRITE API<br>18 May 2026</div>
+  <div class="toc-section">Part 3 of 4</div>
+  <ul>
+    <li><a href="#upload">12 upload.py</a></li>
+    <li><a href="#ingest">13 ingest.py</a></li>
+    <li><a href="#workflow">14 workflow.py</a></li>
+    <li><a href="#classification">15 classification.py</a></li>
+  </ul>
+  <div class="meta">Part 3 of 4<br>Continued from Part 2</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Code Review Briefing · variant-viewer backend</div>
+  <h1>PR 28 — Write API Routes</h1>
+  <p class="sub">Every function explained: purpose, inputs, outputs, key logic, and design decisions for all four route modules — Part 3 of 4: Function walkthrough.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 18 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> #28 · feat/pr7-write-api</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260518_PR28_Write_API_Part1.html">1 · High-level outline</a>
+  <a href="260518_PR28_Write_API_Part2.html">2 · Key concepts</a>
+  <a href="260518_PR28_Write_API_Part3.html" class="current">3 · Function walkthrough</a>
+  <a href="260518_PR28_Write_API_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+<!-- 12 ─────────────────────────────────────────────────── -->
+<section id="upload">
+  <h2><span class="sec-num">12</span> upload.py</h2>
+  <p>Single responsibility: validate a VCF filename and an optional run date, then return two presigned S3 PUT URLs — one for the VCF file and one for its companion FHIR manifest. No DB interaction; no file data passes through the server.</p>
+
+  <div class="file-banner"><span class="fb-name">app/routes/upload.py</span> · 82 lines · 1 route handler · 2 Pydantic models</div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">get_upload_url</span>
+      <span class="fn-lines">lines 37–82</span>
+      <span class="fn-phase upload">POST /api/upload-url</span>
+    </div>
+    <div class="fn-body">
+      <p>The only handler in the module. Returns a pair of presigned S3 PUT URLs so the browser can upload a VCF file and its manifest directly to S3.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Inputs</h4><ul>
+          <li><code>body.vcf_filename</code> — e.g. <code>"sample.vcf.gz"</code></li>
+          <li><code>body.run_date</code> — optional <code>"YYYY-MM-DD"</code>; defaults to today</li>
+        </ul></div>
+        <div class="io-box"><h4>Returns</h4><ul>
+          <li><code>vcf_url</code> — signed PUT URL for the VCF</li>
+          <li><code>manifest_url</code> — signed PUT URL for the manifest</li>
+          <li><code>vcf_key</code>, <code>manifest_key</code> — S3 object keys for the client to reference later</li>
+          <li><code>expires_in</code> — always 3600 seconds</li>
+        </ul></div>
+      </div>
+      <h4>Validation sequence (all run before any AWS call)</h4>
+      <ol>
+        <li><strong>Extension check</strong> — <code>_VCF_RE.search(body.vcf_filename)</code> rejects anything that does not end with <code>.vcf</code> or <code>.vcf.gz</code>. Returns 400.</li>
+        <li><strong>Path traversal check</strong> — rejects filenames containing <code>/</code> or <code>..</code> which could escape the <code>runs/{date}/</code> key prefix and overwrite arbitrary S3 objects. Returns 400.</li>
+        <li><strong>Date format check</strong> — if <code>run_date</code> is supplied, <code>datetime.strptime(run_date, "%Y-%m-%d")</code> validates both the format and calendar correctness (month 13 or day 32 will raise <code>ValueError</code>). Returns 400.</li>
+        <li><strong>Bucket env check</strong> — verifies <code>VCF_BUCKET_NAME</code> is set. Returns 500 (server misconfiguration, not a client error).</li>
+      </ol>
+      <h4>Key construction</h4>
+      <p>The S3 key for the VCF is <code>runs/{date_prefix}/{safe_filename}</code>. The manifest key is derived by replacing the VCF extension with <code>.manifest.json</code> via <code>_VCF_RE.sub(".manifest.json", vcf_key)</code> — so <code>runs/2024-11-05/sample.vcf.gz</code> becomes <code>runs/2024-11-05/sample.manifest.json</code>. Critically, <code>safe_filename</code> (the already-validated copy) is used for key construction, not the raw <code>body.vcf_filename</code>.</p>
+      <div class="callout blue">
+        <span class="tag">Design note</span>
+        <p>Returning the keys to the client (not just the URLs) is deliberate: the client needs the key values to later call <code>POST /api/ingest</code> and tell the server where the VCF ended up. The presigned URL itself contains the key, but extracting it from the URL is fragile — returning it explicitly is cleaner.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 ─────────────────────────────────────────────────── -->
+<section id="ingest">
+  <h2><span class="sec-num">13</span> ingest.py</h2>
+  <p>Triggers the full ingest pipeline for a VCF already sitting in S3. Wraps the heavy <code>ingest_sample</code> function (from PR 5) in a route-level validation layer, a DB transaction, and an exception-to-HTTP-status mapping.</p>
+
+  <div class="file-banner"><span class="fb-name">app/routes/ingest.py</span> · 73 lines · 1 route handler · 1 helper · 1 Pydantic model</div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">_manifest_key</span>
+      <span class="fn-lines">lines 32–33</span>
+      <span class="fn-phase ingest">helper</span>
+    </div>
+    <div class="fn-body">
+      <p>One-line helper. Derives the S3 key for the companion manifest from a VCF key by substituting the extension.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Input</h4><ul><li><code>vcf_key: str</code> — e.g. <code>"runs/2024-11-05/sample.vcf.gz"</code></li></ul></div>
+        <div class="io-box"><h4>Returns</h4><ul><li><code>str</code> — e.g. <code>"runs/2024-11-05/sample.manifest.json"</code></li></ul></div>
+      </div>
+      <p>This function is only called after the route-level <code>_VCF_RE</code> check has already confirmed the key ends with <code>.vcf</code> or <code>.vcf.gz</code> — so the regex substitution is guaranteed to match. Calling it on a non-VCF key would silently return the input unchanged, producing a wrong manifest path.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">manual_ingest</span>
+      <span class="fn-lines">lines 36–73</span>
+      <span class="fn-phase ingest">POST /api/ingest</span>
+    </div>
+    <div class="fn-body">
+      <p>The main handler. Validates the S3 key, delegates to <code>ingest_sample</code> inside a transaction, records the triggering user in the audit log, and maps domain exceptions to HTTP status codes.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Inputs</h4><ul>
+          <li><code>body.vcf_s3_key</code> — full S3 object key for the VCF</li>
+          <li><code>body.user_id</code> — analyst who triggered the ingest</li>
+        </ul></div>
+        <div class="io-box"><h4>Returns / errors</h4><ul>
+          <li>200 <code>{"sample_id": int}</code> — DB ID of the created sample</li>
+          <li>400 — non-VCF key or bad manifest/VCF content</li>
+          <li>409 — duplicate submission (same VCF already ingested) or race condition</li>
+          <li>500 — <code>VCF_BUCKET_NAME</code> not configured</li>
+        </ul></div>
+      </div>
+      <h4>The _do closure</h4>
+      <p>The heavy lifting is inside a nested <code>_do(conn)</code> function that captures <code>body</code>, <code>bucket</code>, <code>s3</code>, and <code>manifest_key</code> from the outer scope. It calls <code>ingest_sample(vcf_key, manifest_key, bucket, s3, conn)</code> — this downloads both files from S3, validates the manifest, parses the VCF, and writes all rows to the DB in the same connection. After it returns, <code>_do</code> writes a single <code>audit_log</code> INSERT using the same connection (same transaction).</p>
+      <h4>Exception mapping</h4>
+      <table>
+        <thead><tr><th>Exception</th><th>HTTP status</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>DuplicateSubmissionError</code></td><td>409</td><td>ingest_sample detected the VCF was already processed (exact or near-duplicate)</td></tr>
+          <tr><td><code>psycopg2.errors.UniqueViolation</code></td><td>409</td><td>TOCTOU race: two concurrent ingests both passed the idempotency check, then the second lost the UNIQUE constraint INSERT</td></tr>
+          <tr><td><code>ValueError</code></td><td>400</td><td>Unsupported file format, failed manifest schema validation, or missing required manifest fields</td></tr>
+        </tbody>
+      </table>
+      <p>All three <code>raise ... from exc</code> preserve the original exception as the <code>__cause__</code>, making stack traces more informative in logs.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 14 ─────────────────────────────────────────────────── -->
+<section id="workflow">
+  <h2><span class="sec-num">14</span> workflow.py</h2>
+  <p>Manages the four-state review lifecycle for a sample. The state machine is expressed as an explicit allowlist dictionary. Every transition is atomic and audited.</p>
+
+  <div class="file-banner"><span class="fb-name">app/routes/workflow.py</span> · 85 lines · 1 route handler · 1 exception class · 1 state machine dict</div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">VALID_TRANSITIONS</span>
+      <span class="fn-lines">lines 28–33</span>
+      <span class="fn-phase workflow">constant</span>
+    </div>
+    <div class="fn-body">
+      <p>A module-level dictionary that encodes the complete state machine. Each key is a current status; the value is the list of statuses it may legally transition to. An empty list means the status is terminal.</p>
+      <div class="cb"><pre>VALID_TRANSITIONS: dict[str, list[str]] = {
+    <span class="s">"pending"</span>:   [<span class="s">"reviewing"</span>, <span class="s">"archived"</span>],
+    <span class="s">"reviewing"</span>: [<span class="s">"reported"</span>,  <span class="s">"archived"</span>],
+    <span class="s">"reported"</span>:  [<span class="s">"archived"</span>],
+    <span class="s">"archived"</span>:  [],          <span class="c"># terminal — no further transitions</span>
+}</pre></div>
+      <p>The check is <code>if body.status not in VALID_TRANSITIONS.get(current, [])</code>. Using <code>.get(current, [])</code> rather than direct indexing means an unrecognised current status (which should not exist in a healthy DB) safely returns an empty list and triggers a 422 rather than a <code>KeyError</code>.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">update_workflow</span>
+      <span class="fn-lines">lines 41–85</span>
+      <span class="fn-phase workflow">PUT /api/workflow/{sample_id}</span>
+    </div>
+    <div class="fn-body">
+      <p>Reads the current status, validates the requested transition, then updates the row and appends an audit entry in one atomic operation. Uses optimistic locking to detect concurrent modifications.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Inputs</h4><ul>
+          <li><code>sample_id: int</code> — URL path parameter</li>
+          <li><code>body.status</code> — target status (Literal — only 3 values accepted)</li>
+          <li><code>body.user_id</code> — who is making the change</li>
+        </ul></div>
+        <div class="io-box"><h4>Returns / errors</h4><ul>
+          <li>200 <code>{"sample_id": int, "status": str}</code></li>
+          <li>404 — sample_id not found in workflow table</li>
+          <li>422 — requested transition not in allowlist</li>
+          <li>409 — concurrent modification detected (rowcount = 0)</li>
+        </ul></div>
+      </div>
+      <h4>Two-phase read-then-write</h4>
+      <p><strong>Phase 1 (async, event loop):</strong> <code>db.query</code> reads the current status. If no row is found, 404. If the requested transition is not in <code>VALID_TRANSITIONS[current]</code>, 422. Both checks happen before any transaction is opened.</p>
+      <p><strong>Phase 2 (sync, thread pool):</strong> <code>_do(conn)</code> executes the UPDATE with <code>AND status=%s</code> as an extra guard. If another request changed the status between Phase 1 and Phase 2, <code>c.rowcount</code> will be 0 and <code>_ConcurrentModification</code> is raised. The transaction rolls back. The outer handler catches it and returns 409.</p>
+      <div class="callout green">
+        <span class="tag">Why _ConcurrentModification instead of HTTPException</span>
+        <p>The <code>_do</code> closure runs inside <code>db.run_in_transaction</code>, which is a plain DB utility with no knowledge of HTTP. Raising <code>HTTPException</code> from inside it would couple the DB layer to FastAPI. Instead, the private <code>_ConcurrentModification</code> sentinel carries the signal out of the callback; the route handler converts it to a 409. This is the same pattern as <code>DuplicateSubmissionError</code> in the ingest layer.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 ─────────────────────────────────────────────────── -->
+<section id="classification">
+  <h2><span class="sec-num">15</span> classification.py</h2>
+  <p>The most complex module. Exposes three endpoints over the same URL namespace: a score-only preview, a full persist-and-lock, and a reset. Uses the classification engine from PR 4 and maintains an append-only classification history via soft deletes.</p>
+
+  <div class="file-banner"><span class="fb-name">app/routes/classification.py</span> · ~230 lines · 3 route handlers · 2 helpers · 5 Pydantic models</div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">_build_criteria &amp; _build_rules</span>
+      <span class="fn-lines">lines 76–86</span>
+      <span class="fn-phase classify">helpers</span>
+    </div>
+    <div class="fn-body">
+      <p>Two short private helpers that translate Pydantic input models to the classification engine's dataclasses. The translation is explicit field-by-field because the Pydantic models contain extra fields (notes, evidence_links, pre_computed) that the engine does not accept — passing them would raise a <code>TypeError</code>.</p>
+      <div class="cb"><pre><span class="k">def</span> <span class="f">_build_criteria</span>(criteria: list[<span class="t">CriterionIn</span>]) -&gt; list[<span class="t">AppliedCriterion</span>]:
+    <span class="k">return</span> [
+        AppliedCriterion(
+            criterion_code=c.criterion_code,  <span class="c"># only these three fields go to the engine</span>
+            applied=c.applied,
+            strength=c.strength,
+        )
+        <span class="k">for</span> c <span class="k">in</span> criteria
+    ]</pre></div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">score_classification</span>
+      <span class="fn-lines">lines 90–97</span>
+      <span class="fn-phase classify">POST /api/variants/{id}/classify</span>
+    </div>
+    <div class="fn-body">
+      <p>The simplest handler. Converts the request to engine types, calls <code>classify()</code>, and returns the result. No DB interaction whatsoever — this is a pure scoring endpoint, useful for showing a live score preview in the UI as the analyst selects criteria.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Inputs</h4><ul>
+          <li><code>variant_id: int</code> — URL param (not used in scoring — score is deterministic from criteria)</li>
+          <li><code>body.criteria</code> — list of applied criteria</li>
+          <li><code>body.framework</code> — <code>"acgs_snv"</code> or <code>"svig"</code></li>
+          <li><code>body.combination_rules</code> — pairwise conflict rules</li>
+        </ul></div>
+        <div class="io-box"><h4>Returns</h4><ul>
+          <li><code>score: int</code> — Tavtigian point total</li>
+          <li><code>classification: str</code> — e.g. <code>"Likely_Pathogenic"</code></li>
+          <li><code>warnings: list[str]</code> — combination rule violations, if any</li>
+        </ul></div>
+      </div>
+      <p>The <code>variant_id</code> path parameter exists to keep the URL namespace consistent (<code>/api/variants/{id}/…</code> for all classification endpoints) but is not passed to the engine — the score depends only on the criteria, not which variant they belong to.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">submit_classification</span>
+      <span class="fn-lines">lines 100–175</span>
+      <span class="fn-phase classify">PUT /api/variants/{id}/classification</span>
+    </div>
+    <div class="fn-body">
+      <p>The most involved handler. Scores, then persists — soft-deleting any existing active classification and inserting a full new record with all criteria rows, locked to the requesting analyst. Everything in the DB write is transactional.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Inputs</h4><ul>
+          <li><code>variant_id: int</code> — URL path</li>
+          <li>All fields of <code>ClassificationSubmitRequest</code> — criteria, framework, rules, <code>locked_by</code>, <code>user_id</code></li>
+        </ul></div>
+        <div class="io-box"><h4>Returns / errors</h4><ul>
+          <li>200 with <code>classification_id</code>, <code>score</code>, <code>classification</code>, <code>warnings</code></li>
+          <li>404 — variant not found</li>
+          <li>422 — unknown framework value</li>
+        </ul></div>
+      </div>
+      <h4>Sequence of operations</h4>
+      <ol>
+        <li><strong>Verify variant exists</strong> — <code>db.query("SELECT id … FROM variants WHERE id = %s")</code>. Returns 404 if not found. This happens outside the transaction (read-only).</li>
+        <li><strong>Score</strong> — call <code>classify()</code> synchronously in the event loop. The engine is a pure function with no I/O, so <code>asyncio.to_thread</code> is not needed.</li>
+        <li><strong>Get framework version</strong> — <code>get_framework_version(body.framework)</code> returns a human-readable version string (e.g. <code>"ACGS 2024 Best Practice Guidelines"</code>) that is stored alongside the score for traceability.</li>
+        <li><strong>_do(conn)</strong> — four SQL statements in one transaction:
+          <ul>
+            <li>Soft-delete: <code>UPDATE variant_classification SET deleted_at=NOW() WHERE variant_id=%s AND deleted_at IS NULL</code></li>
+            <li>Insert classification: <code>INSERT INTO variant_classification (…) VALUES (…) RETURNING id</code> → <code>classification_id</code></li>
+            <li>Insert criteria: one <code>INSERT INTO classification_criterion</code> per criterion in the list</li>
+            <li>Insert audit: <code>INSERT INTO audit_log (…)</code></li>
+          </ul>
+        </li>
+      </ol>
+      <div class="callout amber">
+        <span class="tag">framework_version must be non-null</span>
+        <p>The <code>variant_classification.framework_version</code> column is <code>NOT NULL</code> in the schema. Passing <code>NULL</code> causes a PostgreSQL constraint violation. <code>get_framework_version()</code> is called before entering <code>_do</code> so the value is always available.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">reset_classification</span>
+      <span class="fn-lines">lines 178–230</span>
+      <span class="fn-phase classify">DELETE /api/variants/{id}/classification/{cid}</span>
+    </div>
+    <div class="fn-body">
+      <p>Soft-deletes an existing classification and inserts a blank replacement. The blank record preserves the variant↔framework relationship so the UI knows a classification attempt is in progress, while clearing the score, criteria, and lock — putting it back to an unscored state.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Inputs</h4><ul>
+          <li><code>variant_id: int</code> — URL path</li>
+          <li><code>classification_id: int</code> — URL path</li>
+          <li><code>body.user_id</code> — for audit trail</li>
+        </ul></div>
+        <div class="io-box"><h4>Returns / errors</h4><ul>
+          <li>200 <code>{"new_classification_id": int}</code></li>
+          <li>404 — classification not found, already deleted, or does not belong to variant_id</li>
+        </ul></div>
+      </div>
+      <h4>Ownership check</h4>
+      <p>The SELECT query uses <code>WHERE id = %s AND variant_id = %s AND deleted_at IS NULL</code>. All three conditions must match. The <code>variant_id</code> condition is critical — without it, a malicious or accidental request to <code>/api/variants/999/classification/50</code> would delete record 50 even if it belongs to variant 1, not 999.</p>
+      <h4>Blank replacement</h4>
+      <p>The replacement INSERT omits <code>score</code>, <code>classification</code>, <code>locked_at</code>, and <code>locked_by</code> — all of which default to <code>NULL</code>. It retains <code>variant_id</code>, <code>framework</code>, and <code>framework_version</code> from the deleted record (captured before the transaction via <code>existing = rows[0]</code>). The new ID is returned so the client can immediately reference it.</p>
+
+      <div class="series-nav">
+        <a href="260518_PR28_Write_API_Part1.html">1 · High-level outline</a>
+        <a href="260518_PR28_Write_API_Part2.html">2 · Key concepts</a>
+        <a href="260518_PR28_Write_API_Part3.html" class="current">3 · Function walkthrough</a>
+        <a href="260518_PR28_Write_API_Part4.html">4 · Line-by-line reference</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+<footer>
+  PR 28 Write API Routes — Code Review Briefing · Author: Joo Wook Ahn · 18 May 2026 · Source: eastgenomics/variant-viewer commit be5c577. Continued from Part 2. Continues in Part 4.
+</footer>
+</body>
+</html>
