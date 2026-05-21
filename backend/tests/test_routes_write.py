@@ -300,3 +300,151 @@ def test_workflow_sample_not_found(client, monkeypatch):
                    json={"status": "reviewing", "user_id": "analyst-1"},
                    headers=HEADERS)
     assert r.status_code == 404
+
+
+# ─── M_pre4: DELETE /api/patients/{id} ───────────────────────────────────────
+
+def test_delete_patient_returns_204(client, monkeypatch):
+    """DELETE /api/patients/{id} returns 204 and executes full cascade."""
+    executed_sqls: list[str] = []
+
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (1,)  # patient exists
+        mock_cursor.execute.side_effect = lambda sql, p=(): executed_sqls.append(sql)
+        mock_cursor.__enter__ = lambda s: s
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        mock_conn.cursor.return_value = mock_cursor
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+    r = client.delete("/api/patients/1", headers=HEADERS)
+    assert r.status_code == 204
+    assert any("DELETE FROM variants" in s for s in executed_sqls)
+    assert any("DELETE FROM workflow" in s for s in executed_sqls)
+    assert any("DELETE FROM samples" in s for s in executed_sqls)
+    assert any("DELETE FROM patients" in s for s in executed_sqls)
+    assert any("audit_log" in s for s in executed_sqls), "Expected audit log entry for patient delete"
+    # Audit must precede the final DELETE FROM patients
+    audit_idx = next(i for i, s in enumerate(executed_sqls) if "audit_log" in s)
+    patient_idx = next(i for i, s in enumerate(executed_sqls) if "DELETE FROM patients" in s)
+    assert audit_idx < patient_idx, "Audit INSERT must precede DELETE FROM patients"
+
+
+def test_delete_patient_not_found_returns_404(client, monkeypatch):
+    """DELETE /api/patients/{id} returns 404 when patient does not exist."""
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = None  # patient not found
+        mock_cursor.__enter__ = lambda s: s
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        mock_conn.cursor.return_value = mock_cursor
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+    r = client.delete("/api/patients/999", headers=HEADERS)
+    assert r.status_code == 404
+
+
+# ─── M_pre5: DELETE /api/samples/{id} ────────────────────────────────────────
+
+def test_delete_sample_returns_204(client, monkeypatch):
+    """DELETE /api/samples/{id} returns 204 and executes full cascade."""
+    executed_sqls: list[str] = []
+
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (5,)  # sample exists
+        mock_cursor.execute.side_effect = lambda sql, p=(): executed_sqls.append(sql)
+        mock_cursor.__enter__ = lambda s: s
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        mock_conn.cursor.return_value = mock_cursor
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+    r = client.delete("/api/samples/5", headers=HEADERS)
+    assert r.status_code == 204
+    assert any("DELETE FROM variants" in s for s in executed_sqls)
+    assert any("DELETE FROM workflow" in s for s in executed_sqls)
+    assert any("DELETE FROM samples" in s for s in executed_sqls)
+    assert any("audit_log" in s for s in executed_sqls), "Expected audit log entry for sample delete"
+    # Audit must precede DELETE FROM samples so sample_id is still valid
+    audit_idx = next(i for i, s in enumerate(executed_sqls) if "audit_log" in s)
+    sample_idx = next(i for i, s in enumerate(executed_sqls) if "DELETE FROM samples" in s)
+    assert audit_idx < sample_idx, "Audit INSERT must precede DELETE FROM samples"
+
+
+def test_delete_sample_not_found_returns_404(client, monkeypatch):
+    """DELETE /api/samples/{id} returns 404 when sample does not exist."""
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = None  # sample not found
+        mock_cursor.__enter__ = lambda s: s
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        mock_conn.cursor.return_value = mock_cursor
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+    r = client.delete("/api/samples/999", headers=HEADERS)
+    assert r.status_code == 404
+
+
+# ─── M_pre6: locked_by nullable in classification ─────────────────────────────
+
+def test_classification_draft_save_locked_by_null(client, monkeypatch):
+    """PUT classification with locked_by=null is a draft save: locked_at must be NULL in SQL."""
+    monkeypatch.setattr("app.lib.db.query",
+        lambda sql, params=(): [{
+            "id": 1, "chrom": "17", "pos": 43094077, "ref": "A", "alt": "T",
+            "gene": "BRCA1", "consequence": "missense_variant",
+            "hgvs_c": None, "hgvs_p": None, "gnomad_af": None,
+            "revel_score": None, "spliceai_max": None, "clinvar_sig": None,
+            "info_json": {}, "case_type": "germline",
+        }])
+
+    executed_sqls: list[str] = []
+
+    def fake_transaction(fn):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (42,)
+        mock_cursor.execute.side_effect = lambda sql, p=(): executed_sqls.append(sql)
+        mock_cursor.__enter__ = lambda s: s
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        mock_conn.cursor.return_value = mock_cursor
+        return fn(mock_conn)
+
+    monkeypatch.setattr("app.lib.db.run_in_transaction", fake_transaction)
+
+    payload = {
+        "framework": "acgs_snv",
+        "user_id": "analyst-1",
+        "locked_by": None,
+        "criteria": [],
+    }
+    r = client.put("/api/variants/1/classification", json=payload, headers=HEADERS)
+    assert r.status_code == 200
+    body = r.json()
+    assert "classification_id" in body
+    # Verify the INSERT uses NULL (not NOW()) for locked_at on a draft save
+    insert_sql = next(
+        (s for s in executed_sqls if "INSERT INTO variant_classification" in s), None
+    )
+    assert insert_sql is not None, "Expected INSERT INTO variant_classification"
+    assert "NULL" in insert_sql, "Draft save must embed NULL for locked_at"
+    assert "NOW()" not in insert_sql, "Draft save must not embed NOW() for locked_at"
+
+
+def test_classification_locked_by_empty_string_rejected(client):
+    """locked_by='' is rejected with 422 at the Pydantic layer — not treated as draft."""
+    r = client.put("/api/variants/1/classification",
+                   json={"framework": "acgs_snv", "user_id": "analyst-1",
+                         "locked_by": "", "criteria": []},
+                   headers=HEADERS)
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert any("locked_by" in str(d) for d in detail)
