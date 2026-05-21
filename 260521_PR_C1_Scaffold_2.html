@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR C1 — Frontend Scaffold · Part 2: Key concepts</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+  .ref{display:inline-block;background:#f0f4f8;border:1px solid var(--line);border-radius:4px;padding:1px 7px;font-size:11.5px;color:var(--ink-soft);font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  /* Dark code block */
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}
+  .cb .k{color:#79b8ff}
+  .cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}
+  .cb .f{color:#85e89d}
+  .cb .t{color:#ffab70}
+  /* concept box */
+  .concept{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .concept-header{background:var(--accent-deep);padding:12px 18px;display:flex;align-items:center;gap:12px}
+  .concept-title{font-size:15px;color:#fff;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .concept-sub{font-size:12px;color:#a8c8e8}
+  .concept-body{padding:18px}
+  .concept-body p{margin-bottom:10px}
+  .in-this-file{background:var(--green-soft);border:1px solid #a8d4bb;border-radius:6px;padding:12px 16px;margin-top:12px;font-size:13.5px;color:var(--ink-soft)}
+  .in-this-file strong{color:var(--green);font-size:11px;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR C1 SCAFFOLD<br>21 May 2026</div>
+  <div class="toc-section">Concepts</div>
+  <ul>
+    <li><a href="#vite">Vite vs webpack</a></li>
+    <li><a href="#vitest-config">vitest/config dual-use</a></li>
+    <li><a href="#ts-strict">TypeScript strict options</a></li>
+    <li><a href="#tailwind-layer">Tailwind @layer</a></li>
+    <li><a href="#jsdom">jsdom for testing</a></li>
+    <li><a href="#nginx-tryfiles">nginx try_files (SPA)</a></li>
+    <li><a href="#docker-multistage">Docker multi-stage</a></li>
+    <li><a href="#criteria-schema">Criteria JSON schema</a></li>
+  </ul>
+  <div class="toc-section">Series</div>
+  <ul>
+    <li><a href="260521_PR_C1_Scaffold_1.html">Part 1 · High-level outline</a></li>
+    <li><a href="260521_PR_C1_Scaffold_2.html">Part 2 · Key concepts</a></li>
+    <li><a href="260521_PR_C1_Scaffold_3.html">Part 3 · File walkthrough</a></li>
+    <li><a href="260521_PR_C1_Scaffold_4.html">Part 4 · Line-by-line reference</a></li>
+  </ul>
+  <div class="meta">Source: variant-viewer branch pr/C1<br>Part 2 of 4</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · Frontend engineering · Part 2 of 4</div>
+  <h1>PR C1 — Key concepts</h1>
+  <p class="sub">Eight background concepts needed to make sense of the configuration files — from Vite's architecture to how nginx handles single-page app routing.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> C1 of 8 · branch pr/C1</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_C1_Scaffold_1.html">1 · High-level outline</a>
+  <a href="260521_PR_C1_Scaffold_2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_C1_Scaffold_3.html">3 · File walkthrough</a>
+  <a href="260521_PR_C1_Scaffold_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="vite">
+  <h2><span class="sec-num">01</span> Vite vs webpack</h2>
+
+  <p>Traditional bundlers like webpack read your entire source tree, compile everything into a dependency graph, and re-bundle whenever a file changes. On large projects this makes cold starts and hot reloads slow — sometimes tens of seconds.</p>
+
+  <p><strong>Vite</strong> takes a different approach for development. It uses the browser's native ES module support to serve source files <em>directly</em> — no bundling at all during development. When you change a file, only that module is reloaded. Cold starts are near-instant regardless of project size.</p>
+
+  <p>For production builds, Vite hands off to <strong>Rollup</strong> (a mature, well-optimised bundler) to produce a small, tree-shaken output. This means the dev experience is fast, and the production bundle is compact — best of both worlds.</p>
+
+  <div class="cb"><pre><span class="c"># Development (native ES modules, no bundling)</span>
+npm run dev   <span class="c"># starts vite dev server, instant HMR</span>
+
+<span class="c"># Production (TypeScript check + Rollup bundle)</span>
+npm run build  <span class="c"># = tsc &amp;&amp; vite build</span></pre></div>
+
+  <div class="in-this-file"><strong>In this project</strong>Configured in <code>vite.config.ts</code>. The dev server proxies <code>/api</code> requests to <code>localhost:3000</code> (the FastAPI backend), so the frontend can call backend endpoints without CORS issues during local development.</div>
+</section>
+
+<section id="vitest-config">
+  <h2><span class="sec-num">02</span> The vitest/config dual-use pattern</h2>
+
+  <p>Vitest is the test runner used in this project. It is built on top of Vite and deliberately re-uses the same transformation pipeline — the same TypeScript compilation, JSX handling, and path aliases work in tests exactly as they do in the browser.</p>
+
+  <p>The key quirk is the import at the top of <code>vite.config.ts</code>:</p>
+
+  <div class="cb"><pre><span class="c">// ✗ Wrong — loses Vitest's "test" configuration block type</span>
+<span class="k">import</span> { defineConfig } <span class="k">from</span> <span class="s">"vite"</span>
+
+<span class="c">// ✓ Correct — TypeScript knows about the "test" block</span>
+<span class="k">import</span> { defineConfig } <span class="k">from</span> <span class="s">"vitest/config"</span></pre></div>
+
+  <p>When you import from <code>"vitest/config"</code> instead of <code>"vite"</code>, the <code>defineConfig</code> function gains type awareness of the <code>test:</code> block, so TypeScript will catch typos in test configuration options.</p>
+
+  <div class="in-this-file"><strong>In this project</strong><code>vite.config.ts</code> uses <code>import { defineConfig } from "vitest/config"</code> and contains both a <code>server.proxy</code> section (for dev) and a <code>test</code> section (for Vitest). One file serves both purposes — you do not need a separate <code>vitest.config.ts</code>.</div>
+</section>
+
+<section id="ts-strict">
+  <h2><span class="sec-num">03</span> TypeScript strict mode options</h2>
+
+  <p>TypeScript has a large number of individual strictness flags. The <code>"strict": true</code> option in <code>tsconfig.json</code> enables a bundle of them all at once. Beyond that, this project uses several additional options that deserve explanation:</p>
+
+  <table>
+    <thead><tr><th>Option</th><th>What it means</th><th>Why it matters here</th></tr></thead>
+    <tbody>
+      <tr><td><code>noEmit: true</code></td><td>TypeScript compiles for type-checking only; it does not write any <code>.js</code> files</td><td>Vite uses esbuild (not tsc) for the actual transpilation — it is faster. tsc is only used for finding type errors.</td></tr>
+      <tr><td><code>isolatedModules: true</code></td><td>Each file must be type-checkable in isolation without looking at other files</td><td>Required for esbuild and Babel-style transpilers that process one file at a time. Prevents <code>const enum</code> and namespace merging.</td></tr>
+      <tr><td><code>allowImportingTsExtensions: true</code></td><td>Allows <code>import Foo from "./Foo.tsx"</code> with the <code>.tsx</code> extension</td><td>Vitest imports use the real file extension. Only valid when <code>noEmit: true</code>.</td></tr>
+      <tr><td><code>moduleResolution: "bundler"</code></td><td>Resolves modules the way a bundler (Vite/webpack) would, not the way Node.js would</td><td>Supports <code>.tsx</code> imports, path aliases, and package exports correctly for bundled apps.</td></tr>
+      <tr><td><code>resolveJsonModule: true</code></td><td>Allows <code>import data from "./config.json"</code></td><td>Needed to import the criteria JSON files directly into TypeScript.</td></tr>
+      <tr><td><code>types: ["vite/client"]</code></td><td>Adds type definitions for <code>import.meta.env</code></td><td>Without this, TypeScript complains that <code>import.meta.env</code> does not exist.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout blue">
+    <span class="tag">Why tsc and esbuild together?</span>
+    <p>esbuild is 100× faster than tsc but performs <em>no type-checking</em> — it just strips types. tsc is slow but catches type errors. Running <code>tsc --noEmit</code> first catches type errors, then Vite runs esbuild to produce the actual output. You get both correctness and speed.</p>
+  </div>
+</section>
+
+<section id="tailwind-layer">
+  <h2><span class="sec-num">04</span> Tailwind CSS and @layer</h2>
+
+  <p>Tailwind is a utility-first CSS framework. Instead of writing <code>.button { padding: 8px 16px; ... }</code>, you compose classes directly in your HTML: <code>&lt;button class="px-4 py-2 text-sm font-medium"&gt;</code>. At build time, Tailwind scans all files matching the <code>content</code> glob and generates CSS containing <em>only the classes actually used</em>. Unused utility classes are tree-shaken away.</p>
+
+  <p>The three Tailwind directives at the top of <code>src/index.css</code> insert Tailwind's three layers:</p>
+
+  <div class="cb"><pre><span class="k">@tailwind</span> base;       <span class="c">/* CSS reset + browser default normalisation */</span>
+<span class="k">@tailwind</span> components; <span class="c">/* @layer components goes here */</span>
+<span class="k">@tailwind</span> utilities;  <span class="c">/* all utility classes (px-4, text-sm, etc.) */</span></pre></div>
+
+  <p>The <strong><code>@layer components</code></strong> block defines reusable CSS classes using <code>@apply</code>. The <code>@apply</code> directive expands to the utility classes it references at build time. This lets you write <code>&lt;span class="badge badge-pending"&gt;</code> in JSX instead of a long string of utilities, without losing Tailwind's tree-shaking.</p>
+
+  <div class="cb"><pre><span class="k">@layer</span> components {
+  .badge {
+    <span class="k">@apply</span> inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+  }
+  .badge-pending {
+    <span class="k">@apply</span> bg-yellow-100 text-yellow-800;
+  }
+}</pre></div>
+
+  <div class="in-this-file"><strong>In this project</strong><code>src/index.css</code> defines 13 <code>badge-*</code> classes (workflow statuses + classification outcomes) and 4 <code>btn-*</code> classes (<code>btn</code>, <code>btn-primary</code>, <code>btn-secondary</code>, <code>btn-danger</code>). These classes are used throughout D1–D4 components and tested in <code>WorkflowBadge.test.tsx</code> and <code>ClassificationBadge.test.tsx</code>.</div>
+</section>
+
+<section id="jsdom">
+  <h2><span class="sec-num">05</span> jsdom — simulated browser for tests</h2>
+
+  <p>React components render HTML and respond to DOM events (clicks, input changes). To test them automatically you need a <code>document</code> object — but real browsers cannot run in a command-line test runner.</p>
+
+  <p><strong>jsdom</strong> is a JavaScript implementation of the browser DOM and HTML standards. When Vitest uses the <code>environment: "jsdom"</code> setting, it loads jsdom before each test file, giving your code a realistic <code>document</code>, <code>window</code>, <code>navigator</code>, and event system — without ever opening a browser.</p>
+
+  <div class="cb"><pre><span class="c">// In vite.config.ts</span>
+test: {
+  <span class="k">environment</span>: <span class="s">"jsdom"</span>,   <span class="c">// use jsdom (not "node")</span>
+  <span class="k">globals</span>: <span class="n">true</span>,           <span class="c">// makes describe/it/expect available without import</span>
+  <span class="k">setupFiles</span>: [<span class="s">"./src/tests/setup.ts"</span>]  <span class="c">// runs before every test file</span>
+}</pre></div>
+
+  <p>The <code>setupFiles</code> entry points to <code>src/tests/setup.ts</code>, which contains a single line:</p>
+
+  <div class="cb"><pre><span class="k">import</span> <span class="s">"@testing-library/jest-dom"</span>;</pre></div>
+
+  <p>This import extends jsdom's expect matchers with DOM-specific ones like <code>toBeInTheDocument()</code>, <code>toHaveClass()</code>, and <code>toBeDisabled()</code>. Without it, those matchers do not exist and tests that call them will throw.</p>
+
+  <div class="callout amber">
+    <span class="tag">Common mistake</span>
+    <p>The package name is <code>jsdom</code>, not <code>@vitest/jsdom</code>. The latter does not exist. Vitest discovers the installed <code>jsdom</code> package automatically when <code>environment: "jsdom"</code> is set — you never import it directly.</p>
+  </div>
+</section>
+
+<section id="nginx-tryfiles">
+  <h2><span class="sec-num">06</span> nginx try_files and SPA routing</h2>
+
+  <p>A single-page application manages its own routing in JavaScript. When a user navigates to <code>/patients/42</code>, the React Router intercepts the URL change and renders the right component — the server is never involved after the initial page load.</p>
+
+  <p>This creates a problem when users <strong>directly access or refresh</strong> a deep URL. The browser asks the server for <code>/patients/42</code>. A naïve nginx configuration tries to find a file at that path, fails, and returns 404.</p>
+
+  <p>The fix is <code>try_files</code>:</p>
+
+  <div class="cb"><pre>location / {
+    <span class="k">try_files</span> <span class="n">$uri</span> <span class="n">$uri/</span> <span class="s">/index.html</span>;
+    <span class="c"># 1. Try $uri — serve the file if it exists (e.g. /assets/index-abc.js)</span>
+    <span class="c"># 2. Try $uri/ — serve as a directory index</span>
+    <span class="c"># 3. Fall back to /index.html — let React Router handle it</span>
+}</pre></div>
+
+  <p>The three arguments are tried in order. Static assets (<code>.js</code>, <code>.css</code>, images) match on the first attempt. All other paths fall through to <code>/index.html</code>, which loads the React app, which reads the URL and renders the correct page.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flowchart showing nginx try_files decision logic for SPA routing">
+    <style>.lbl{font:700 12px -apple-system,Segoe UI,Inter,sans-serif}.sub{font:11px -apple-system,Segoe UI,Inter,sans-serif}</style>
+    <defs>
+      <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6b7c8d"/>
+      </marker>
+    </defs>
+    <text x="16" y="20" font-size="11" letter-spacing="2" fill="#6b7c8d">REQUEST ROUTING</text>
+    <!-- Request box -->
+    <rect x="20" y="40" width="110" height="44" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="75" y="57" text-anchor="middle" class="lbl" fill="#003d78">Browser</text>
+    <text x="75" y="75" text-anchor="middle" class="sub" fill="#6b7c8d">GET /patients/42</text>
+    <line x1="130" y1="62" x2="160" y2="62" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <!-- Decision -->
+    <polygon points="220,40 280,62 220,84 160,62" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+    <text x="220" y="58" text-anchor="middle" class="lbl" fill="#b35c00">File</text>
+    <text x="220" y="75" text-anchor="middle" class="sub" fill="#b35c00">exists?</text>
+    <!-- Yes path -->
+    <line x1="280" y1="62" x2="330" y2="62" stroke="#1a6e47" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <text x="305" y="55" text-anchor="middle" class="sub" fill="#1a6e47">yes</text>
+    <rect x="330" y="40" width="110" height="44" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="385" y="57" text-anchor="middle" class="lbl" fill="#1a6e47">Serve file</text>
+    <text x="385" y="75" text-anchor="middle" class="sub" fill="#6b7c8d">.js .css images</text>
+    <!-- No path -->
+    <line x1="220" y1="84" x2="220" y2="130" stroke="#9b2335" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <text x="230" y="115" class="sub" fill="#9b2335">no</text>
+    <rect x="155" y="130" width="130" height="44" rx="6" fill="#fce8ea" stroke="#9b2335" stroke-width="1.5"/>
+    <text x="220" y="147" text-anchor="middle" class="lbl" fill="#9b2335">Serve</text>
+    <text x="220" y="165" text-anchor="middle" class="sub" fill="#9b2335">/index.html</text>
+    <!-- React -->
+    <line x1="285" y1="152" x2="330" y2="152" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="330" y="130" width="130" height="44" rx="6" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="395" y="147" text-anchor="middle" class="lbl" fill="#4b2d8e">React Router</text>
+    <text x="395" y="165" text-anchor="middle" class="sub" fill="#6b7c8d">reads URL, renders</text>
+    <!-- /api path -->
+    <line x1="220" y1="40" x2="220" y2="25" stroke="#6b7c8d" stroke-width="1" stroke-dasharray="3 2"/>
+    <rect x="490" y="40" width="130" height="44" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="555" y="57" text-anchor="middle" class="lbl" fill="#003d78">/api/ proxy</text>
+    <text x="555" y="75" text-anchor="middle" class="sub" fill="#6b7c8d">backend:3000</text>
+    <line x1="440" y1="62" x2="490" y2="62" stroke="#005eb8" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arr2)"/>
+    <text x="465" y="53" text-anchor="middle" class="sub" fill="#005eb8">/api/*</text>
+  </svg>
+  </div>
+  <figcaption>Figure 2 · nginx routing logic. Static asset requests are served directly; all other paths fall through to index.html for React Router. /api/* is proxied to the FastAPI backend.</figcaption>
+  </figure>
+
+  <div class="in-this-file"><strong>In this project</strong><code>nginx.conf</code> has two <code>location</code> blocks: <code>location /</code> with <code>try_files</code> for SPA routing, and <code>location /api/</code> with <code>proxy_pass http://backend:3000</code>. The backend hostname <code>backend</code> resolves to the FastAPI container within the Docker network defined in <code>docker-compose.yml</code>.</div>
+</section>
+
+<section id="docker-multistage">
+  <h2><span class="sec-num">07</span> Docker multi-stage builds</h2>
+
+  <p>A single <code>Dockerfile</code> can contain multiple <code>FROM</code> stages. Each stage starts from a fresh base image. The final image only contains what the last stage copies from previous stages — everything else (the build tools, node_modules, intermediate files) is discarded.</p>
+
+  <div class="cb"><pre><span class="c"># Stage 1: builder — installs node, npm, all dev dependencies, runs build</span>
+<span class="k">FROM</span> <span class="t">node:20-slim</span> <span class="k">AS</span> build
+
+<span class="k">WORKDIR</span> /app
+<span class="k">COPY</span> package.json package-lock.json* ./
+<span class="k">RUN</span> npm ci                <span class="c"># reproducible install (uses package-lock.json)</span>
+<span class="k">COPY</span> . .
+<span class="k">RUN</span> npm run build         <span class="c"># tsc + vite build → produces dist/</span>
+
+<span class="c"># Stage 2: final — only nginx + the compiled static files</span>
+<span class="k">FROM</span> <span class="t">nginx:alpine</span>
+
+<span class="k">COPY</span> --from=build /app/dist /usr/share/nginx/html
+<span class="k">COPY</span> nginx.conf /etc/nginx/conf.d/default.conf
+<span class="k">EXPOSE</span> <span class="n">80</span></pre></div>
+
+  <p>The final nginx image contains no Node.js, no npm, no <code>node_modules</code>, and no TypeScript source. It is small and has a minimal attack surface. The builder stage is discarded entirely after the build — it is not part of the image you push to a registry.</p>
+
+  <div class="in-this-file"><strong>In this project</strong><code>package-lock.json*</code> (the asterisk makes it optional) is copied before <code>COPY . .</code> so that Docker's layer cache is preserved when only source files change. <code>npm ci</code> (not <code>npm install</code>) is used to install from the lock file exactly, giving reproducible builds.</div>
+</section>
+
+<section id="criteria-schema">
+  <h2><span class="sec-num">08</span> The criteria JSON schema</h2>
+
+  <p>Two JSON files bundle the classification framework definitions into the frontend: <code>acgs-snv-criteria.json</code> (ACGS SNV, 28 criteria) and <code>svig-criteria.json</code> (SVIG-UK, 18 criteria). They are direct copies of the backend config files in <code>backend/config/</code>, ensuring the frontend and backend scoring engines use identical data.</p>
+
+  <p>Each file has four top-level keys:</p>
+
+  <table>
+    <thead><tr><th>Key</th><th>Type</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>version</code></td><td>string</td><td>Human-readable framework version (e.g. <code>"ACGS 2024 Best Practice Guidelines"</code>)</td></tr>
+      <tr><td><code>framework</code></td><td>string</td><td>Machine identifier: <code>"acgs_snv"</code> or <code>"svig"</code></td></tr>
+      <tr><td><code>criteria</code></td><td>array of criterion objects</td><td>One object per classification criterion (PVS1, PM2, BA1…)</td></tr>
+      <tr><td><code>combination_rules</code></td><td>array of rule objects</td><td>Pairs of criteria that conflict or are mutually exclusive</td></tr>
+      <tr><td><code>thresholds</code></td><td>object of score boundaries</td><td>Point thresholds for each classification outcome</td></tr>
+    </tbody>
+  </table>
+
+  <p>Each criterion object has a consistent shape:</p>
+
+  <div class="cb"><pre>{
+  <span class="s">"code"</span>: <span class="s">"PVS1"</span>,
+  <span class="s">"label"</span>: <span class="s">"PVS1"</span>,
+  <span class="s">"category"</span>: <span class="s">"functional"</span>,       <span class="c">// groups criteria in the UI panel</span>
+  <span class="s">"direction"</span>: <span class="s">"pathogenic"</span>,       <span class="c">// or "benign" / "oncogenic"</span>
+  <span class="s">"default_strength"</span>: <span class="s">"very_strong"</span>, <span class="c">// point weight when applied</span>
+  <span class="s">"permitted_strengths"</span>: [<span class="s">"very_strong"</span>, <span class="s">"strong"</span>, ...],
+  <span class="s">"adjustable"</span>: <span class="n">true</span>,               <span class="c">// show strength dropdown in UI</span>
+  <span class="s">"description"</span>: <span class="s">"Null variant..."</span>, <span class="c">// tooltip/label in UI</span>
+  <span class="s">"pre_computable"</span>: <span class="n">true</span>,           <span class="c">// backend can auto-apply from VCF data</span>
+  <span class="s">"pre_compute_hint"</span>: <span class="s">"Frameshift..."</span>  <span class="c">// shown when pre-computed</span>
+}</pre></div>
+
+  <div class="in-this-file"><strong>In this project</strong>The criteria JSON files are imported by <code>src/lib/classification-engine.ts</code> (introduced in C2) using <code>import acgsCriteria from "../config/acgs-snv-criteria.json"</code>. The <code>resolveJsonModule: true</code> tsconfig option enables this import. Vitest test files also import the JSON directly to drive the classification engine golden-case tests.</div>
+</section>
+
+<div class="series-nav" style="margin-top:40px">
+  <a href="260521_PR_C1_Scaffold_1.html">1 · High-level outline</a>
+  <a href="260521_PR_C1_Scaffold_2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_C1_Scaffold_3.html">3 · File walkthrough</a>
+  <a href="260521_PR_C1_Scaffold_4.html">4 · Line-by-line reference</a>
+</div>
+
+</main>
+</div>
+
+<footer>
+  PR C1 — Frontend Scaffold · Code walkthrough series · Author: Joo Wook Ahn · 21 May 2026 · Source: variant-viewer branch pr/C1 · Part 2 of 4 · Continued from Part 1. Continues in Part 3.
+</footer>
+</body>
+</html>

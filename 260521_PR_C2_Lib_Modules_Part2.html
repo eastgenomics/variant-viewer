@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR C2 — Pure TypeScript Library Modules · Part 2: Key concepts</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}.cb .k{color:#79b8ff}.cb .s{color:#9ecbff}.cb .n{color:#b392f0}.cb .f{color:#85e89d}.cb .t{color:#ffab70}
+  .anno{list-style:none;margin:4px 0 24px;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .anno li{display:grid;grid-template-columns:36px 1fr;gap:0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .anno li:last-child{border-bottom:none}
+  .anno .num{background:var(--accent-deep);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .anno .txt{padding:10px 14px;color:var(--ink-soft);line-height:1.5}
+  .anno .txt strong{color:var(--ink)}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .concept-block{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:28px 0}
+  .concept-header{background:var(--accent-deep);padding:12px 18px}
+  .concept-title{color:#fff;font-weight:700;font-size:15px}
+  .concept-body{padding:18px}
+  .concept-body p{margin-bottom:12px}
+  .concept-body p:last-child{margin:0}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR C2 LIB MODULES<br>21 May 2026</div>
+  <div class="toc-section">Part 2 · Concepts</div>
+  <ul>
+    <li><a href="#ts-interfaces">TypeScript interfaces &amp; generics</a></li>
+    <li><a href="#vitest">Vitest mocking patterns</a></li>
+    <li><a href="#tavtigian">Tavtigian point scoring</a></li>
+    <li><a href="#frameworks">ACGS SNV vs SVIG-UK</a></li>
+    <li><a href="#sentinels">Sentinel code overrides</a></li>
+    <li><a href="#combination-rules">Combination rules</a></li>
+    <li><a href="#fhir">FHIR R4 Bundle structure</a></li>
+    <li><a href="#vite-env">Vite environment variables</a></li>
+    <li><a href="#204">The 204 No Content problem</a></li>
+  </ul>
+  <div class="meta">Part 2 of 4 — concepts needed before reading the functions</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · variant-viewer frontend · PR C2 of 8</div>
+  <h1>PR C2 — Key Concepts</h1>
+  <p class="sub">Everything you need to know before the functions make sense: TypeScript patterns, test mocking, the Tavtigian scoring algorithm, FHIR bundles, and Vite's environment variable system.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 2 of 4 — Key concepts</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_C2_Lib_Modules_Part1.html">1 · High-level outline</a>
+  <a href="260521_PR_C2_Lib_Modules_Part2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_C2_Lib_Modules_Part3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_C2_Lib_Modules_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="ts-interfaces">
+  <h2><span class="sec-num">08</span> TypeScript interfaces and generics</h2>
+
+  <p>TypeScript adds a static type layer on top of JavaScript. The types are <strong>erased at runtime</strong> — they exist only to help the editor and compiler catch mistakes before the browser runs any code. Understanding three patterns is enough to read this PR.</p>
+
+  <h3>Interfaces</h3>
+  <p>An <code>interface</code> is a contract describing the shape of an object. In <code>api.ts</code> every interface mirrors a Pydantic model on the Python backend — if the backend adds a new field, the TypeScript interface should be updated to match.</p>
+
+  <div class="cb"><pre><span class="c">// Defines the shape of what GET /api/patients returns per patient</span>
+<span class="k">export interface</span> <span class="t">PatientSummary</span> {
+  id: <span class="t">number</span>;
+  lab_number: <span class="t">string</span>;
+  name: <span class="t">string</span> | <span class="t">null</span>;          <span class="c">// union type: string OR null</span>
+  sample_count: <span class="t">number</span>;
+  latest_sample_id: <span class="t">number</span> | <span class="t">null</span>;
+}</pre></div>
+
+  <h3>Generic functions</h3>
+  <p>The <code>&lt;T&gt;</code> syntax makes a function work with any type — you tell TypeScript which type to use at the call site. <code>request&lt;T&gt;</code> in <code>api.ts</code> is the key example: it fetches a URL and returns whatever type the caller specifies.</p>
+
+  <div class="cb"><pre><span class="c">// T is a placeholder — the caller fills it in</span>
+<span class="k">async function</span> <span class="f">request</span>&lt;<span class="t">T</span>&gt;(url: <span class="t">string</span>): <span class="t">Promise</span>&lt;<span class="t">T</span>&gt; {
+  <span class="k">const</span> resp = <span class="k">await</span> fetch(url);
+  <span class="k">return</span> resp.json() <span class="k">as</span> <span class="t">Promise</span>&lt;<span class="t">T</span>&gt;;
+}
+
+<span class="c">// At the call site, T becomes PatientDetailResponse</span>
+<span class="k">const</span> patient = <span class="k">await</span> request&lt;<span class="t">PatientDetailResponse</span>&gt;(<span class="s">'/api/patients/1'</span>);</pre></div>
+
+  <h3>Extends (interface inheritance)</h3>
+  <p><code>ClassifyPersistPayload extends ClassifyPayload</code> means it has all the fields of <code>ClassifyPayload</code> plus the additional ones declared in <code>ClassifyPersistPayload</code>. This avoids repeating the criteria fields.</p>
+
+  <div class="callout blue">
+    <span class="tag">In this PR</span>
+    <p>All interfaces in <code>api.ts</code> mirror backend Pydantic models. If you see a field name with an underscore (e.g. <code>lab_number</code>) that is deliberate — it matches the snake_case field name the backend sends in JSON. TypeScript interfaces don't rename fields; they describe them as-is.</p>
+  </div>
+</section>
+
+<section id="vitest">
+  <h2><span class="sec-num">09</span> Vitest mocking patterns</h2>
+
+  <p>Vitest is the test runner used in this project. The tests in this PR use three specific Vitest capabilities that are worth understanding before reading the test files.</p>
+
+  <h3>vi.stubGlobal — replacing browser globals</h3>
+  <p>The test environment (jsdom) does not make real HTTP requests. <code>vi.stubGlobal("fetch", ...)</code> replaces the browser's built-in <code>fetch</code> function with a fake that returns controlled responses. <code>vi.restoreAllMocks()</code> in <code>beforeEach</code> ensures each test starts with a clean slate.</p>
+
+  <div class="cb"><pre><span class="f">vi</span>.stubGlobal(<span class="s">"fetch"</span>, <span class="f">vi.fn</span>().<span class="f">mockResolvedValue</span>({  <span class="c">// ①</span>
+  ok: <span class="k">true</span>,
+  json: <span class="k">async</span> () =&gt; ({ items: [], total: <span class="n">0</span> }),     <span class="c">// ②</span>
+}));</pre></div>
+  <ul class="anno">
+    <li><div class="num">①</div><div class="txt"><strong>vi.fn().mockResolvedValue()</strong> creates a fake function that, when called, returns a Promise resolving to the given value. <code>mockResolvedValue</code> is shorthand for <code>vi.fn().mockImplementation(() =&gt; Promise.resolve(...))</code>.</div></li>
+    <li><div class="num">②</div><div class="txt"><strong>The mock shape matters.</strong> The real <code>fetch</code> returns a Response object with an <code>ok</code> boolean and a <code>json()</code> async method. The mock must replicate this exact shape or the code under test will throw a TypeError.</div></li>
+  </ul>
+
+  <h3>vi.mock — replacing whole modules</h3>
+  <p>Used in component tests (PRs D1–D4) to replace <code>api.ts</code> with a mock. In this PR's tests, <code>vi.stubGlobal</code> is sufficient because <code>api.ts</code> is the module under test.</p>
+
+  <h3>JSON imports in tests</h3>
+  <p>The classification-engine tests import the real criteria JSON files from <code>src/config/</code>. This is intentional — it tests the engine against the actual combination rules and verifies that the golden cases still pass when the config files are updated.</p>
+
+  <div class="cb"><pre><span class="k">import</span> acgsCriteria <span class="k">from</span> <span class="s">"../config/acgs-snv-criteria.json"</span>;
+
+<span class="k">const</span> acgsRules = acgsCriteria.combination_rules <span class="k">as</span> {
+  rule: <span class="t">string</span>; codes: <span class="t">string</span>[]; message: <span class="t">string</span>
+}[];   <span class="c">// cast needed because JSON types are widened by TypeScript</span></pre></div>
+</section>
+
+<section id="tavtigian">
+  <h2><span class="sec-num">10</span> The Tavtigian point-based scoring system</h2>
+
+  <p>The ACGS SNV and SVIG-UK frameworks both use a <strong>point-based system</strong> introduced by Tavtigian et al. (2020). Instead of applying heuristic rules ("if PVS1 and two PM criteria then Likely_Pathogenic"), each criterion code carries a numeric weight depending on its strength. You sum the weights and apply a threshold table.</p>
+
+  <h3>Strength weights</h3>
+  <table>
+    <thead><tr><th>Strength</th><th>Points (pathogenic / oncogenic)</th><th>Points (benign)</th><th>Example codes</th></tr></thead>
+    <tbody>
+      <tr><td><code>very_strong</code></td><td>+8</td><td>—</td><td>PVS1</td></tr>
+      <tr><td><code>strong</code></td><td>+4</td><td>−4</td><td>PS1, BS1</td></tr>
+      <tr><td><code>moderate</code></td><td>+2</td><td>−2</td><td>PM1, BM1</td></tr>
+      <tr><td><code>supporting</code></td><td>+1</td><td>−1</td><td>PP3, BP4</td></tr>
+      <tr><td><code>standalone</code></td><td>sentinel (see below)</td><td>sentinel</td><td>BA1, O1, B1, B2</td></tr>
+    </tbody>
+  </table>
+
+  <h3>ACGS SNV thresholds</h3>
+  <table>
+    <thead><tr><th>Score range</th><th>Classification</th></tr></thead>
+    <tbody>
+      <tr><td>≥ 10</td><td>Pathogenic</td></tr>
+      <tr><td>6 – 9</td><td>Likely_Pathogenic</td></tr>
+      <tr><td>0 – 5</td><td>VUS</td></tr>
+      <tr><td>−1 to −6</td><td>Likely_Benign</td></tr>
+      <tr><td>≤ −7</td><td>Benign</td></tr>
+    </tbody>
+  </table>
+
+  <h3>A worked example</h3>
+  <p>A variant with PVS1 (very_strong = +8) and PM2 (supporting = +1) has score <strong>9</strong>, which falls in the 6–9 range → <strong>Likely_Pathogenic</strong>. This is golden test case #1.</p>
+
+  <div class="callout green">
+    <span class="tag">Why the golden cases matter</span>
+    <p>The four golden tests in <code>classification-engine.test.ts</code> are verified against the Python backend's <code>classify()</code> function. If the TypeScript and Python engines ever disagree on the same inputs, the UI would show a different classification than the one stored in the database — a patient safety issue. The golden cases are the contract that keeps them in sync.</p>
+  </div>
+</section>
+
+<section id="frameworks">
+  <h2><span class="sec-num">11</span> ACGS SNV vs SVIG-UK frameworks</h2>
+
+  <p>The application supports two classification frameworks because variant interpretation differs between germline and somatic contexts.</p>
+
+  <table>
+    <thead><tr><th>Property</th><th>ACGS SNV (germline)</th><th>SVIG-UK (somatic)</th></tr></thead>
+    <tbody>
+      <tr><td>Use case</td><td>Inherited germline variants — hereditary cancer panels, rare disease</td><td>Somatic tumour variants — acquired mutations in tumour tissue</td></tr>
+      <tr><td>Criterion prefix convention</td><td>P codes (pathogenic): PVS, PS, PM, PP<br>B codes (benign): BA, BS, BP</td><td>O codes (oncogenic): O1–O11<br>B codes (benign): B1–B7</td></tr>
+      <tr><td>Classification labels</td><td>Pathogenic / Likely_Pathogenic / VUS / Likely_Benign / Benign</td><td>Oncogenic / Likely_Oncogenic / VUS / Likely_Benign / Benign</td></tr>
+      <tr><td>Sentinel code</td><td>BA1 (allele frequency standalone Benign)</td><td>O1 (canonical oncogenic), B1 (Benign), B2 (forces VUS)</td></tr>
+      <tr><td>CanVIG relevance</td><td>CanVIG genes use gene-specific AF thresholds for BA1 / BS1 assessment</td><td>Not applicable — no CanVIG list for somatic</td></tr>
+    </tbody>
+  </table>
+
+  <p>The <code>selectFramework()</code> function chooses between the two. The rule is simple: somatic always means SVIG-UK; germline means ACGS SNV. The CanVIG flag returned by <code>selectFramework()</code> is used by the UI to adjust which BA1/BS1 AF thresholds are shown to the analyst (gene-specific vs population-wide).</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Framework selection decision tree">
+    <style>.lbl{font:13px -apple-system,Segoe UI,Inter,sans-serif;font-weight:600}.sub{font:11px -apple-system,Segoe UI,Inter,sans-serif}</style>
+    <defs>
+      <marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6b7c8d"/>
+      </marker>
+    </defs>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">FRAMEWORK SELECTION DECISION TREE</text>
+
+    <rect x="310" y="45" width="200" height="44" rx="6" fill="#f0f4f8" stroke="#c5d0db" stroke-width="1.5"/>
+    <text x="410" y="71" text-anchor="middle" fill="#0d1b2a" class="lbl">selectFramework(caseType, gene)</text>
+
+    <!-- somatic branch -->
+    <line x1="340" y1="89" x2="200" y2="130" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr3)"/>
+    <text x="250" y="115" text-anchor="middle" fill="#6b7c8d" class="sub">somatic</text>
+    <rect x="100" y="130" width="200" height="36" rx="6" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="200" y="152" text-anchor="middle" fill="#4b2d8e" class="lbl">SVIG-UK, isCanvig=false</text>
+
+    <!-- germline, not canvig -->
+    <line x1="480" y1="89" x2="480" y2="130" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr3)"/>
+    <text x="490" y="115" text-anchor="middle" fill="#6b7c8d" class="sub">germline, gene not in CanVIG</text>
+    <rect x="360" y="130" width="240" height="36" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="480" y="152" text-anchor="middle" fill="#003d78" class="lbl">ACGS SNV, isCanvig=false</text>
+
+    <!-- germline, canvig -->
+    <line x1="490" y1="89" x2="670" y2="130" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr3)"/>
+    <text x="610" y="115" text-anchor="middle" fill="#6b7c8d" class="sub">germline, gene in CanVIG</text>
+    <rect x="565" y="130" width="220" height="36" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="675" y="152" text-anchor="middle" fill="#1a6e47" class="lbl">ACGS SNV, isCanvig=true</text>
+  </svg>
+  </div>
+  <figcaption>Figure 3 · Framework selection decision tree. Somatic always maps to SVIG-UK. Germline variants use ACGS SNV; the CanVIG flag is true if the variant's gene is in the 33-gene CanVIG panel.</figcaption>
+  </figure>
+</section>
+
+<section id="sentinels">
+  <h2><span class="sec-num">12</span> Sentinel code overrides</h2>
+
+  <p>Some criteria codes <strong>bypass the point summation entirely</strong> and directly return a classification. These are called sentinel codes. The code checks for them before entering the main scoring loop, short-circuits, and returns immediately with a special score value that the UI can treat as a flag.</p>
+
+  <table>
+    <thead><tr><th>Code</th><th>Framework</th><th>Returns</th><th>Score</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>BA1</code></td><td>ACGS SNV</td><td>Benign</td><td>−999</td><td>Population allele frequency alone is sufficient evidence for Benign; no other criteria matter</td></tr>
+      <tr><td><code>O1</code></td><td>SVIG-UK</td><td>Oncogenic</td><td>+999</td><td>Variant is in a well-curated canonical oncogenic database (e.g. COSMIC hotspot)</td></tr>
+      <tr><td><code>B1</code></td><td>SVIG-UK</td><td>Benign</td><td>−999</td><td>Population frequency evidence alone sufficient for Benign</td></tr>
+      <tr><td><code>B2</code></td><td>SVIG-UK</td><td>VUS</td><td>0</td><td>Conflicting evidence — forces VUS regardless of other criteria</td></tr>
+    </tbody>
+  </table>
+
+  <p>The sentinel scores (±999) are out-of-range for any normal classification threshold. The UI uses them purely to detect sentinel state (e.g. to show "★" instead of a numeric score). They are <strong>not stored</strong> in the database directly; the backend stores the classification label and a null score for sentinel cases.</p>
+
+  <div class="callout amber">
+    <span class="tag">Priority order matters for SVIG-UK</span>
+    <p>If an analyst somehow applies both O1 and B1, the classification is <strong>Oncogenic</strong> (O1 wins). The priority order O1 &gt; B1 &gt; B2 is explicit in both the TypeScript and Python engines. A review finding during development caught an earlier version where B2 was checked first — this has been corrected and is covered by the <code>"O1 + B2 → Oncogenic"</code> test case.</p>
+  </div>
+</section>
+
+<section id="combination-rules">
+  <h2><span class="sec-num">13</span> Combination rules</h2>
+
+  <p>Some pairs of criteria are logically contradictory — for example, PP3 (computational evidence supporting pathogenicity) and BP4 (computational evidence supporting benign) cannot both be meaningfully applied to the same variant. The criteria JSON config files include a <code>combination_rules</code> array that defines which code pairs should trigger a warning.</p>
+
+  <div class="cb"><pre><span class="c">// From acgs-snv-criteria.json (abbreviated)</span>
+{
+  <span class="s">"combination_rules"</span>: [
+    {
+      <span class="s">"rule"</span>: <span class="s">"PP3_BP4_conflict"</span>,
+      <span class="s">"codes"</span>: [<span class="s">"PP3"</span>, <span class="s">"BP4"</span>],
+      <span class="s">"message"</span>: <span class="s">"PP3 and BP4 are mutually contradictory..."</span>
+    }
+  ]
+}</pre></div>
+
+  <p>The <code>classify()</code> function checks combination rules <em>before</em> summing points. It builds a <code>Set</code> of applied criterion codes (for O(1) lookup) and fires a warning if two or more codes from the same rule are both applied. The warning is included in the <code>ClassificationResult.warnings</code> array — it does <strong>not</strong> change the score or classification, it is advisory only.</p>
+
+  <div class="callout blue">
+    <span class="tag">Why pass rules as a parameter?</span>
+    <p>The engine receives <code>combinationRules</code> as a parameter rather than importing the JSON internally. This keeps the engine a pure function of its inputs, making it trivially testable — tests can pass an empty array to skip rule checking, or pass a single hand-crafted rule to test a specific combination. The component (ClassificationPanel in PR D3) loads the appropriate JSON and passes it in.</p>
+  </div>
+</section>
+
+<section id="fhir">
+  <h2><span class="sec-num">14</span> FHIR R4 Bundle structure</h2>
+
+  <p>FHIR (Fast Healthcare Interoperability Resources) is an international standard for exchanging healthcare data. The backend expects a FHIR R4 "collection" Bundle as the sidecar manifest that accompanies each VCF upload. The frontend's <code>buildManifest()</code> function constructs this JSON object.</p>
+
+  <h3>Bundle anatomy</h3>
+  <p>A Bundle is a container. Type <code>"collection"</code> means it is simply a list of resources held together. Each resource has a <code>resourceType</code> string identifying what kind of record it is.</p>
+
+  <div class="cb"><pre>{
+  <span class="s">"resourceType"</span>: <span class="s">"Bundle"</span>,    <span class="c">// ① top-level FHIR type</span>
+  <span class="s">"type"</span>: <span class="s">"collection"</span>,        <span class="c">// ② bundle flavour — no transaction semantics</span>
+  <span class="s">"entry"</span>: [                   <span class="c">// ③ array of resource wrappers</span>
+    { <span class="s">"resource"</span>: { <span class="s">"resourceType"</span>: <span class="s">"Patient"</span>, ... } },
+    { <span class="s">"resource"</span>: { <span class="s">"resourceType"</span>: <span class="s">"Specimen"</span>, ... } },
+    { <span class="s">"resource"</span>: { <span class="s">"resourceType"</span>: <span class="s">"Task"</span>, ... } }
+  ]
+}</pre></div>
+
+  <h3>The three resources</h3>
+  <table>
+    <thead><tr><th>Resource</th><th>Entry index</th><th>Key fields</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>Patient</code></td><td><code>entry[0]</code></td><td><code>identifier[0].system</code> = NHS lab system URI<br><code>identifier[0].value</code> = lab_number</td><td>Identifies the patient by their lab record number</td></tr>
+      <tr><td><code>Specimen</code></td><td><code>entry[1]</code></td><td><code>identifier[0].value</code> = specimen name<br><code>extension[0].valueCode</code> = "germline" or "somatic"<br><code>collection.collectedDateTime</code> (optional)</td><td>Identifies the specimen with its case type and collection date</td></tr>
+      <tr><td><code>Task</code></td><td><code>entry[2]</code></td><td><code>code.text</code> = pipeline key (optional)<br><code>output[0].valueString</code> = VCF filename</td><td>Records the bioinformatics pipeline and VCF filename</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout amber">
+    <span class="tag">Divergence from the reference implementation</span>
+    <p>The Next.js reference implementation (<code>discovery/nextjs</code> branch) includes NHS number, patient name, and date of birth in the Patient resource. This SPA deliberately omits them — NHS number is not collected (GDPR minimisation), patient name is not displayed (privacy rule), and date of birth was dropped from the patients table by migration 004. The backend's <code>parse_manifest()</code> handles their absence gracefully with nullable fields.</p>
+  </div>
+</section>
+
+<section id="vite-env">
+  <h2><span class="sec-num">15</span> Vite environment variables</h2>
+
+  <p>Vite (the build tool) provides a mechanism for injecting environment variables into the browser bundle. Variables prefixed <code>VITE_</code> are baked into the compiled JavaScript at build time. They are accessed via <code>import.meta.env.VITE_KEY_NAME</code>.</p>
+
+  <div class="cb"><pre><span class="c">// Set in .env file or docker-compose environment section:</span>
+<span class="c">// VITE_API_KEY=changeme-replace-in-production</span>
+
+<span class="c">// Read in code:</span>
+<span class="k">const</span> key = import.meta.env.<span class="t">VITE_API_KEY</span> <span class="k">as</span> <span class="t">string</span> | <span class="t">undefined</span>;</pre></div>
+
+  <p>Two variables are used in this PR's <code>api.ts</code>:</p>
+  <ul>
+    <li><code>VITE_API_KEY</code> — the API key sent to the FastAPI backend as <code>X-API-Key</code></li>
+    <li><code>VITE_USER_ID</code> — the logged-in analyst identifier written into classification and audit records</li>
+  </ul>
+
+  <div class="callout amber">
+    <span class="tag">Why authHeaders() reads at call time, not module load</span>
+    <p>If <code>VITE_API_KEY</code> were read once when the module is imported (<code>const key = import.meta.env.VITE_API_KEY</code> at the top level), Vitest tests could not change it between test runs — the value would be frozen from the first import. By reading inside <code>authHeaders()</code> on every call, tests can use <code>vi.stubEnv("VITE_API_KEY", "test-key")</code> and the change takes effect immediately. This is a testability decision, not a performance concern.</p>
+  </div>
+
+  <h3>import.meta.env.DEV</h3>
+  <p>Vite also provides a built-in boolean <code>import.meta.env.DEV</code> that is <code>true</code> when running the Vite dev server (<code>npm run dev</code>) and <code>false</code> in production builds (<code>npm run build</code>). The <code>UploadForm</code> uses this to switch between the direct-ingest dev path and the S3 presigned-URL production path.</p>
+</section>
+
+<section id="204">
+  <h2><span class="sec-num">16</span> The 204 No Content problem</h2>
+
+  <p>HTTP 204 means "success, but there is no body to return." The browser's <code>fetch</code> API still returns a Response object for 204 responses, but calling <code>resp.json()</code> on an empty body throws a <code>SyntaxError</code>. The <code>request&lt;T&gt;</code> function handles this explicitly.</p>
+
+  <div class="cb"><pre><span class="c">// 204 No Content — don't try to parse the body</span>
+<span class="k">if</span> (resp.status === <span class="n">204</span> || resp.headers?.<span class="f">get</span>?.(<span class="s">"content-length"</span>) === <span class="s">"0"</span>) {
+  <span class="k">return</span> <span class="k">undefined</span> <span class="k">as unknown as</span> <span class="t">T</span>;   <span class="c">// callers typing void won't care</span>
+}</pre></div>
+
+  <p>Both <code>deletePatient</code> and <code>deleteSample</code> are typed as returning <code>Promise&lt;void&gt;</code>. The <code>as unknown as T</code> cast is necessary because TypeScript does not allow returning <code>undefined</code> where a generic <code>T</code> is expected, even though the caller's <code>void</code> type means they will never read the value. It is the correct trade-off between type safety and practicality here.</p>
+
+  <p>The optional chaining (<code>resp.headers?.get?.()</code>) guards against test environments where the mocked response object may not have a <code>headers</code> property at all.</p>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_C2_Lib_Modules_Part1.html">1 · High-level outline</a>
+  <a href="260521_PR_C2_Lib_Modules_Part2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_C2_Lib_Modules_Part3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_C2_Lib_Modules_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+</main>
+</div>
+
+<footer>
+  Joo Wook Ahn · 21 May 2026 · Key concepts for PR C2 lib modules. Continued from Part 1 (high-level outline). Continues in Part 3 (function walkthrough).
+</footer>
+
+</body>
+</html>

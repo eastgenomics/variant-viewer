@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D2 — Specimen &amp; Variant Components · Part 1 · High-level outline</title>
+<style>
+:root{
+  --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+  --line:#e0e7ef;--line-strong:#c5d0db;
+  --bg:#f7f9fb;--paper:#ffffff;
+  --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+  --green:#1a6e47;--green-soft:#e0f0e8;
+  --amber:#b35c00;--amber-soft:#fdf0e0;
+  --red:#9b2335;--red-soft:#fce8ea;
+  --purple:#4b2d8e;--purple-soft:#ede8f8;
+  --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent-mid);text-decoration:none}
+a:hover{text-decoration:underline}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+main{padding:0 56px 96px;max-width:900px}
+@media(max-width:860px){main{padding:0 24px 64px}}
+h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+p{margin-bottom:13px;color:var(--ink-soft)}
+strong{color:var(--ink)}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:5px 0;color:var(--ink-soft)}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+.toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+.toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.toc ul{list-style:none}
+.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+.toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+.toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+.hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+.hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+.hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.hero .meta-item{font-size:12px;color:var(--muted)}
+.hero .meta-item strong{color:var(--ink-soft)}
+section{padding-top:52px}
+section+section{border-top:1px solid var(--line)}
+footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+.callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+.callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+.callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+.callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.callout.blue .tag{color:var(--accent-deep)}
+.callout.green .tag{color:var(--green)}
+.callout.amber .tag{color:var(--amber)}
+.callout p:last-child{margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;border-top:3px solid var(--accent)}
+.stat .n{font-size:26px;font-weight:800;color:var(--accent-deep);line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+.card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
+@media(max-width:640px){.card-grid{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-name{font-weight:700;font-size:14.5px;color:var(--ink);line-height:1.2}
+.card-sub{font-size:11.5px;color:var(--muted)}
+.card p{font-size:13.5px;margin:0 0 10px}
+.card p:last-child{margin:0}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+.pill.green{background:var(--green-soft);color:var(--green)}
+.pill.amber{background:var(--amber-soft);color:var(--amber)}
+.pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+.pill.purple{background:var(--purple-soft);color:var(--purple)}
+.pill.red{background:var(--red-soft);color:var(--red)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+tr:hover td{background:#fafbfd}
+figure{margin:24px 0}
+.fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+.series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+.series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+.series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D2 — SPECIMEN &amp; VARIANT COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">Part 1 of 4</div>
+  <ul>
+    <li><a href="#what">What this PR does</a></li>
+    <li><a href="#architecture">Component architecture</a></li>
+    <li><a href="#dataflow">Data flow</a></li>
+    <li><a href="#dependencies">External dependencies</a></li>
+    <li><a href="#inventory">Function inventory</a></li>
+    <li><a href="#series">How to use this series</a></li>
+  </ul>
+  <div class="meta">Source: eastgenomics/variant-viewer<br>Branch: pr/D2<br>7 files changed, 681 insertions</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · React frontend · Part 1 of 4</div>
+  <h1>PR D2 — Specimen &amp; Variant Components</h1>
+  <p class="sub">An annotated walkthrough of SpecimenCard, WorkflowControl, DeleteSampleButton, and VariantTable — the interactive layer of the patient detail page.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 1 of 4 — High-level outline</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D2_Specimen_Variant_Components_1.html" class="current">1 · High-level outline</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="what">
+  <h2><span class="sec-num">01</span> What this PR does</h2>
+
+  <p>PR D2 adds four React components that together form the interactive patient detail page. These components live between the read-only display layer (PR D1: badges, headers, patient list) and the classification panel (PR D3). They are the components a clinical analyst actually uses: viewing specimens, advancing workflow status, deleting samples when needed, and browsing variants to select one for classification.</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="n">4</div>
+      <div class="l">New components</div>
+    </div>
+    <div class="stat">
+      <div class="n">3</div>
+      <div class="l">Test files, 9 tests</div>
+    </div>
+    <div class="stat">
+      <div class="n">681</div>
+      <div class="l">Lines added</div>
+    </div>
+    <div class="stat">
+      <div class="n">0</div>
+      <div class="l">Existing files modified</div>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <span class="tag">Context in the PR stack</span>
+    <p>This PR targets <code>pr/D1</code> (display components). It imports <code>WorkflowBadge</code> and <code>ClassificationBadge</code> from D1, and the lib modules (<code>api.ts</code>, <code>display-utils.ts</code>, <code>pipeline-config.ts</code>) from C2. No pages are introduced here — pages arrive in PR D4.</p>
+  </div>
+
+  <p>The four components have distinct, non-overlapping responsibilities:</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--accent-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="4" width="16" height="12" rx="2" fill="none" stroke="#005eb8" stroke-width="1.5"/><line x1="2" y1="8" x2="18" y2="8" stroke="#005eb8" stroke-width="1.5"/></svg>
+        </div>
+        <div>
+          <div class="card-name">SpecimenCard</div>
+          <div class="card-sub">Container / orchestrator</div>
+        </div>
+      </div>
+      <p>Top-level card for one sample. Renders specimen metadata and embeds the three child components below it. Memoizes pipeline filter defaults to prevent unnecessary VariantTable refetches.</p>
+      <span class="pill blue">82 lines</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--green-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="7" fill="none" stroke="#1a6e47" stroke-width="1.5"/><path d="M7 10l2 2 4-4" stroke="#1a6e47" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="card-name">WorkflowControl</div>
+          <div class="card-sub">State machine buttons</div>
+        </div>
+      </div>
+      <p>Renders the allowed next-state buttons for the current workflow status. TRANSITIONS map mirrors the backend's VALID_TRANSITIONS. Prop-syncs via <code>useEffect</code> so an external status refresh is reflected without remounting.</p>
+      <span class="pill green">57 lines</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--amber-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 3l7 14H3z" fill="none" stroke="#b35c00" stroke-width="1.5" stroke-linejoin="round"/><line x1="10" y1="9" x2="10" y2="13" stroke="#b35c00" stroke-width="1.5"/><circle cx="10" cy="15" r="0.8" fill="#b35c00"/></svg>
+        </div>
+        <div>
+          <div class="card-name">DeleteSampleButton</div>
+          <div class="card-sub">Destructive action with guard</div>
+        </div>
+      </div>
+      <p>Two-phase confirmation: a trigger button, then a confirm bar. Shows a high-risk amber warning for <code>reported</code> or <code>archived</code> specimens. Surfaces API errors inline rather than dismissing silently.</p>
+      <span class="pill amber">71 lines</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--purple-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="16" height="11" rx="2" fill="none" stroke="#4b2d8e" stroke-width="1.5"/><line x1="2" y1="9" x2="18" y2="9" stroke="#4b2d8e" stroke-width="1"/><line x1="6" y1="5" x2="6" y2="16" stroke="#4b2d8e" stroke-width="1" stroke-dasharray="2 2"/></svg>
+        </div>
+        <div>
+          <div class="card-name">VariantTable</div>
+          <div class="card-sub">Data table with server fetch</div>
+        </div>
+      </div>
+      <p>Fetches <code>GET /api/samples/{id}/variants</code> with filter params, renders a TanStack Table, and paginates. Manages five pieces of state: data, total, loading, error, pageIndex, filters, geneInput, sortBy, sortDir.</p>
+      <span class="pill purple">306 lines</span>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <h2><span class="sec-num">02</span> Component architecture</h2>
+
+  <p>The four components have a clear parent–child tree. <strong>SpecimenCard</strong> is the root and the only component that receives props from outside this PR (the <code>SampleDetail</code> object from <code>PatientDetailPage</code>). It instantiates the other three as children.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Component tree showing SpecimenCard as root with three children: WorkflowControl, DeleteSampleButton, and VariantTable">
+    <style>.lbl{font:13px -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif}.sub{font:11px -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif}.mono{font:12px ui-monospace,Menlo,Consolas,monospace}</style>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">COMPONENT TREE</text>
+
+    <!-- PatientDetailPage (caller, outside this PR) -->
+    <rect x="280" y="40" width="260" height="50" rx="6" fill="#f0f4f8" stroke="#c5d0db" stroke-width="1.5"/>
+    <text x="410" y="61" text-anchor="middle" class="lbl" fill="#6b7c8d">PatientDetailPage</text>
+    <text x="410" y="78" text-anchor="middle" class="sub" fill="#6b7c8d">(PR D4 — outside this PR)</text>
+
+    <!-- arrow down -->
+    <line x1="410" y1="90" x2="410" y2="115" stroke="#c5d0db" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="420" y="107" class="sub" fill="#6b7c8d">SampleDetail</text>
+
+    <!-- SpecimenCard -->
+    <rect x="230" y="115" width="360" height="54" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="2"/>
+    <text x="410" y="138" text-anchor="middle" class="lbl" font-weight="700" fill="#003d78">SpecimenCard</text>
+    <text x="410" y="156" text-anchor="middle" class="sub" fill="#005eb8">container · useMemo(defaultFilters)</text>
+
+    <!-- three arrows down -->
+    <line x1="260" y1="169" x2="160" y2="220" stroke="#c5d0db" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="410" y1="169" x2="410" y2="220" stroke="#c5d0db" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="560" y1="169" x2="660" y2="220" stroke="#c5d0db" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- WorkflowControl -->
+    <rect x="60" y="220" width="200" height="54" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="160" y="244" text-anchor="middle" class="lbl" font-weight="700" fill="#1a6e47">WorkflowControl</text>
+    <text x="160" y="261" text-anchor="middle" class="sub" fill="#1a6e47">TRANSITIONS · useEffect sync</text>
+
+    <!-- DeleteSampleButton -->
+    <rect x="300" y="220" width="220" height="54" rx="6" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+    <text x="410" y="244" text-anchor="middle" class="lbl" font-weight="700" fill="#b35c00">DeleteSampleButton</text>
+    <text x="410" y="261" text-anchor="middle" class="sub" fill="#b35c00">confirm · high-risk warning</text>
+
+    <!-- VariantTable -->
+    <rect x="560" y="220" width="200" height="54" rx="6" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="660" y="244" text-anchor="middle" class="lbl" font-weight="700" fill="#4b2d8e">VariantTable</text>
+    <text x="660" y="261" text-anchor="middle" class="sub" fill="#4b2d8e">TanStack · fetch · pagination</text>
+
+    <!-- API arrows -->
+    <line x1="160" y1="274" x2="160" y2="300" stroke="#c5d0db" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr-muted)"/>
+    <text x="170" y="294" class="sub" fill="#6b7c8d">PUT /api/workflow</text>
+    <line x1="410" y1="274" x2="410" y2="300" stroke="#c5d0db" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr-muted)"/>
+    <text x="420" y="294" class="sub" fill="#6b7c8d">DELETE /api/samples</text>
+    <line x1="660" y1="274" x2="660" y2="300" stroke="#c5d0db" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr-muted)"/>
+    <text x="580" y="294" class="sub" fill="#6b7c8d">GET /api/samples/{id}/variants</text>
+
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#c5d0db"/></marker>
+      <marker id="arr-muted" markerWidth="6" markerHeight="6" refX="5" refY="2.5" orient="auto"><path d="M0,0 L0,5 L6,2.5 z" fill="#c5d0db"/></marker>
+    </defs>
+  </svg>
+  </div>
+  <figcaption>Figure 1 · Component tree for PR D2. Solid borders = this PR. Dashed lines = API calls. SpecimenCard is the only component receiving external props.</figcaption>
+  </figure>
+
+  <p>The <strong>onDeleteSample</strong> callback originates in <code>PatientDetailPage</code> (PR D4) and passes through <code>SpecimenCard</code> as <code>onDeleteSample?</code> to <code>DeleteSampleButton</code> as <code>onDelete?</code>. When a delete succeeds, the callback fires up the chain, removing the specimen from the page's state array. <code>SpecimenCard</code> itself does not manage any lists — it is a pure relay for the callback.</p>
+</section>
+
+<section id="dataflow">
+  <h2><span class="sec-num">03</span> Data flow</h2>
+
+  <p>Data flows in two directions: props flow down from the parent page into <code>SpecimenCard</code>, and API mutations flow outward from the leaf components back to the server.</p>
+
+  <table>
+    <thead>
+      <tr><th>Data item</th><th>Origin</th><th>Consumer</th><th>Direction</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>specimen: SampleDetail</code></td><td>PatientDetailPage (API response)</td><td>SpecimenCard → all children</td><td>Props ↓</td></tr>
+      <tr><td><code>patientId</code></td><td>Route param in PatientDetailPage</td><td>SpecimenCard → VariantTable (for Classify links)</td><td>Props ↓</td></tr>
+      <tr><td><code>defaultFilters</code></td><td><code>getPipelineDefaults(pipeline_key)</code>, memoized in SpecimenCard</td><td>VariantTable (initial filter state)</td><td>Props ↓</td></tr>
+      <tr><td><code>onDeleteSample?</code></td><td>PatientDetailPage (removes item from state array)</td><td>SpecimenCard → DeleteSampleButton (<code>onDelete?</code>)</td><td>Callback ↑</td></tr>
+      <tr><td>Workflow transition</td><td>WorkflowControl button click</td><td>PUT /api/workflow/{id}</td><td>API call →</td></tr>
+      <tr><td>Sample deletion</td><td>DeleteSampleButton confirm click</td><td>DELETE /api/samples/{id}</td><td>API call →</td></tr>
+      <tr><td>Variant rows</td><td>GET /api/samples/{id}/variants</td><td>VariantTable state (<code>data</code>)</td><td>API fetch ←</td></tr>
+      <tr><td>Filter changes</td><td>User input in VariantTable filter bar</td><td>Re-triggers <code>fetchVariants</code> via dependency array</td><td>Internal →</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout amber">
+    <span class="tag">Important: defaultFilters stability</span>
+    <p><code>SpecimenCard</code> calls <code>getPipelineDefaults(specimen.pipeline_key)</code> and wraps the result in <code>useMemo</code>. Without the memo, every render of <code>SpecimenCard</code> would produce a new object reference for <code>defaultFilters</code> — and since <code>VariantTable</code> lists <code>defaultFilters</code> in a <code>useEffect</code> dependency array, this would trigger an unnecessary refetch on every parent render. The <code>useMemo</code> ensures the object reference only changes when <code>pipeline_key</code> actually changes.</p>
+  </div>
+</section>
+
+<section id="dependencies">
+  <h2><span class="sec-num">04</span> External dependencies</h2>
+
+  <table>
+    <thead>
+      <tr><th>Import</th><th>Source</th><th>Used for</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>useReactTable, getCoreRowModel, flexRender, createColumnHelper</code></td><td><code>@tanstack/react-table</code></td><td>Column definition, table instance, render helpers in VariantTable</td></tr>
+      <tr><td><code>useState, useEffect, useCallback, useMemo</code></td><td><code>react</code></td><td>State, side effects, memoized callbacks and values across all four components</td></tr>
+      <tr><td><code>Link</code></td><td><code>react-router-dom</code></td><td>Classify link in VariantTable rows (client-side navigation, no page reload)</td></tr>
+      <tr><td><code>authHeaders</code></td><td><code>../lib/api</code></td><td>Attaches <code>X-API-Key</code> to every fetch in VariantTable; read at call time, not module load</td></tr>
+      <tr><td><code>updateWorkflow, deleteSample</code></td><td><code>../lib/api</code></td><td>Typed fetch wrappers for mutation endpoints</td></tr>
+      <tr><td><code>formatGnomadAf, gnomadAfClass</code> (and Revel, SpliceAI equivalents)</td><td><code>../lib/display-utils</code></td><td>Column cell rendering — format values and derive CSS colour classes</td></tr>
+      <tr><td><code>getPipelineDefaults</code></td><td><code>../lib/pipeline-config</code></td><td>Reads <code>src/config/pipelines.json</code> to get the per-pipeline filter preset</td></tr>
+      <tr><td><code>WorkflowBadge, ClassificationBadge</code></td><td><code>./WorkflowBadge</code>, <code>./ClassificationBadge</code></td><td>Display-only badge components from PR D1</td></tr>
+      <tr><td><code>SampleDetail, VariantRow, PipelineFilters, WorkflowStatus</code></td><td><code>../lib/api</code> (type-only imports)</td><td>TypeScript type annotations — erased at runtime</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout green">
+    <span class="tag">No direct database or S3 access</span>
+    <p>All data operations go through the FastAPI REST API via the typed wrappers in <code>api.ts</code> or direct <code>fetch</code> calls (VariantTable) that include <code>authHeaders()</code>. The SPA has no <code>psycopg2</code>, <code>boto3</code>, or other backend SDK imports anywhere. This is Invariant 5 of the project.</p>
+  </div>
+</section>
+
+<section id="inventory">
+  <h2><span class="sec-num">05</span> Function inventory</h2>
+
+  <p>The table below lists every exported component and every significant internal function across all four files. Line numbers refer to the <code>pr/D2</code> branch.</p>
+
+  <table>
+    <thead>
+      <tr><th>Name</th><th>File</th><th>Lines</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>SpecimenCard</code> (default export)</td><td>SpecimenCard.tsx</td><td>10–82</td><td>Container component: renders specimen metadata card + child WorkflowControl, DeleteSampleButton, VariantTable</td></tr>
+      <tr><td><code>WorkflowControl</code> (default export)</td><td>WorkflowControl.tsx</td><td>12–57</td><td>Renders allowed-transition buttons; calls <code>updateWorkflow</code>; syncs status from prop</td></tr>
+      <tr><td><code>handleTransition</code></td><td>WorkflowControl.tsx</td><td>27–36</td><td>Async: calls API, updates local status on success, sets error on failure</td></tr>
+      <tr><td><code>DeleteSampleButton</code> (default export)</td><td>DeleteSampleButton.tsx</td><td>4–71</td><td>Two-phase delete: trigger → confirm bar with high-risk amber warning; inline error state</td></tr>
+      <tr><td><code>COLUMNS</code> (module constant)</td><td>VariantTable.tsx</td><td>19–98</td><td>TanStack column definitions array; 10 columns, each with a typed cell renderer</td></tr>
+      <tr><td><code>VariantTable</code> (default export)</td><td>VariantTable.tsx</td><td>102–280</td><td>State management, fetch trigger, TanStack table instance, filter bar, pagination controls</td></tr>
+      <tr><td><code>fetchVariants</code></td><td>VariantTable.tsx</td><td>124–158</td><td><code>useCallback</code>-wrapped async fetch: builds query string, calls API, updates data/total/error state</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="series">
+  <h2><span class="sec-num">06</span> How to use this series</h2>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-name">Part 1 · High-level outline</div>
+      <div class="card-sub" style="margin-bottom:8px">You are here</div>
+      <p>What the four components do, how they relate to each other, the full data flow, and a function inventory table.</p>
+      <span class="pill blue">Orientation</span>
+    </div>
+    <div class="card">
+      <div class="card-name">Part 2 · Key concepts</div>
+      <div class="card-sub" style="margin-bottom:8px"><a href="260521_PR_D2_Specimen_Variant_Components_2.html">Open →</a></div>
+      <p>Plain-English explanations of TanStack Table, <code>useCallback</code>+<code>useEffect</code> fetch patterns, <code>useMemo</code> referential stability, workflow state machines, and the Vitest partial mock pattern.</p>
+      <span class="pill green">Concepts</span>
+    </div>
+    <div class="card">
+      <div class="card-name">Part 3 · Function walkthrough</div>
+      <div class="card-sub" style="margin-bottom:8px"><a href="260521_PR_D2_Specimen_Variant_Components_3.html">Open →</a></div>
+      <p>Every component and function explained with inputs/outputs, key logic, and design decisions — in the order a reviewer would check them.</p>
+      <span class="pill purple">Walkthrough</span>
+    </div>
+    <div class="card">
+      <div class="card-name">Part 4 · Line-by-line reference</div>
+      <div class="card-sub" style="margin-bottom:8px"><a href="260521_PR_D2_Specimen_Variant_Components_4.html">Open →</a></div>
+      <p>Dense annotated code blocks for the hardest functions: <code>fetchVariants</code>, <code>handleTransition</code>, the NaN guard in the gnomAD AF filter input, and the high-risk branch of <code>DeleteSampleButton</code>.</p>
+      <span class="pill amber">Reference</span>
+    </div>
+  </div>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_D2_Specimen_Variant_Components_1.html" class="current">1 · High-level outline</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+</main>
+</div>
+<footer>
+  Code walkthrough for PR D2 — Specimen &amp; Variant Components. Author: Joo Wook Ahn. Date: 21 May 2026. Source: eastgenomics/variant-viewer branch pr/D2. Continues in Part 2.
+</footer>
+</body>
+</html>

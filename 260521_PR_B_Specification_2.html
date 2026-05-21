@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR B — Frontend SPA Specification · Part 2: Key concepts</title>
+<style>
+  :root{
+    --ink:#0d1b2a; --ink-soft:#354656; --muted:#6b7c8d;
+    --line:#e0e7ef; --line-strong:#c5d0db;
+    --bg:#f7f9fb; --paper:#ffffff;
+    --accent:#005eb8; --accent-deep:#003d78; --accent-mid:#1a73c4; --accent-soft:#e3edf8;
+    --green:#1a6e47; --green-soft:#e0f0e8;
+    --amber:#b35c00; --amber-soft:#fdf0e0;
+    --red:#9b2335; --red-soft:#fce8ea;
+    --purple:#4b2d8e; --purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout.red{border-color:#e8a8a8;background:var(--red-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout.red .tag{color:var(--red)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+  .pill.amber{background:var(--amber-soft);color:var(--amber)}
+  .pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill.purple{background:var(--purple-soft);color:var(--purple)}
+  .pill.red{background:var(--red-soft);color:var(--red)}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}
+  .cb .k{color:#79b8ff}
+  .cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}
+  .cb .f{color:#85e89d}
+  .cb .t{color:#ffab70}
+  .anno{list-style:none;margin:4px 0 24px;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .anno li{display:grid;grid-template-columns:36px 1fr;gap:0;border-bottom:1px solid var(--line);font-size:13.5px}
+  .anno li:last-child{border-bottom:none}
+  .anno .num{background:var(--accent-deep);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .anno .txt{padding:10px 14px;color:var(--ink-soft);line-height:1.5}
+  .anno .txt strong{color:var(--ink)}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .concept-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .concept-header{background:var(--accent-deep);padding:14px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .concept-name{font-size:15px;color:#fff;font-weight:700}
+  .concept-sub{font-size:12px;color:#a8c8e8}
+  .concept-body{padding:18px}
+  .concept-body p{margin-bottom:10px}
+  .infile{background:var(--green-soft);border:1px solid #a8d4bb;border-radius:6px;padding:14px 18px;margin:14px 0}
+  .infile-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:6px}
+  .infile p{margin:0;font-size:13.5px;color:var(--ink-soft)}
+  .invariant-row{display:grid;grid-template-columns:40px 1fr;border-bottom:1px solid var(--line)}
+  .invariant-row:last-child{border-bottom:none}
+  .inv-num{background:var(--red-soft);display:flex;align-items:flex-start;justify-content:center;padding:14px 0;font-weight:800;font-size:14px;color:var(--red);padding-top:16px}
+  .inv-body{padding:14px 18px;font-size:14px;color:var(--ink-soft)}
+  .inv-body strong{color:var(--ink);display:block;margin-bottom:4px}
+  .invariant-table{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:16px 0}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR B SPECIFICATION<br>21 May 2026</div>
+  <div class="toc-section">Part 2 of 4</div>
+  <ul>
+    <li><a href="#spa-vs-ssr">08 React SPA vs SSR</a></li>
+    <li><a href="#ts-interfaces">09 TypeScript interfaces as contracts</a></li>
+    <li><a href="#tdd">10 TDD with Vitest</a></li>
+    <li><a href="#classification">11 Tavtigian classification scoring</a></li>
+    <li><a href="#env-vars">12 VITE_ env vars and API key safety</a></li>
+    <li><a href="#invariants">13 The five clinical safety invariants</a></li>
+  </ul>
+  <div class="meta">Continued from Part 1 · Source: specification/frontend/ on pr/B</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Frontend Engineering · Clinical Bioinformatics · East Genomics</div>
+  <h1>PR B — Frontend SPA Specification</h1>
+  <p class="sub">Part 2 of 4: Key concepts — everything you need to know before the specification documents make sense: React SPA architecture, TypeScript contracts, TDD, Tavtigian scoring, env vars, and clinical safety invariants.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Series</strong> Part 2 of 4</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_B_Specification_1.html">1 · High-level outline</a>
+  <a href="260521_PR_B_Specification_2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_B_Specification_3.html">3 · Document walkthrough</a>
+  <a href="260521_PR_B_Specification_4.html">4 · Deep reference</a>
+</div>
+
+<section id="spa-vs-ssr">
+  <h2><span class="sec-num">08</span> React SPA vs SSR — why the port exists</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <span class="concept-name">Concept: Server-Side Rendering vs Single-Page Application</span>
+      <span class="concept-sub">Why the prototype had to be rewritten</span>
+    </div>
+    <div class="concept-body">
+      <p>The original variant-viewer prototype used <strong>Next.js 15 with React Server Components (RSC)</strong>. In this model, React components run on the Node.js server, fetch data directly from PostgreSQL, and send HTML to the browser. The database password never leaves the server.</p>
+      <p>This works well for rapid prototyping, but it means the frontend and backend are <strong>entangled</strong>: deploying the frontend requires a Node.js runtime with database access. You cannot serve it from a CDN (S3/CloudFront) or an nginx container. Scaling the frontend independently of the database is not straightforward.</p>
+      <p>The SPA approach breaks this dependency. The browser loads static HTML/CSS/JS from nginx. All data access goes through the FastAPI REST API. The frontend knows only the URL of the API, not the database credentials.</p>
+
+      <div class="cb"><pre><span class="c">// Next.js RSC (what we're moving away from)</span>
+<span class="c">// — runs on server, direct DB access, not deployable to CDN</span>
+<span class="k">async function</span> <span class="f">PatientsPage</span>() {
+  <span class="k">const</span> patients = <span class="k">await</span> db.query(<span class="s">'SELECT * FROM patients'</span>); <span class="c">// ① direct SQL</span>
+  <span class="k">return</span> &lt;PatientList patients={patients} /&gt;;
+}
+
+<span class="c">// React SPA (what we're building)</span>
+<span class="c">// — runs in browser, fetches via REST, deployable anywhere</span>
+<span class="k">function</span> <span class="f">PatientsPage</span>() {
+  <span class="k">const</span> [patients, setPatients] = useState([]);
+  useEffect(() =&gt; {
+    listPatients().then(r =&gt; setPatients(r.items)); <span class="c">// ② REST API call</span>
+  }, []);
+  <span class="k">return</span> &lt;PatientList patients={patients} /&gt;;
+}</pre></div>
+      <ul class="anno">
+        <li><span class="num">①</span><span class="txt"><strong>Direct SQL in RSC</strong> — works, but requires the Node.js process to have DB credentials. Not possible in a static CDN deploy.</span></li>
+        <li><span class="num">②</span><span class="txt"><strong>REST call in SPA</strong> — the browser calls <code>GET /api/patients</code> via the FastAPI layer. The SPA has zero knowledge of the database schema.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="infile">
+    <div class="infile-label">In this specification</div>
+    <p>DESIGN.md §1 explains the problem statement in detail. REFERENCE.md §2 documents all the VITE_ environment variables needed because the frontend can no longer read server-side configuration.</p>
+  </div>
+</section>
+
+<section id="ts-interfaces">
+  <h2><span class="sec-num">09</span> TypeScript interfaces as API contracts</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <span class="concept-name">Concept: TypeScript interfaces</span>
+      <span class="concept-sub">How the spec encodes backend response shapes</span>
+    </div>
+    <div class="concept-body">
+      <p>A TypeScript <code>interface</code> is a named type definition. It describes the shape of an object — which fields it has, and what type each field is. Interfaces have no runtime existence: TypeScript checks them at compile time and then erases them from the JavaScript output.</p>
+      <p>In this spec, every backend API response has a corresponding TypeScript interface in DESIGN.md §4. These interfaces are the <strong>contract</strong> between the frontend and backend. If the backend changes a field name or adds a field, the interface must be updated, and TypeScript will then flag everywhere in the frontend that needs updating.</p>
+
+      <div class="cb"><pre><span class="c">// Interface definition (DESIGN.md §4)</span>
+<span class="k">export interface</span> <span class="t">PatientSummary</span> {
+  id: <span class="t">number</span>;
+  lab_number: <span class="t">string</span>;
+  name: <span class="t">string | null</span>;      <span class="c">// ① nullable field</span>
+  sample_count: <span class="t">number</span>;    <span class="c">// ② added by M_pre1 backend extension</span>
+  latest_workflow_status: <span class="t">string | null</span>;
+  pipeline_key: <span class="t">string | null</span>;
+}
+
+<span class="c">// Usage in a component</span>
+<span class="k">function</span> <span class="f">PatientRow</span>({ patient }: { patient: <span class="t">PatientSummary</span> }) {
+  <span class="k">return</span> &lt;td&gt;{patient.lab_number}&lt;/td&gt;; <span class="c">// ③ type-checked access</span>
+}</pre></div>
+      <ul class="anno">
+        <li><span class="num">①</span><span class="txt"><strong>Nullable fields</strong> — <code>string | null</code> means the backend may return either a string or JSON null. TypeScript forces you to handle both cases before using the value.</span></li>
+        <li><span class="num">②</span><span class="txt"><strong>Backend extension note</strong> — some fields require M_pre1–M_pre8 backend changes before they exist. The spec comments which fields depend on which pre-requisite.</span></li>
+        <li><span class="num">③</span><span class="txt"><strong>Type-checked access</strong> — if you try to access <code>patient.nhs_number</code> (which is not in the interface), TypeScript raises a compile-time error. This is how Invariant 1 (no PII display) is partially enforced.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <span class="tag">Why this matters for PR review</span>
+    <p>When reviewing DESIGN.md §4, you are checking that the TypeScript interfaces accurately reflect the Pydantic models in the backend. A mismatch here means the SPA will silently receive data it doesn't expect — either <code>undefined</code> fields or fields with wrong types that only fail at runtime. Five rounds of automated code review were run to catch these mismatches before the spec was finalised.</p>
+  </div>
+
+  <div class="infile">
+    <div class="infile-label">In this specification</div>
+    <p>All TypeScript interfaces are defined in DESIGN.md §4. They cover <code>PatientSummary</code>, <code>PatientDetailResponse</code>, <code>SampleDetail</code>, <code>VariantRow</code>, <code>VariantDetailResponse</code>, <code>ClassificationDetail</code>, <code>CriterionDetail</code>, <code>ClassifyPersistResponse</code>, and <code>PipelineFilters</code>. Cross-reference against the Pydantic models in <code>backend/app/routes/</code>.</p>
+  </div>
+</section>
+
+<section id="tdd">
+  <h2><span class="sec-num">10</span> TDD with Vitest — red-green cycle</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <span class="concept-name">Concept: Test-Driven Development</span>
+      <span class="concept-sub">Write the test first; it must fail; then implement until green</span>
+    </div>
+    <div class="concept-body">
+      <p><strong>Vitest</strong> is the test runner used in this SPA. It is configured to run in a <code>jsdom</code> environment, which simulates a browser's DOM in Node.js. <code>@testing-library/react</code> provides utilities for rendering React components and querying the rendered output by role, text, or label — the same way a user would interact with the page.</p>
+      <p>The TDD cycle used throughout IMPLEMENTATION.md is:</p>
+      <ol>
+        <li><strong>Red</strong> — write a test that describes the desired behaviour. Run it; it must fail (because the implementation does not exist yet).</li>
+        <li><strong>Green</strong> — write the minimum implementation to make the test pass.</li>
+        <li><strong>Commit</strong> — commit with the message format <code>feat(frontend): M&lt;N&gt; — &lt;short description&gt;</code>.</li>
+      </ol>
+
+      <div class="cb"><pre><span class="c">// RED: write this test first (it will fail — WorkflowBadge doesn't exist yet)</span>
+<span class="f">it</span>(<span class="s">'renders "Pending" with badge-pending class'</span>, () =&gt; {
+  <span class="k">const</span> { container } = render(&lt;<span class="t">WorkflowBadge</span> status=<span class="s">"pending"</span> /&gt;); <span class="c">// ①</span>
+  <span class="k">const</span> badge = screen.getByText(<span class="s">'Pending'</span>);      <span class="c">// ② find by visible text</span>
+  expect(badge).toHaveClass(<span class="s">'badge-pending'</span>);   <span class="c">// ③ assert CSS class</span>
+});
+
+<span class="c">// GREEN: now write the component</span>
+<span class="k">export default function</span> <span class="f">WorkflowBadge</span>({ status }) {
+  <span class="k">const</span> labels = { pending: <span class="s">'Pending'</span>, reviewing: <span class="s">'Reviewing'</span>, ... };
+  <span class="k">const</span> classes = { pending: <span class="s">'badge badge-pending'</span>, ... };
+  <span class="k">return</span> &lt;span className={classes[status]}&gt;{labels[status]}&lt;/span&gt;;
+}</pre></div>
+      <ul class="anno">
+        <li><span class="num">①</span><span class="txt"><strong>render()</strong> — mounts the component into a fake DOM. No real browser needed. Returns utilities for querying the output.</span></li>
+        <li><span class="num">②</span><span class="txt"><strong>screen.getByText()</strong> — finds a DOM element by its visible text content. Throws if not found (fails the test). This is preferable to querying by CSS class because it tests what the user actually sees.</span></li>
+        <li><span class="num">③</span><span class="txt"><strong>toHaveClass()</strong> — a jest-dom matcher that checks the element has the given CSS class. Verifies that styling decisions (the badge-* system) are correctly applied.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Mocking strategy</h3>
+  <p>API calls are mocked so tests don't require a running backend. Two patterns are used in the spec:</p>
+
+  <table>
+    <thead><tr><th>Pattern</th><th>When used</th><th>How</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Module mock</strong></td><td>Components that call <code>api.ts</code> functions (WorkflowControl, ClassificationPanel, PatientListTable)</td><td><code>vi.mock('../lib/api', async (importOriginal) =&gt; ({ ...actual, updateWorkflow: vi.fn() }))</code> — keeps real types, replaces the function with a controllable stub</td></tr>
+      <tr><td><strong>Global fetch stub</strong></td><td>VariantTable, which uses <code>fetch()</code> directly rather than an api.ts wrapper</td><td><code>vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () =&gt; ({ items: [...], total: 1 }) }))</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="infile">
+    <div class="infile-label">In this specification</div>
+    <p>Every milestone in IMPLEMENTATION.md §3–§10 starts with a <strong>Red</strong> section giving the full test file to write, followed by a <strong>Green</strong> section giving the implementation. DESIGN.md §7 explains the mocking strategy and lists what each test file asserts.</p>
+  </div>
+</section>
+
+<section id="classification">
+  <h2><span class="sec-num">11</span> Tavtigian point-scoring — the classification engine</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <span class="concept-name">Concept: ACGS SNV and SVIG-UK classification</span>
+      <span class="concept-sub">How variants are classified as Pathogenic, VUS, or Benign</span>
+    </div>
+    <div class="concept-body">
+      <p>Clinical variant classification follows the <strong>Tavtigian point-based model</strong> adopted by the Association for Clinical Genomic Science (ACGS) for germline single nucleotide variants, and a parallel scheme by the Somatic Variant Interpretation Group UK (SVIG-UK) for somatic variants.</p>
+      <p>Each criterion (e.g. PVS1 — "predicted loss-of-function in a gene where LoF is a known mechanism") carries a <strong>point weight</strong> based on its evidence strength. The weights for pathogenic and benign criteria are:</p>
+
+      <table>
+        <thead><tr><th>Strength</th><th>Direction</th><th>Points</th><th>Example criteria</th></tr></thead>
+        <tbody>
+          <tr><td><code>very_strong</code></td><td>Pathogenic</td><td>+8</td><td>PVS1</td></tr>
+          <tr><td><code>strong</code></td><td>Pathogenic</td><td>+4</td><td>PS1, PS2</td></tr>
+          <tr><td><code>moderate</code></td><td>Pathogenic</td><td>+2</td><td>PM1–PM6</td></tr>
+          <tr><td><code>supporting</code></td><td>Pathogenic</td><td>+1</td><td>PP1–PP5</td></tr>
+          <tr><td><code>strong</code></td><td>Benign</td><td>−4</td><td>BS1, BS2</td></tr>
+          <tr><td><code>supporting</code></td><td>Benign</td><td>−1</td><td>BP1–BP7</td></tr>
+          <tr><td><code>standalone</code></td><td>Benign sentinel</td><td>−999</td><td>BA1 (gnomAD AF &gt;5%)</td></tr>
+        </tbody>
+      </table>
+
+      <p>The sum of all applied criteria weights gives the <strong>score</strong>. The score maps to a classification by thresholds:</p>
+
+      <div class="cb"><pre><span class="c">// ACGS SNV thresholds (from classification-engine.ts)</span>
+<span class="k">if</span> (score &gt;= <span class="n">10</span>)  classification = <span class="s">"Pathogenic"</span>;
+<span class="k">else if</span> (score &gt;= <span class="n">6</span>)   classification = <span class="s">"Likely_Pathogenic"</span>;
+<span class="k">else if</span> (score &gt;= <span class="n">0</span>)   classification = <span class="s">"VUS"</span>;
+<span class="k">else if</span> (score &gt;= <span class="n">-5</span>)  classification = <span class="s">"Likely_Benign"</span>;
+<span class="k">else</span>                   classification = <span class="s">"Benign"</span>;</pre></div>
+
+      <p>The engine also evaluates <strong>combination rules</strong> — for example, two PM-strength criteria together behave as one PS-strength criterion. These rules are stored in <code>acgs-snv-criteria.json</code> and <code>svig-criteria.json</code> and are passed into <code>classify()</code> at call time.</p>
+
+      <div class="cb"><pre><span class="c">// Golden test case: PVS1 (8 pts) + PM2 (2 pts) = 9 pts → Likely_Pathogenic</span>
+<span class="f">it</span>(<span class="s">'PVS1 + PM2 → Likely_Pathogenic (score 9)'</span>, () =&gt; {
+  <span class="k">const</span> result = classify(
+    [
+      { criterion_code: <span class="s">'PVS1'</span>, applied: <span class="k">true</span>, strength: <span class="s">'very_strong'</span> },
+      { criterion_code: <span class="s">'PM2'</span>,  applied: <span class="k">true</span>, strength: <span class="s">'supporting'</span> },
+    ],
+    <span class="s">'acgs_snv'</span>,
+    acgsRules
+  );
+  expect(result.score).<span class="f">toBe</span>(<span class="n">9</span>);
+  expect(result.classification).<span class="f">toBe</span>(<span class="s">'Likely_Pathogenic'</span>);
+});</pre></div>
+    </div>
+  </div>
+
+  <div class="callout amber">
+    <span class="tag">Why the engine runs client-side</span>
+    <p>The live score display in <code>ClassificationPanel</code> updates on every criterion toggle without a round-trip to the server. This requires the scoring algorithm to run in the browser. The TypeScript engine in <code>classification-engine.ts</code> must produce <strong>bit-for-bit identical results</strong> to the Python engine in <code>backend/app/lib/classification_engine.py</code> — Invariant 4 mandates this. The four golden test cases in IMPLEMENTATION.md §5 are the automated proof.</p>
+  </div>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tavtigian scoring pipeline showing criteria summed to score and mapped to classification">
+    <defs>
+      <marker id="a2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0,8 3,0 6" fill="#6b7c8d"/>
+      </marker>
+    </defs>
+    <style>
+      .lb{font:13px -apple-system,Segoe UI,Inter,sans-serif}
+      .sm2{font:11px -apple-system,Segoe UI,Inter,sans-serif}
+      .mo{font:12px ui-monospace,Menlo,Consolas,monospace}
+    </style>
+    <text x="16" y="20" font-size="11" letter-spacing="2" fill="#6b7c8d">SCORING PIPELINE</text>
+
+    <!-- Applied criteria box -->
+    <rect x="30" y="40" width="170" height="180" rx="8" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="115" y="62" class="sm2" fill="#4b2d8e" text-anchor="middle" font-weight="700">Applied criteria</text>
+    <rect x="46" y="72" width="138" height="24" rx="4" fill="#fff" stroke="#c5d0db"/>
+    <text x="115" y="88" class="mo" fill="#003d78" text-anchor="middle">PVS1 very_strong</text>
+    <rect x="46" y="102" width="138" height="24" rx="4" fill="#fff" stroke="#c5d0db"/>
+    <text x="115" y="118" class="mo" fill="#003d78" text-anchor="middle">PM2 supporting</text>
+    <rect x="46" y="132" width="138" height="24" rx="4" fill="#f0f4f8" stroke="#e0e7ef"/>
+    <text x="115" y="148" class="mo" fill="#6b7c8d" text-anchor="middle">BS1 strong (unapplied)</text>
+    <text x="115" y="195" class="sm2" fill="#6b7c8d" text-anchor="middle">Each criterion has a weight</text>
+    <text x="115" y="210" class="sm2" fill="#6b7c8d" text-anchor="middle">determined by its strength</text>
+
+    <!-- Arrow 1 -->
+    <line x1="200" y1="130" x2="248" y2="130" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#a2)"/>
+    <text x="224" y="122" class="sm2" fill="#6b7c8d" text-anchor="middle">sum</text>
+
+    <!-- Score box -->
+    <rect x="248" y="90" width="110" height="80" rx="8" fill="#e3edf8" stroke="#005eb8" stroke-width="2"/>
+    <text x="303" y="122" class="lb" fill="#003d78" text-anchor="middle" font-weight="700" font-size="15">score</text>
+    <text x="303" y="150" font-size="32" fill="#003d78" text-anchor="middle" font-weight="800" font-family="ui-monospace,Menlo,Consolas,monospace">9</text>
+
+    <!-- Arrow 2 -->
+    <line x1="358" y1="130" x2="406" y2="130" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#a2)"/>
+    <text x="382" y="122" class="sm2" fill="#6b7c8d" text-anchor="middle">thresholds</text>
+
+    <!-- Thresholds box -->
+    <rect x="406" y="40" width="160" height="180" rx="8" fill="#f0f4f8" stroke="#c5d0db" stroke-width="1.5"/>
+    <text x="486" y="62" class="sm2" fill="#354656" text-anchor="middle" font-weight="700">ACGS SNV thresholds</text>
+    <text x="422" y="84" class="sm2" fill="#1a6e47">&#x2265; 10</text>
+    <text x="500" y="84" class="sm2" fill="#1a6e47">Pathogenic</text>
+    <text x="422" y="108" class="sm2" fill="#1a73c4">&#x2265; 6</text>
+    <text x="500" y="108" class="sm2" fill="#1a73c4">Likely_Pathogenic</text>
+    <text x="422" y="132" class="sm2" fill="#b35c00">&#x2265; 0</text>
+    <text x="500" y="132" class="sm2" fill="#b35c00">VUS</text>
+    <text x="422" y="156" class="sm2" fill="#6b7c8d">&#x2265; -5</text>
+    <text x="500" y="156" class="sm2" fill="#6b7c8d">Likely_Benign</text>
+    <text x="422" y="180" class="sm2" fill="#9b2335">&#x2264; -6</text>
+    <text x="500" y="180" class="sm2" fill="#9b2335">Benign</text>
+
+    <!-- Arrow 3 -->
+    <line x1="566" y1="130" x2="614" y2="130" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#a2)"/>
+
+    <!-- Result box -->
+    <rect x="614" y="90" width="170" height="80" rx="8" fill="#e3edf8" stroke="#1a73c4" stroke-width="2"/>
+    <text x="699" y="118" class="lb" fill="#003d78" text-anchor="middle">classification</text>
+    <text x="699" y="150" class="mo" fill="#003d78" text-anchor="middle" font-size="14" font-weight="700">Likely_Pathogenic</text>
+  </svg>
+  </div>
+  <figcaption>Figure 2 · Tavtigian scoring pipeline: applied criteria are summed to a numeric score (PVS1=8 + PM2=1 = 9), then mapped to a classification label via fixed thresholds.</figcaption>
+  </figure>
+
+  <div class="infile">
+    <div class="infile-label">In this specification</div>
+    <p>DESIGN.md §3.2 describes the algorithm in prose. IMPLEMENTATION.md §5 (Milestone 21) has the four golden test cases. REFERENCE.md §9 has the complete scoring tables for both ACGS SNV and SVIG-UK frameworks.</p>
+  </div>
+</section>
+
+<section id="env-vars">
+  <h2><span class="sec-num">12</span> VITE_ environment variables and API key safety</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <span class="concept-name">Concept: VITE_ env vars</span>
+      <span class="concept-sub">How configuration reaches the browser at build time</span>
+    </div>
+    <div class="concept-body">
+      <p>Vite exposes environment variables to the browser via <code>import.meta.env</code>. Only variables prefixed with <code>VITE_</code> are included in the bundle — all other variables in <code>.env</code> files are filtered out for security. These values are <strong>baked into the JavaScript bundle at build time</strong>, not at runtime.</p>
+
+      <div class="cb"><pre><span class="c">// In a .env file (not committed to git)</span>
+<span class="k">VITE_API_KEY</span>=<span class="s">my-secret-api-key</span>
+
+<span class="c">// In api.ts — read at call time, not module load</span>
+<span class="k">export function</span> <span class="f">authHeaders</span>(): Record&lt;<span class="t">string</span>, <span class="t">string</span>&gt; {
+  <span class="k">const</span> key = import.meta.env.<span class="k">VITE_API_KEY</span>;  <span class="c">// ①</span>
+  <span class="k">if</span> (!key) <span class="k">return</span> {};
+  <span class="k">return</span> { <span class="s">'X-API-Key'</span>: key };              <span class="c">// ②</span>
+}
+
+<span class="c">// WRONG — key would appear in stack traces and logs</span>
+<span class="c">// throw new Error(`Auth failed for key: ${key}`);</span></pre></div>
+      <ul class="anno">
+        <li><span class="num">①</span><span class="txt"><strong>Read at call time</strong> — <code>authHeaders()</code> reads <code>import.meta.env</code> each time it is called, not once at module load. This makes the function testable: tests can stub the env var before calling it.</span></li>
+        <li><span class="num">②</span><span class="txt"><strong>Single read point</strong> — <code>VITE_API_KEY</code> appears in exactly one place in the codebase. All components that need the header call <code>authHeaders()</code> rather than reading the env var directly. Invariant 2 requires the key never appear in logs or error messages.</span></li>
+      </ul>
+
+      <p>The four VITE_ variables used in the SPA are:</p>
+      <table>
+        <thead><tr><th>Variable</th><th>Required?</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>VITE_API_KEY</code></td><td>No in dev, Yes in prod</td><td>API key sent as X-API-Key on every request. Omit in local dev (Vite proxies to local FastAPI which accepts all).</td></tr>
+          <tr><td><code>VITE_APP_ENV</code></td><td>No</td><td>Set to <code>"development"</code> to enable the dev upload path (<code>POST /api/ingest-direct</code>). Vite dev server sets <code>import.meta.env.DEV = true</code> automatically.</td></tr>
+          <tr><td><code>VITE_USER_ID</code></td><td>No</td><td>User identifier recorded in classification audit logs. Defaults to <code>"analyst"</code>.</td></tr>
+          <tr><td><code>VITE_BACKEND_URL</code></td><td>No</td><td>Override backend URL. Not needed when using Vite proxy or nginx.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="callout amber">
+    <span class="tag">Important — VITE_ vars are public</span>
+    <p>Because VITE_ variables are baked into the JavaScript bundle, they are visible to anyone who can download the bundle. <code>VITE_API_KEY</code> is not a secret in the strong sense — it provides lightweight API key authentication, not cryptographic security. True security comes from OIDC at the ALB layer (post-PR-12). The invariant requirement is that the key is not also leaked via logs or error messages.</p>
+  </div>
+
+  <div class="infile">
+    <div class="infile-label">In this specification</div>
+    <p>REFERENCE.md §2 lists all four env vars with their defaults and descriptions. DESIGN.md §3.1 specifies that <code>api.ts</code> must not log or expose the API key value. The <code>authHeaders()</code> function that reads VITE_API_KEY is specified in DESIGN.md §3.1 and its test in IMPLEMENTATION.md §6.</p>
+  </div>
+</section>
+
+<section id="invariants">
+  <h2><span class="sec-num">13</span> The five clinical safety invariants</h2>
+  <p><code>build-prompt.md</code> defines five invariants — properties of the codebase that <strong>must always be true</strong>, enforced by automated tests and grep checks. These are not aspirational guidelines; failing any invariant means the build is not ready to ship.</p>
+
+  <div class="invariant-table">
+    <div class="invariant-row">
+      <div class="inv-num">1</div>
+      <div class="inv-body">
+        <strong>No patient PII in the UI</strong>
+        The SPA must never render <code>patients.name</code> or <code>patients.nhs_number</code> in any component or page. Only MRN (<code>lab_number</code>) is displayed. Verification: <code>grep -r "nhs_number" frontend/src/components/ frontend/src/pages/</code> — expected: no output.
+      </div>
+    </div>
+    <div class="invariant-row">
+      <div class="inv-num">2</div>
+      <div class="inv-body">
+        <strong>API key never logged</strong>
+        <code>VITE_API_KEY</code> is read once in <code>authHeaders()</code>. It must never appear in a <code>console.log</code>, <code>console.error</code>, or Error message string. Verification: <code>grep -n "VITE_API_KEY" frontend/src/lib/api.ts</code> — expected: only the header assignment line.
+      </div>
+    </div>
+    <div class="invariant-row">
+      <div class="inv-num">3</div>
+      <div class="inv-body">
+        <strong>Evidence links are http/https only</strong>
+        <code>CriterionRow</code> validates every user-entered evidence link URL before adding it to state. <code>javascript:</code>, <code>data:</code>, and relative URLs are rejected with an inline error message. Server-loaded links are also re-validated before rendering as <code>href</code> values. Verification: <code>CriterionRow.test.tsx</code> contains a test asserting that a <code>javascript:alert(1)</code> URL is rejected.
+      </div>
+    </div>
+    <div class="invariant-row">
+      <div class="inv-num">4</div>
+      <div class="inv-body">
+        <strong>Classification engine matches Python backend</strong>
+        The TypeScript <code>classify()</code> function must produce identical <code>score</code> and <code>classification</code> values to the Python <code>classification_engine.py</code> for the four golden fixture inputs. Verification: the four golden test cases in <code>classification-engine.test.ts</code> (M21) must all pass.
+      </div>
+    </div>
+    <div class="invariant-row">
+      <div class="inv-num">5</div>
+      <div class="inv-body">
+        <strong>No direct database or S3 access from the SPA</strong>
+        The SPA must not import <code>psycopg2</code>, <code>boto3</code>, or any database or AWS SDK. All data operations go through the FastAPI REST API. Verification: <code>grep -r "psycopg2|boto3|pg|postgres" frontend/src/</code> — expected: no output.
+      </div>
+    </div>
+  </div>
+
+  <div class="callout green">
+    <span class="tag">Invariants 1 and 3 — clinical safety connection</span>
+    <p>Invariant 1 is a direct UK GDPR data-minimisation requirement: displaying a patient's name alongside their genetic data in a clinical workflow tool is unnecessary and may constitute a reportable incident under DSPT obligations. Invariant 3 is a DCB0129 hazard mitigation: a malicious <code>javascript:</code> URL stored as evidence could execute when a clinician clicks it, potentially compromising a clinical workstation.</p>
+  </div>
+
+  <div class="infile">
+    <div class="infile-label">In this specification</div>
+    <p>All five invariants are defined with verification commands in <code>build-prompt.md</code>. Invariants 1 and 3 are also discussed in DESIGN.md §9 (Compliance and security alignment). The test that enforces Invariant 3 is specified in IMPLEMENTATION.md §9 (M25 CriterionRow test sketch).</p>
+  </div>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_B_Specification_1.html">1 · High-level outline</a>
+  <a href="260521_PR_B_Specification_2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_B_Specification_3.html">3 · Document walkthrough</a>
+  <a href="260521_PR_B_Specification_4.html">4 · Deep reference</a>
+</div>
+
+</main>
+</div>
+<footer>
+  Continued from Part 1. Continues in Part 3. · Joo Wook Ahn · 21 May 2026 · Source: specification/frontend/ on branch pr/B, variant-viewer (eastgenomics/variant-viewer)
+</footer>
+</body>
+</html>

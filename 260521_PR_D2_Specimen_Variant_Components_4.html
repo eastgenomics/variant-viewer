@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D2 — Specimen &amp; Variant Components · Part 4 · Line-by-line reference</title>
+<style>
+:root{
+  --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+  --line:#e0e7ef;--line-strong:#c5d0db;
+  --bg:#f7f9fb;--paper:#ffffff;
+  --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+  --green:#1a6e47;--green-soft:#e0f0e8;
+  --amber:#b35c00;--amber-soft:#fdf0e0;
+  --red:#9b2335;--red-soft:#fce8ea;
+  --purple:#4b2d8e;--purple-soft:#ede8f8;
+  --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent-mid);text-decoration:none}
+a:hover{text-decoration:underline}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+main{padding:0 56px 96px;max-width:900px}
+@media(max-width:860px){main{padding:0 24px 64px}}
+h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+p{margin-bottom:13px;color:var(--ink-soft)}
+strong{color:var(--ink)}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:5px 0;color:var(--ink-soft)}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+.toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+.toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.toc ul{list-style:none}
+.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+.toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+.toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+.hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+.hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+.hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.hero .meta-item{font-size:12px;color:var(--muted)}
+.hero .meta-item strong{color:var(--ink-soft)}
+section{padding-top:52px}
+section+section{border-top:1px solid var(--line)}
+footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+.callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+.callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+.callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+.callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.callout.blue .tag{color:var(--accent-deep)}
+.callout.green .tag{color:var(--green)}
+.callout.amber .tag{color:var(--amber)}
+.callout p:last-child{margin:0}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+.acb{margin:20px 0 32px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.acb-header{background:var(--accent-deep);padding:10px 16px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+.acb-fn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#fff;font-weight:700}
+.acb-desc{font-size:12px;color:#a8c8e8}
+.acb-code{background:#1e2d3d;padding:0;overflow-x:auto}
+.acb-code pre{color:#cdd9e5;font:12.5px/1.9 ui-monospace,Menlo,Consolas,monospace;margin:0;padding:16px 20px;white-space:pre}
+.acb-code .c{color:#6e9cbf}.acb-code .k{color:#79b8ff}.acb-code .s{color:#9ecbff}.acb-code .n{color:#b392f0}.acb-code .f{color:#85e89d}.acb-code .t{color:#ffab70}
+.acb-annos{border-top:2px solid #2d4a63}
+.anno-row{display:grid;grid-template-columns:44px 1fr;border-bottom:1px solid var(--line)}
+.anno-row:last-child{border-bottom:none}
+.anno-num{background:#f0f4f8;border-right:1px solid var(--line);display:flex;align-items:flex-start;justify-content:center;padding:12px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--accent-deep);padding-top:14px}
+.anno-txt{padding:12px 16px;font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+.anno-txt strong{color:var(--ink)}
+.anno-txt code{font-size:12.5px}
+.series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+.series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+.series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D2 — SPECIMEN &amp; VARIANT COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">Part 4 of 4</div>
+  <ul>
+    <li><a href="#fetch">fetchVariants — full annotation</a></li>
+    <li><a href="#transition">handleTransition + useEffect sync</a></li>
+    <li><a href="#nan">NaN guard — gnomAD AF filter</a></li>
+    <li><a href="#highrisk">DeleteSampleButton confirming branch</a></li>
+  </ul>
+  <div class="meta">Continued from Part 3<br>Source: eastgenomics/variant-viewer<br>Branch: pr/D2</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · React frontend · Part 4 of 4</div>
+  <h1>PR D2 — Line-by-line Reference</h1>
+  <p class="sub">Dense annotated code blocks for the four hardest functions — the ones where the code is correct but a reader would still struggle to understand it without extra context.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 4 of 4 — Line-by-line reference</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D2_Specimen_Variant_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_4.html" class="current">4 · Line-by-line reference</a>
+</div>
+
+<section id="fetch">
+  <h2><span class="sec-num">18</span> fetchVariants — full annotation</h2>
+
+  <p>The core data-fetching function in VariantTable. Every line is load-bearing — the query string construction, the null guards, the response field names, and the state update sequence all matter.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">fetchVariants</span>
+      <span class="acb-desc">VariantTable.tsx · lines 124–158 · useCallback-wrapped async fetch</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">const</span> <span class="f">fetchVariants</span> = useCallback(<span class="k">async</span> () =&gt; {   <span class="c">// ①</span>
+  setLoading(<span class="k">true</span>);
+  setError(<span class="k">null</span>);                                   <span class="c">// ②</span>
+  <span class="k">try</span> {
+    <span class="k">const</span> q = <span class="k">new</span> URLSearchParams({                  <span class="c">// ③</span>
+      limit: String(PAGE_SIZE),
+      offset: String(pageIndex * PAGE_SIZE),          <span class="c">// ④</span>
+      sort_by: sortBy,
+      sort_dir: sortDir,
+    });
+    <span class="k">if</span> (filters.gnomad_af_max != <span class="k">null</span>)               <span class="c">// ⑤</span>
+      q.set(<span class="s">"gnomad_af_max"</span>, String(filters.gnomad_af_max));
+    <span class="k">if</span> (filters.consequences) q.set(<span class="s">"consequences"</span>, filters.consequences);
+    <span class="k">if</span> (filters.clinvar_exclude) q.set(<span class="s">"clinvar_exclude"</span>, filters.clinvar_exclude);
+    <span class="k">if</span> (geneInput.trim()) q.set(<span class="s">"gene"</span>, geneInput.trim());  <span class="c">// ⑥</span>
+
+    <span class="k">const</span> resp = <span class="k">await</span> fetch(                        <span class="c">// ⑦</span>
+      <span class="s">`/api/samples/${sampleId}/variants?${q}`</span>,
+      { headers: authHeaders() }                       <span class="c">// ⑧</span>
+    );
+    <span class="k">if</span> (!resp.ok) <span class="k">throw new</span> Error(<span class="s">`HTTP ${resp.status}`</span>);  <span class="c">// ⑨</span>
+    <span class="k">const</span> json = <span class="k">await</span> resp.json();
+    setData(json.items);                               <span class="c">// ⑩</span>
+    setTotal(json.total);
+  } <span class="k">catch</span> (e) {
+    setError(e <span class="k">instanceof</span> Error ? e.message : <span class="s">"Failed to load variants"</span>);
+  } <span class="k">finally</span> {
+    setLoading(<span class="k">false</span>);                               <span class="c">// ⑪</span>
+  }
+}, [sampleId, pageIndex, filters, geneInput, sortBy, sortDir]);  <span class="c">// ⑫</span></pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>useCallback wrapper.</strong> This wraps the async function so its reference only changes when one of the listed dependencies changes. The outer <code>useEffect</code> lists <code>fetchVariants</code> as its sole dependency, so the effect re-runs on each new reference. This is equivalent to listing all six deps directly in the effect, but separates the fetch logic from the effect trigger.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Clear previous error.</strong> <code>setError(null)</code> runs at the start of every fetch attempt so a stale error message from a previous failed request does not remain visible when a new request is in flight.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>URLSearchParams constructor.</strong> The constructor accepts an object of string key-value pairs. Mandatory params (<code>limit</code>, <code>offset</code>, <code>sort_by</code>, <code>sort_dir</code>) are always present. Optional filter params are conditionally appended below. <code>String()</code> is used to coerce numbers to strings — URLSearchParams does not accept numbers directly.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Offset calculation.</strong> The backend expects a byte offset into the result set, not a page number. <code>pageIndex * PAGE_SIZE</code> converts: page 0 → offset 0, page 1 → offset 50, page 2 → offset 100, etc. <code>PAGE_SIZE</code> is the module-level constant <code>50</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>Null guard for gnomad_af_max.</strong> Uses <code>!= null</code> (loose equality), which is true for both <code>null</code> and <code>undefined</code>. When the user clears the filter input, <code>gnomad_af_max</code> is set to <code>null</code> (see the NaN guard in section 20). Sending <code>gnomad_af_max=null</code> to the backend would fail validation; omitting the param entirely means "no filter", which is the user's intent.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>Gene input trim.</strong> <code>geneInput.trim()</code> is evaluated twice — once for the truthiness check and once for the param value. This prevents sending a gene filter of just spaces, which the backend would interpret as a real gene name and return zero results. The backend uses <code>ILIKE %s</code> which would match any gene containing only spaces — an unhelpful result.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>Direct fetch, not api.ts wrapper.</strong> VariantTable uses <code>fetch()</code> directly rather than the typed wrappers in <code>api.ts</code>. This is because the request is high-frequency (every filter change triggers it) and the response shape is already typed via the <code>VariantRow[]</code> state variable. The <code>api.ts</code> wrappers are used for mutation calls (workflow update, delete) where consistent error handling and type safety matter more.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong>authHeaders() at call time.</strong> <code>authHeaders()</code> reads <code>import.meta.env.VITE_API_KEY</code> inside the function body on every call. This ensures the key is read when the request is made, not when the module was first loaded. It is the single read-point for the API key in direct fetch calls (Invariant 2).</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>Explicit ok check.</strong> <code>fetch()</code> only rejects its promise on network errors (no connection, DNS failure). HTTP 4xx and 5xx responses resolve with <code>resp.ok === false</code>. Without this check, a 404 or 500 response would silently call <code>resp.json()</code> on an error body and potentially set <code>data</code> to an unexpected shape.</div></div>
+      <div class="anno-row"><div class="anno-num">⑩</div><div class="anno-txt"><strong>json.items not json.rows.</strong> The backend <code>VariantListResponse</code> Pydantic model uses the field name <code>items</code>. Using <code>json.rows</code> or <code>json.data</code> would silently set <code>data</code> to <code>undefined</code>, making TanStack render zero rows with no error — a subtle bug that would look like an empty result set rather than a contract mismatch.</div></div>
+      <div class="anno-row"><div class="anno-num">⑪</div><div class="anno-txt"><strong>finally block.</strong> <code>setLoading(false)</code> is in <code>finally</code>, not in the <code>try</code> block after the state updates. This guarantees loading is cleared even if the catch block throws an error, and even if <code>setData</code> or <code>setTotal</code> somehow fails. Without <code>finally</code>, a thrown exception in the catch handler would leave the table stuck in a perpetual loading state.</div></div>
+      <div class="anno-row"><div class="anno-num">⑫</div><div class="anno-txt"><strong>Dependency array completeness.</strong> All six variables from the surrounding component scope that are used inside the function are listed here. Omitting any one would create a stale closure — the function would close over the initial value of that variable and never see updates. ESLint's <code>react-hooks/exhaustive-deps</code> rule would flag any missing entry.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="transition">
+  <h2><span class="sec-num">19</span> handleTransition and the prop-sync useEffect</h2>
+
+  <p>These two pieces of code in <code>WorkflowControl</code> interact subtly. Understanding both is necessary to understand the full behaviour of the component.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">handleTransition + prop-sync useEffect</span>
+      <span class="acb-desc">WorkflowControl.tsx · lines 19–36</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">const</span> [status, setStatus] = useState(currentStatus);  <span class="c">// ①</span>
+<span class="k">const</span> [loading, setLoading] = useState(<span class="k">false</span>);
+<span class="k">const</span> [error, setError] = useState&lt;string | <span class="k">null</span>&gt;(<span class="k">null</span>);
+
+useEffect(() =&gt; { setStatus(currentStatus); }, [currentStatus]);  <span class="c">// ②</span>
+
+<span class="k">const</span> transitions = TRANSITIONS[status] ?? [];                    <span class="c">// ③</span>
+
+<span class="k">async function</span> <span class="f">handleTransition</span>(newStatus: WorkflowStatus) {
+  setLoading(<span class="k">true</span>);
+  setError(<span class="k">null</span>);                                               <span class="c">// ④</span>
+  <span class="k">try</span> {
+    <span class="k">const</span> userId = import.meta.env.VITE_USER_ID ?? <span class="s">"analyst"</span>;   <span class="c">// ⑤</span>
+    <span class="k">await</span> updateWorkflow(sampleId, newStatus, userId);            <span class="c">// ⑥</span>
+    setStatus(newStatus);                                         <span class="c">// ⑦</span>
+  } <span class="k">catch</span> (err) {
+    setError(err <span class="k">instanceof</span> Error ? err.message : <span class="s">"Update failed"</span>);  <span class="c">// ⑧</span>
+  } <span class="k">finally</span> {
+    setLoading(<span class="k">false</span>);
+  }
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Local copy of status.</strong> <code>status</code> is local state initialised from the <code>currentStatus</code> prop. React's <code>useState</code> only uses its argument as the initial value — subsequent prop changes do not automatically update local state. This is intentional: local state allows the component to update the UI immediately on a successful transition without waiting for the parent to re-render.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Prop sync via useEffect.</strong> This effect runs after every render where <code>currentStatus</code> has changed. It bridges the gap between local state and external truth: if the parent page refreshes specimen data from the API and passes a new <code>currentStatus</code>, the local <code>status</code> will be updated to match. Without this, the component would show stale buttons after, for example, a page navigation or background refresh.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Deriving buttons from local status.</strong> <code>TRANSITIONS[status]</code> is evaluated against the <em>local</em> <code>status</code> variable, not the <code>currentStatus</code> prop. This means after a successful transition (line ⑦), the buttons update immediately — before the parent has re-rendered with the new status. The <code>?? []</code> fallback handles unexpected status values gracefully.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Clear previous error.</strong> Ensures the error from a previous failed attempt does not persist into a new attempt. If omitted, the user might see a stale error message briefly visible while the new request is in flight.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>User ID source.</strong> <code>import.meta.env.VITE_USER_ID</code> is a Vite environment variable injected at build time. The <code>?? "analyst"</code> fallback means the development setup requires no configuration — uploading and transitions just work locally. In production, <code>VITE_USER_ID</code> should be set to a meaningful user identifier. This value is recorded in the backend audit log.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>API call via typed wrapper.</strong> <code>updateWorkflow</code> from <code>api.ts</code> calls <code>PUT /api/workflow/{sampleId}</code>. It throws <code>ApiError</code> (which extends <code>Error</code>) on non-2xx responses — including HTTP 422 if the transition is invalid according to the backend's <code>VALID_TRANSITIONS</code>. The <code>TRANSITIONS</code> map on the frontend should prevent 422s from ever being reached, but the error handler catches them if they occur.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>Optimistic UI update.</strong> <code>setStatus(newStatus)</code> runs after the API call succeeds. This is not optimistic in the strict sense (it waits for server confirmation) but it does update the UI synchronously in the same event loop tick as the resolution — the user sees the button set change immediately after the request completes, without waiting for a parent re-render.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong>instanceof Error guard.</strong> JavaScript allows throwing any value, not just Error instances. Checking <code>err instanceof Error</code> before accessing <code>err.message</code> prevents a runtime TypeError if something other than an Error is thrown. <code>ApiError</code> extends <code>Error</code>, so <code>err.message</code> correctly returns the backend detail string (e.g. <code>"Invalid transition: pending → reported"</code>).</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="nan">
+  <h2><span class="sec-num">20</span> NaN guard — gnomAD AF filter input</h2>
+
+  <p>A small but important guard that prevents a malformed query string from reaching the backend. Without it, clearing the gnomAD AF input would send <code>gnomad_af_max=NaN</code> to the server, causing a 400 or 422 error that would appear to the user as a broken filter.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">gnomAD AF onChange handler</span>
+      <span class="acb-desc">VariantTable.tsx · filter bar input · lines ~172–180</span>
+    </div>
+    <div class="acb-code"><pre>&lt;input
+  type=<span class="s">"number"</span>
+  step=<span class="s">"0.001"</span>
+  min={<span class="n">0</span>}
+  max={<span class="n">1</span>}
+  value={filters.gnomad_af_max ?? <span class="s">""</span>}                   <span class="c">// ①</span>
+  onChange={(e) =&gt; {
+    <span class="k">const</span> val = parseFloat(e.target.value);             <span class="c">// ②</span>
+    setFilters((f) =&gt; ({
+      ...f,
+      gnomad_af_max: Number.isNaN(val) ? <span class="k">null</span> : val,   <span class="c">// ③</span>
+    }));
+    setPageIndex(<span class="n">0</span>);                                    <span class="c">// ④</span>
+  }}
+/&gt;</span></pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Controlled value with null coercion.</strong> <code>filters.gnomad_af_max ?? ""</code> converts <code>null</code> to an empty string for the input's <code>value</code> attribute. React's controlled input requires a string (or number) — passing <code>null</code> would cause a warning and potentially switch the input to uncontrolled mode. The empty string displays as a blank input, which is the correct visual state when no filter is set.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>parseFloat on the raw string.</strong> <code>e.target.value</code> is always a string from the DOM event, even for <code>type="number"</code> inputs. <code>parseFloat("")</code> returns <code>NaN</code> when the field is empty or cleared. <code>parseFloat("0.01")</code> returns the number <code>0.01</code>. This is the standard DOM API behaviour.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>The NaN guard itself.</strong> <code>Number.isNaN(val)</code> is used rather than the global <code>isNaN()</code>. The global function coerces its argument: <code>isNaN("hello")</code> is <code>true</code>, but so is <code>isNaN(undefined)</code>. <code>Number.isNaN</code> only returns <code>true</code> for the actual IEEE 754 NaN value, making the guard precise. When the field is empty (<code>val === NaN</code>), <code>gnomad_af_max</code> is set to <code>null</code>. In <code>fetchVariants</code>, the null check at line ⑤ then omits the param from the query string entirely.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Reset page on filter change.</strong> Any filter change resets <code>pageIndex</code> to 0. Without this, the user might be on page 3, apply a tighter filter, and see "Page 3 of 1" — the filter would return fewer results but the page offset would point past the end, yielding an empty result set rather than the first matching page.</div></div>
+    </div>
+  </div>
+
+  <div class="callout amber">
+    <span class="tag">Why this matters for the backend</span>
+    <p>FastAPI's <code>gnomad_af_max: float | None = Query(None, ge=0, le=1)</code> parameter definition means: if the param is present, it must be a valid float between 0 and 1. The string <code>"NaN"</code> is not a valid float — FastAPI would return HTTP 422 Unprocessable Entity. The front end would then show an error message, which would confuse the user who simply cleared the filter field expecting to remove it.</p>
+  </div>
+</section>
+
+<section id="highrisk">
+  <h2><span class="sec-num">21</span> DeleteSampleButton — confirming branch</h2>
+
+  <p>The confirming branch of <code>DeleteSampleButton</code> is where most of the interesting logic lives. It handles two distinct UX paths (high-risk vs normal), inline error state, and the callback chain.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">DeleteSampleButton — confirming branch</span>
+      <span class="acb-desc">DeleteSampleButton.tsx · lines 20–60</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">const</span> isHighRisk =
+  workflowStatus === <span class="s">"reported"</span> || workflowStatus === <span class="s">"archived"</span>;  <span class="c">// ①</span>
+
+<span class="k">if</span> (confirming) {
+  <span class="k">return</span> (
+    &lt;span className=<span class="s">"flex gap-1 items-center"</span>&gt;
+      {isHighRisk &amp;&amp; (                                               <span class="c">// ②</span>
+        &lt;span className=<span class="s">"text-xs text-amber-600 mr-1"</span>&gt;
+          &#9888; This specimen has been {workflowStatus}.
+        &lt;/span&gt;
+      )}
+      {!isHighRisk &amp;&amp; (                                             <span class="c">// ③</span>
+        &lt;span className=<span class="s">"text-xs text-gray-700 mr-1"</span>&gt;
+          Delete &lt;strong&gt;{name}&lt;/strong&gt;?
+        &lt;/span&gt;
+      )}
+      &lt;button
+        className=<span class="s">"btn btn-danger text-xs py-0.5 px-2"</span>
+        disabled={busy}
+        onClick={<span class="k">async</span> () =&gt; {
+          setBusy(<span class="k">true</span>);
+          setDeleteError(<span class="k">null</span>);                                   <span class="c">// ④</span>
+          <span class="k">try</span> {
+            <span class="k">await</span> deleteSample(id);                               <span class="c">// ⑤</span>
+            onDelete?.(id);                                        <span class="c">// ⑥</span>
+            setConfirming(<span class="k">false</span>);                                <span class="c">// ⑦</span>
+          } <span class="k">catch</span> (e) {
+            setDeleteError(e <span class="k">instanceof</span> Error ? e.message : <span class="s">"Delete failed"</span>);
+          } <span class="k">finally</span> {
+            setBusy(<span class="k">false</span>);                                       <span class="c">// ⑧</span>
+          }
+        }}
+      &gt;
+        {busy ? <span class="s">"Deleting…"</span> : <span class="s">"Yes, delete"</span>}
+      &lt;/button&gt;
+      &lt;button
+        onClick={() =&gt; { setConfirming(<span class="k">false</span>); setDeleteError(<span class="k">null</span>); }}  <span class="c">// ⑨</span>
+      &gt;Cancel&lt;/button&gt;
+      {deleteError &amp;&amp; (                                             <span class="c">// ⑩</span>
+        &lt;span className=<span class="s">"text-xs text-red-600 ml-1"</span>&gt;{deleteError}&lt;/span&gt;
+      )}
+    &lt;/span&gt;
+  );
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>High-risk classification.</strong> <code>reported</code> and <code>archived</code> are the statuses that indicate the specimen has been through clinical review or finalisation. Deleting at this point has audit implications — the deletion will be logged, but the clinical data and variant classifications will be permanently removed. The warning is a UX safeguard, not a server-side block. The backend returns 204 regardless of the sample's status.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>High-risk: amber warning.</strong> When <code>isHighRisk</code>, the confirmation text is replaced by an amber status warning — no specimen name is shown. The amber colour (<code>text-amber-600</code>) and the ⚠ character (Unicode U+26A0) together form a visual signal that this action is more consequential than a normal delete.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Normal: specimen name in confirmation.</strong> For non-high-risk specimens, the name is shown in bold so the user can verify they are deleting the right specimen. Both ② and ③ use conditional rendering with the <code>&amp;&amp;</code> pattern — only one is ever rendered at a time.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Clear previous error on re-attempt.</strong> The user may see an error (e.g. network timeout), wait, and click "Yes, delete" again. Clearing <code>deleteError</code> at the start of each attempt ensures the previous error message disappears while the new request is in flight.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>API call.</strong> <code>deleteSample(id)</code> from <code>api.ts</code> calls <code>DELETE /api/samples/{id}</code>. The backend returns 204 No Content on success. The <code>request()</code> function in <code>api.ts</code> handles 204 correctly — it checks <code>resp.status === 204</code> before calling <code>resp.json()</code>, so no JSON parse error occurs on an empty body.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>Callback with optional chaining.</strong> <code>onDelete?.(id)</code> calls the callback only if it was provided. The <code>?.</code> optional chaining operator short-circuits to <code>undefined</code> if <code>onDelete</code> is <code>undefined</code> or <code>null</code>. This is safe in all usage contexts: inside SpecimenCard (where <code>onDelete</code> is always provided as the prop relay) and in tests (where it may be omitted).</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>Close confirming bar after success.</strong> <code>setConfirming(false)</code> is only called on the success path, not in <code>finally</code>. This is deliberate: if the deletion fails, the confirming bar stays open with the error message, so the user can retry or cancel. Closing on failure would hide the error and leave the user wondering whether the deletion happened.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong>Re-enable button in finally.</strong> <code>setBusy(false)</code> is in <code>finally</code> so the button is always re-enabled after the request completes, whether success or failure. Without this, a failed request would leave the button permanently disabled.</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>Cancel clears error.</strong> The Cancel button calls both <code>setConfirming(false)</code> and <code>setDeleteError(null)</code>. If the user saw an error, clicked Cancel, and then clicked Delete again, they would see a fresh confirming bar with no residual error message. Clearing only <code>confirming</code> would leave <code>deleteError</code> set, causing the error to flash on the next open.</div></div>
+      <div class="anno-row"><div class="anno-num">⑩</div><div class="anno-txt"><strong>Inline error display.</strong> The error span appears to the right of the Cancel button. It uses <code>ml-1</code> for a small margin. The error is only rendered when non-null. This is the only place the user sees API errors from the delete operation — there is no toast, modal, or console log.</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_D2_Specimen_Variant_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_4.html" class="current">4 · Line-by-line reference</a>
+</div>
+
+</main>
+</div>
+<footer>
+  Code walkthrough for PR D2 — Specimen &amp; Variant Components. Author: Joo Wook Ahn. Date: 21 May 2026. Source: eastgenomics/variant-viewer branch pr/D2. Continued from Part 3. End of series.
+</footer>
+</body>
+</html>

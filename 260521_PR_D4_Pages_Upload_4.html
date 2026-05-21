@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D4 — Pages, UploadForm, App Routing · Part 4 of 4</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .acb{margin:20px 0 32px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .acb-header{background:var(--accent-deep);padding:10px 16px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  .acb-fn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#fff;font-weight:700}
+  .acb-desc{font-size:12px;color:#a8c8e8}
+  .acb-code{background:#1e2d3d;padding:0;overflow-x:auto}
+  .acb-code pre{color:#cdd9e5;font:12.5px/1.9 ui-monospace,Menlo,Consolas,monospace;margin:0;padding:16px 20px;white-space:pre}
+  .acb-annos{border-top:2px solid #2d4a63}
+  .anno-row{display:grid;grid-template-columns:44px 1fr;border-bottom:1px solid var(--line)}
+  .anno-row:last-child{border-bottom:none}
+  .anno-num{background:#f0f4f8;border-right:1px solid var(--line);display:flex;align-items:flex-start;justify-content:center;padding:12px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--accent-deep);padding-top:14px}
+  .anno-txt{padding:12px 16px;font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+  .anno-txt strong{color:var(--ink)}
+  .anno-txt code{font-size:12.5px}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .file-section{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f0f4f8;border:1px solid var(--line);border-radius:6px;margin:20px 0 8px;font-size:13px}
+  .file-section .fs-name{font-weight:700;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D4: PAGES &amp; UPLOAD<br>21 May 2026</div>
+  <div class="toc-section">Part 4 of 4 · Line-by-line Reference</div>
+  <ul>
+    <li><a href="#patient-detail-effect">24 PatientDetailPage useEffect</a></li>
+    <li><a href="#case-type-guard">25 ClassificationPage case_type guard</a></li>
+    <li><a href="#dev-upload-anno">26 handleDevUpload FormData</a></li>
+    <li><a href="#prod-upload-anno">27 handleProdUpload S3 sequence</a></li>
+    <li><a href="#submit-anno">28 handleSubmit isDev gate</a></li>
+  </ul>
+  <div class="meta">Continued from Part 3<br>Final part</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Frontend SPA · Code Walkthrough Series</div>
+  <h1>PR D4 — Pages, UploadForm &amp; App Routing</h1>
+  <p class="sub">Dense annotations for the five sections where the code is correct but requires extra context to understand — the NaN guard, the case_type runtime validation, the FormData alignment, the 4-step S3 sequence, and the isDev gate.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 4 of 4 · Line-by-line reference</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D4_Pages_Upload_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D4_Pages_Upload_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D4_Pages_Upload_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D4_Pages_Upload_4.html" class="current">4 · Line-by-line reference</a>
+</div>
+
+<section id="patient-detail-effect">
+  <h2><span class="sec-num">24</span> PatientDetailPage — useEffect with NaN guard and Promise.all</h2>
+
+  <div class="file-section"><span class="fs-name">PatientDetailPage.tsx — useEffect callback</span></div>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">useEffect callback</span>
+      <span class="acb-desc">PatientDetailPage.tsx · fetch on mount/route change</span>
+    </div>
+    <div class="acb-code"><pre>
+useEffect(() =&gt; {                                              <span style="color:#6e9cbf">// ①</span>
+  if (!id || isNaN(Number(id))) {                              <span style="color:#6e9cbf">// ②</span>
+    setNotFound(true);
+    setLoading(false);
+    return;
+  }
+  const numericId = Number(id);                               <span style="color:#6e9cbf">// ③</span>
+  getPatient(numericId)
+    .then(async (p) =&gt; {
+      setPatient(p);
+      const details = await Promise.all(                      <span style="color:#6e9cbf">// ④</span>
+        p.samples.map((s) =&gt; getSample(s.id))
+      );
+      setSamples(details);
+    })
+    .catch((e) =&gt; {                                           <span style="color:#6e9cbf">// ⑤</span>
+      if (e instanceof ApiError &amp;&amp; e.status === 404) setNotFound(true);
+      else setError(e instanceof ApiError ? e.detail : "Failed to load");
+    })
+    .finally(() =&gt; setLoading(false));
+}, [id]);                                                      <span style="color:#6e9cbf">// ⑥</span></pre></div>
+    <div class="acb-annos">
+      <div class="anno-row">
+        <div class="anno-num">①</div>
+        <div class="anno-txt"><strong>useEffect with dependency array.</strong> The callback runs once on mount, and again any time a value in the dependency array changes. Here the dependency is <code>[id]</code> — so the effect re-runs whenever the user navigates to a different patient's URL, refreshing the data without a full page reload.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">②</div>
+        <div class="anno-txt"><strong>NaN guard.</strong> <code>useParams()</code> always returns a string. <code>Number("abc")</code> evaluates to <code>NaN</code>. If the guard were absent, <code>getPatient(NaN)</code> would call <code>GET /api/patients/NaN</code> — a 404 at best, an unhandled exception at worst. The guard also covers <code>undefined</code> (the route would need to be misconfigured, but defensive checks cost nothing). Setting <code>notFound = true</code> causes the component to return <code>&lt;Navigate to="/" replace /&gt;</code> on the next render.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">③</div>
+        <div class="anno-txt"><strong>Local numeric variable rather than <code>patientId</code>.</strong> The outer scope has <code>const patientId = Number(id)</code> declared before the effect. A local <code>numericId</code> is used inside the effect instead, because calling <code>Number(id)</code> again makes the conversion explicit and avoids capturing a potentially stale closure value of <code>patientId</code> if the component re-renders between the effect setup and its execution.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">④</div>
+        <div class="anno-txt"><strong>Promise.all for parallel specimen fetches.</strong> <code>p.samples</code> is an array of <code>SampleSummary</code> objects (lightweight — id, name, status). <code>&lt;SpecimenCard&gt;</code> needs the full <code>SampleDetail</code> (variant count, tissue, sequencing date). <code>Promise.all</code> fires all <code>getSample()</code> calls simultaneously. If the patient has 3 specimens, this takes as long as the slowest single fetch rather than 3× the average. If any fetch rejects, the whole <code>Promise.all</code> rejects and the <code>.catch</code> block handles it.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑤</div>
+        <div class="anno-txt"><strong>Differentiated error handling.</strong> A 404 means the patient does not exist (or the id was wrong) — so the component redirects silently rather than showing a red error banner. Any other <code>ApiError</code> (e.g. 500 server error) surfaces as a banner with the backend's <code>detail</code> message. Non-<code>ApiError</code> exceptions (e.g. a network failure before the server responds) show a generic fallback string.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑥</div>
+        <div class="anno-txt"><strong>Why <code>[id]</code> not <code>[patientId]</code>.</strong> <code>patientId</code> is <code>Number(id)</code>. If <code>id</code> is <code>"abc"</code>, <code>patientId</code> is <code>NaN</code>. In JavaScript, <code>NaN !== NaN</code> — so React's dependency check would always consider <code>patientId</code> "changed" and re-fire the effect on every render, creating an infinite loop. The raw string <code>id</code> changes only when the URL actually changes.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="case-type-guard">
+  <h2><span class="sec-num">25</span> ClassificationPage — case_type runtime validation</h2>
+
+  <div class="file-section"><span class="fs-name">ClassificationPage.tsx — ClassificationPanel caseType prop</span></div>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">caseType prop derivation</span>
+      <span class="acb-desc">ClassificationPage.tsx · JSX section</span>
+    </div>
+    <div class="acb-code"><pre>
+&lt;ClassificationPanel
+  variantId={variant.id}
+  caseType={                                                    <span style="color:#6e9cbf">// ①</span>
+    variant.case_type === "somatic" ? "somatic" : "germline"   <span style="color:#6e9cbf">// ②</span>
+  }
+  gene={variant.gene}
+  initialClassification={
+    variant.active_classification                              <span style="color:#6e9cbf">// ③</span>
+      ? {
+          id: variant.active_classification.id,
+          framework: variant.active_classification.framework,
+          framework_version: variant.active_classification.framework_version,
+          score: variant.active_classification.score,
+          classification: variant.active_classification.classification,
+          locked_at: variant.active_classification.locked_at,
+          locked_by: variant.active_classification.locked_by,
+        }
+      : null
+  }
+  initialCriteria={variant.active_classification?.criteria ?? []}  <span style="color:#6e9cbf">// ④</span>
+/&gt;</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row">
+        <div class="anno-num">①</div>
+        <div class="anno-txt"><strong>Why not <code>as "germline" | "somatic"</code>?</strong> <code>VariantDetailResponse.case_type</code> is typed as <code>string</code> in <code>api.ts</code> (because the backend returns any string from the database column). <code>ClassificationPanel</code> requires <code>"germline" | "somatic"</code> exactly. A type cast like <code>variant.case_type as "germline" | "somatic"</code> would silence TypeScript but do nothing at runtime — if the database ever contained an unexpected value, it would propagate silently into the classification engine.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">②</div>
+        <div class="anno-txt"><strong>Explicit runtime guard with a safe default.</strong> The ternary checks for the known alternative value ("somatic") explicitly. Anything that is not "somatic" — including unexpected future values like "mosaic" or null — defaults to "germline". This is correct for the current data model (only two valid values) and safe for future schema changes: new values will quietly default rather than causing a crash.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">③</div>
+        <div class="anno-txt"><strong>Splitting active_classification from criteria.</strong> <code>ClassificationPanel</code> takes <code>initialClassification</code> (the classification metadata: id, framework, score, classification, locked_at, locked_by) as a separate prop from <code>initialCriteria</code> (the array of individual criterion states). The API response nests criteria inside active_classification, but the panel separates them for internal state management — it initialises criterion state from the criteria array separately from the classification lock state. The page therefore destructures the nested response into two distinct props rather than passing <code>active_classification</code> directly.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">④</div>
+        <div class="anno-txt"><strong>Optional chaining with fallback.</strong> <code>variant.active_classification?.criteria ?? []</code> returns the criteria array if a classification exists, or an empty array if <code>active_classification</code> is null (unclassified variant). The <code>??</code> operator (nullish coalescing) returns the right-hand side only if the left-hand side is <code>null</code> or <code>undefined</code> — not for falsy values like empty strings or zero.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="dev-upload-anno">
+  <h2><span class="sec-num">26</span> handleDevUpload — FormData field mapping</h2>
+
+  <div class="file-section"><span class="fs-name">UploadForm.tsx — handleDevUpload</span></div>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">handleDevUpload</span>
+      <span class="acb-desc">UploadForm.tsx · dev path only</span>
+    </div>
+    <div class="acb-code"><pre>
+async function handleDevUpload() {
+  setPhase("ingesting");
+  setProgress("Ingesting VCF\u2026");
+
+  const fd = new FormData();
+  fd.append("vcf", file!);                                     <span style="color:#6e9cbf">// ①</span>
+  fd.append("lab_number", labNumber.trim());                   <span style="color:#6e9cbf">// ②</span>
+  fd.append("specimen_name", sampleName.trim() || file!.name); <span style="color:#6e9cbf">// ③</span>
+  fd.append("case_type", caseType);
+  if (pipelineKey) fd.append("pipeline_key", pipelineKey);    <span style="color:#6e9cbf">// ④</span>
+  if (sequencingDate) fd.append("sequencing_date", sequencingDate);
+
+  const resp = await fetch("/api/ingest-direct", {
+    method: "POST",
+    headers: authHeaders(),                                    <span style="color:#6e9cbf">// ⑤</span>
+    body: fd,
+  });
+  if (!resp.ok) {                                              <span style="color:#6e9cbf">// ⑥</span>
+    let detail = `HTTP ${resp.status}`;
+    try { detail = (await resp.json()).detail ?? detail; } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+  const body = await resp.json();                             <span style="color:#6e9cbf">// ⑦</span>
+  setPhase("done");
+  setProgress(`Sample ${body.sample_id} ingested successfully.`);
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row">
+        <div class="anno-num">①</div>
+        <div class="anno-txt"><strong>File part named "vcf".</strong> The backend declares <code>vcf: UploadFile = File(...)</code>. FastAPI matches the parameter by the multipart part name — if this were <code>fd.append("file", ...)</code> or <code>fd.append("upload", ...)</code>, the backend would return 422 "field required: vcf".</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">②</div>
+        <div class="anno-txt"><strong><code>.trim()</code> on lab_number.</strong> Accidental leading/trailing spaces in a lab number would create a patient with a whitespace-prefixed MRN that cannot be found by a clean lookup. The backend does not trim inputs — trimming at the point of form submission is the right place.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">③</div>
+        <div class="anno-txt"><strong>Specimen name fallback.</strong> <code>sampleName.trim() || file!.name</code> — if the user leaves the specimen name blank, the VCF filename is used as the specimen name. This mirrors how the production ingest Lambda behaves when the manifest does not specify a sample name.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">④</div>
+        <div class="anno-txt"><strong>Optional fields only appended when truthy.</strong> <code>pipeline_key</code> and <code>sequencing_date</code> are optional on the backend (<code>str | None</code> and <code>date | None</code>). Appending an empty string would be treated as a non-None value by FastAPI. The <code>if (pipelineKey)</code> guard ensures the field is absent from the request when not set, so the backend uses its default.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑤</div>
+        <div class="anno-txt"><strong><code>authHeaders()</code> returns only <code>{X-API-Key: ...}</code></strong> — no <code>Content-Type</code>. This is critical: when the browser sends a <code>FormData</code> body, it automatically sets <code>Content-Type: multipart/form-data; boundary=----...</code> including the unique boundary string. Manually setting <code>Content-Type</code> would override this and omit the boundary, making the request unparseable by the server.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑥</div>
+        <div class="anno-txt"><strong>Check <code>resp.ok</code> before reading body.</strong> An earlier version called <code>resp.json()</code> unconditionally and then checked <code>resp.ok</code>. The problem: if the error response has a non-JSON body (e.g. a 413 Too Large response from nginx before the request reaches FastAPI), <code>resp.json()</code> throws, and the actual status code and detail are lost. Checking <code>resp.ok</code> first, then attempting to parse the error body in a try/catch, surfaces the best available error message.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑦</div>
+        <div class="anno-txt"><strong><code>resp.json()</code> only reached on success.</strong> The response body is <code>{"sample_id": 42, "message": "Ingested successfully"}</code>. The function uses <code>body.sample_id</code> in the success message. Note that <code>body.message</code> is also available but unused — the progress message is constructed inline instead.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="prod-upload-anno">
+  <h2><span class="sec-num">27</span> handleProdUpload — the 4-step S3 sequence</h2>
+
+  <div class="file-section"><span class="fs-name">UploadForm.tsx — handleProdUpload</span></div>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">handleProdUpload</span>
+      <span class="acb-desc">UploadForm.tsx · production path only</span>
+    </div>
+    <div class="acb-code"><pre>
+async function handleProdUpload() {
+  setPhase("uploading");
+  setProgress("Requesting upload URLs\u2026");
+
+  const urlResp = await getUploadUrl({                         <span style="color:#6e9cbf">// ①</span>
+    vcf_filename: file!.name,
+  });
+
+  setProgress("Uploading VCF to S3\u2026");
+  const vcfUploadResp = await fetch(urlResp.vcf_url, {        <span style="color:#6e9cbf">// ②</span>
+    method: "PUT",
+    body: file!,
+    headers: { "Content-Type": "application/octet-stream" },
+  });
+  if (!vcfUploadResp.ok) throw new Error("VCF S3 upload failed");
+
+  setProgress("Uploading manifest\u2026");
+  const manifest = buildManifest({                             <span style="color:#6e9cbf">// ③</span>
+    labNumber: labNumber.trim(),
+    specimenName: sampleName.trim() || file!.name,
+    caseType,
+    pipelineKey: pipelineKey || null,
+    sequencingDate: sequencingDate || null,
+    vcfFilename: file!.name,
+  });
+  const manifestResp = await fetch(urlResp.manifest_url, {    <span style="color:#6e9cbf">// ④</span>
+    method: "PUT",
+    body: JSON.stringify(manifest),
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!manifestResp.ok) throw new Error("Manifest S3 upload failed");
+
+  setPhase("ingesting");
+  setProgress("Triggering ingest\u2026");
+  const result = await ingestSample({                          <span style="color:#6e9cbf">// ⑤</span>
+    vcf_s3_key: urlResp.vcf_key,
+    user_id: (import.meta.env.VITE_USER_ID as string | undefined) ?? "analyst",
+  });
+  setPhase("done");
+  setProgress(`Sample ${result.sample_id} ingested successfully.`);
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row">
+        <div class="anno-num">①</div>
+        <div class="anno-txt"><strong>Field is <code>vcf_filename</code>, not <code>filename</code>.</strong> The backend <code>UploadUrlRequest</code> Pydantic model has a single field named <code>vcf_filename</code>. An earlier version of this code used <code>{filename: file.name}</code> — this would cause a FastAPI 422 validation error: "field required: vcf_filename". The <code>getUploadUrl</code> function in <code>api.ts</code> accepts <code>UploadUrlParams</code> which enforces the correct shape at compile time.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">②</div>
+        <div class="anno-txt"><strong>Direct PUT to S3 presigned URL.</strong> The presigned URL already contains the AWS authentication signature as query parameters. The fetch sends the raw file bytes as the body with <code>Content-Type: application/octet-stream</code>. No additional auth headers are sent to S3 — adding them would likely cause a signature mismatch error. The response has no JSON body; checking <code>resp.ok</code> is sufficient.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">③</div>
+        <div class="anno-txt"><strong>buildManifest must be called before the ingest trigger.</strong> The manifest is a sidecar JSON file the backend Lambda downloads when processing the ingest. If <code>ingestSample</code> were called before <code>buildManifest</code> and its PUT, the Lambda might start processing before the manifest exists — a race condition that would cause a failed ingest. The await chain enforces the correct ordering.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">④</div>
+        <div class="anno-txt"><strong>Manifest PUT uses <code>JSON.stringify(manifest)</code> as body.</strong> Unlike the VCF upload (raw binary), the manifest is a JSON document. The backend Lambda calls <code>manifest_path.read_text()</code> and then <code>json.loads()</code>, so the body must be a valid JSON string, not a plain JS object. <code>Content-Type: application/json</code> matches what S3 stores and what the Lambda reads.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑤</div>
+        <div class="anno-txt"><strong><code>vcf_s3_key</code> is the S3 key, not the presigned URL.</strong> <code>ingestSample</code> sends <code>{vcf_s3_key: urlResp.vcf_key}</code> — the S3 object key like <code>runs/2026-05-21/sample.vcf.gz</code>. The backend uses this key to download the file from S3 using its own AWS credentials. Sending the presigned URL instead would not work — presigned URLs expire and contain signature parameters the backend would not know how to use for a download.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="submit-anno">
+  <h2><span class="sec-num">28</span> handleSubmit — isDev gate and phase state machine</h2>
+
+  <div class="file-section"><span class="fs-name">UploadForm.tsx — handleSubmit</span></div>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">handleSubmit</span>
+      <span class="acb-desc">UploadForm.tsx · form onSubmit handler</span>
+    </div>
+    <div class="acb-code"><pre>
+async function handleSubmit(e: React.FormEvent) {
+  e.preventDefault();                                           <span style="color:#6e9cbf">// ①</span>
+  setError(null);
+  setPhase("idle");                                             <span style="color:#6e9cbf">// ②</span>
+
+  if (!labNumber.trim()) {                                      <span style="color:#6e9cbf">// ③</span>
+    setError("Lab record number is required.");
+    return;
+  }
+  if (!file) {
+    setError("Please select a VCF file.");
+    return;
+  }
+
+  try {
+    const isDev =                                               <span style="color:#6e9cbf">// ④</span>
+      import.meta.env.DEV || import.meta.env.VITE_APP_ENV === "development";
+    if (isDev) {
+      await handleDevUpload();
+    } else {
+      await handleProdUpload();
+    }
+  } catch (err) {                                               <span style="color:#6e9cbf">// ⑤</span>
+    setPhase("error");
+    setError(err instanceof Error ? err.message : "Upload failed.");
+  }
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row">
+        <div class="anno-num">①</div>
+        <div class="anno-txt"><strong><code>e.preventDefault()</code> prevents native form submission.</strong> Without this, clicking "Upload VCF" would cause a full-page HTTP GET or POST to the current URL — the default browser form behaviour. React forms always need this call to keep the interaction inside the SPA.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">②</div>
+        <div class="anno-txt"><strong>Phase reset before validation.</strong> <code>setPhase("idle")</code> runs on every submit attempt, including retries. If it were absent, a user who corrected an error and resubmitted would find the phase still set to "error" from the previous attempt — and the <code>isUploading = phase === "uploading" || phase === "ingesting"</code> flag might behave unexpectedly. Resetting first guarantees a clean state machine before each attempt.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">③</div>
+        <div class="anno-txt"><strong>Client-side validation runs before the isDev check.</strong> Validation errors are 100% client-side and do not depend on which upload path will be used. Placing them before the path selection keeps the function's intent clear: validate everything first, then decide how to upload. The <code>return</code> statements short-circuit the function before any async work begins.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">④</div>
+        <div class="anno-txt"><strong>isDev evaluated inside the function, not at module load.</strong> <code>import.meta.env.DEV</code> is baked in at build time by Vite — it is a boolean constant in the compiled bundle. However, <code>import.meta.env.VITE_APP_ENV</code> can be controlled via build args. Evaluating <code>isDev</code> inside <code>handleSubmit</code> (at call time) rather than as a module-level constant means test code can stub <code>import.meta.env</code> without reloading the module, and the check reflects any last-moment env changes during testing.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑤</div>
+        <div class="anno-txt"><strong>Single catch for both upload paths.</strong> Both <code>handleDevUpload</code> and <code>handleProdUpload</code> are designed to throw on any failure rather than call <code>setError</code> themselves. This keeps those functions focused on their happy path and centralises all error state management here. The check <code>err instanceof Error ? err.message : "Upload failed."</code> guards against cases where something other than an <code>Error</code> object is thrown (e.g. a rejected Promise with a raw string).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_D4_Pages_Upload_1.html">1 · High-level outline</a>
+    <a href="260521_PR_D4_Pages_Upload_2.html">2 · Key concepts</a>
+    <a href="260521_PR_D4_Pages_Upload_3.html">3 · Function walkthrough</a>
+    <a href="260521_PR_D4_Pages_Upload_4.html" class="current">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+<footer>
+  Joo Wook Ahn · 21 May 2026 · Source: eastgenomics/variant-viewer feat/frontend-spec — PR D4 files: App.tsx, PatientsPage.tsx, PatientDetailPage.tsx, ClassificationPage.tsx, UploadPage.tsx, UploadForm.tsx, fhir-manifest.ts; backend context: routes/upload.py, routes/ingest.py. Continued from Part 3.
+</footer>
+</body>
+</html>

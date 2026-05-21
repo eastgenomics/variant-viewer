@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR C2 — Pure TypeScript Library Modules · Part 1: High-level outline</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+  @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;border-top:3px solid var(--accent)}
+  .stat .n{font-size:26px;font-weight:800;color:var(--accent-deep);line-height:1.1;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
+  @media(max-width:640px){.card-grid{grid-template-columns:1fr}}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:var(--shadow)}
+  .card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .card-name{font-weight:700;font-size:14.5px;color:var(--ink);line-height:1.2}
+  .card-sub{font-size:11.5px;color:var(--muted)}
+  .card p{font-size:13.5px;margin:0 0 10px}
+  .card p:last-child{margin:0}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+  .pill.amber{background:var(--amber-soft);color:var(--amber)}
+  .pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill.purple{background:var(--purple-soft);color:var(--purple)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR C2 LIB MODULES<br>21 May 2026</div>
+  <div class="toc-section">Part 1 · Outline</div>
+  <ul>
+    <li><a href="#overview">What PR C2 adds</a></li>
+    <li><a href="#architecture">Module architecture</a></li>
+    <li><a href="#data-flow">Data flow</a></li>
+    <li><a href="#dependencies">External dependencies</a></li>
+    <li><a href="#inventory">Function inventory</a></li>
+    <li><a href="#naming">Naming conventions</a></li>
+    <li><a href="#series">About this series</a></li>
+  </ul>
+  <div class="meta">Source: frontend/src/lib/ and frontend/src/tests/ on branch pr/C2<br>Backend reference: backend/app/lib/classification_engine.py</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · variant-viewer frontend · PR C2 of 8</div>
+  <h1>PR C2 — Pure TypeScript Library Modules</h1>
+  <p class="sub">A four-part walkthrough of the five pure-function library modules added in PR C2: display formatters, the Tavtigian classification engine, the typed API client, pipeline configuration, and the FHIR R4 manifest builder.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 1 of 4 — High-level outline</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_C2_Lib_Modules_Part1.html" class="current">1 · High-level outline</a>
+  <a href="260521_PR_C2_Lib_Modules_Part2.html">2 · Key concepts</a>
+  <a href="260521_PR_C2_Lib_Modules_Part3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_C2_Lib_Modules_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="overview">
+  <h2><span class="sec-num">01</span> What PR C2 adds</h2>
+
+  <p>PR C2 is the second of eight PRs in the variant-viewer frontend series. It adds the <strong>pure function layer</strong> — five TypeScript modules that contain all the data-transformation, API-communication, and domain-logic code. No React components, no DOM interaction, no side effects from the perspective of the caller. Everything in this PR can be tested with plain Vitest unit tests without mounting any component tree.</p>
+
+  <p>The modules sit between the scaffold (PR C1, which set up Vite/React/Tailwind) and the visual components (PRs D1–D4, which import these modules). Getting the lib layer right first means the components can be written without duplicating logic or hard-coding formatting rules.</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="n">5</div>
+      <div class="l">Library modules added</div>
+    </div>
+    <div class="stat">
+      <div class="n">4</div>
+      <div class="l">Test files (66 tests total)</div>
+    </div>
+    <div class="stat">
+      <div class="n">1,167</div>
+      <div class="l">Lines of code (impl + tests)</div>
+    </div>
+    <div class="stat">
+      <div class="n">0</div>
+      <div class="l">React imports in this PR</div>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <span class="tag">Why pure functions first?</span>
+    <p>Pure functions are the easiest code to test and the hardest to get wrong silently. By landing the classification engine, formatters, and API client before any component code, we know that if a component displays the wrong classification it is a component bug — the engine itself is validated by its golden-case tests against the Python backend.</p>
+  </div>
+
+  <h3>Files changed</h3>
+  <table>
+    <thead><tr><th>File</th><th>What it is</th><th>Lines</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/lib/display-utils.ts</code></td><td>Number formatters and Tailwind CSS class helpers for gnomAD AF, REVEL, SpliceAI scores, and year-of-birth</td><td>33</td></tr>
+      <tr><td><code>src/lib/classification-engine.ts</code></td><td>Port of the Python Tavtigian scoring engine — ACGS SNV and SVIG-UK frameworks</td><td>217</td></tr>
+      <tr><td><code>src/lib/api.ts</code></td><td>All TypeScript interfaces mirroring backend Pydantic models, plus typed fetch wrappers for every endpoint</td><td>350</td></tr>
+      <tr><td><code>src/lib/pipeline-config.ts</code></td><td>Reads the bundled <code>pipelines.json</code> config and exposes filter defaults and option lists</td><td>25</td></tr>
+      <tr><td><code>src/lib/fhir-manifest.ts</code></td><td>Builds FHIR R4 Bundle JSON for the S3 presigned-upload path — the manifest the backend parser expects</td><td>56</td></tr>
+      <tr><td><code>src/tests/display-utils.test.ts</code></td><td>22 unit tests for every formatter and class helper</td><td>97</td></tr>
+      <tr><td><code>src/tests/classification-engine.test.ts</code></td><td>29 tests including four golden cases, all sentinel codes, SVIG priority order, and threshold boundaries</td><td>234</td></tr>
+      <tr><td><code>src/tests/api.test.ts</code></td><td>6 tests for the fetch wrapper, ApiError class, and authHeaders()</td><td>79</td></tr>
+      <tr><td><code>src/tests/fhir-manifest.test.ts</code></td><td>9 tests verifying the FHIR bundle structure</td><td>76</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="architecture">
+  <h2><span class="sec-num">02</span> Module architecture</h2>
+
+  <p>The five modules are deliberately layered so that dependencies flow in one direction only. <code>api.ts</code> is the widest dependency — every component that talks to the server imports from it. <code>classification-engine.ts</code> is self-contained except for the bundled JSON config files it imports at module load time.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Module dependency diagram for PR C2 lib modules">
+    <style>.lbl{font:13px -apple-system,Segoe UI,Inter,sans-serif;font-weight:600}.sub{font:11px -apple-system,Segoe UI,Inter,sans-serif}.tiny{font:10px -apple-system,Segoe UI,Inter,sans-serif}</style>
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6b7c8d"/>
+      </marker>
+    </defs>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">MODULE DEPENDENCY MAP</text>
+
+    <!-- React components layer (consumers) -->
+    <rect x="60" y="50" width="700" height="44" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="410" y="76" text-anchor="middle" fill="#003d78" class="lbl">React components (PRs D1–D4) — consumers</text>
+
+    <!-- Arrows down from components -->
+    <line x1="190" y1="94" x2="190" y2="128" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="340" y1="94" x2="340" y2="128" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="500" y1="94" x2="500" y2="128" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="640" y1="94" x2="640" y2="128" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Module boxes -->
+    <rect x="100" y="130" width="175" height="60" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="187" y="158" text-anchor="middle" fill="#0d1b2a" class="lbl">display-utils.ts</text>
+    <text x="187" y="174" text-anchor="middle" fill="#354656" class="sub">formatters + CSS classes</text>
+
+    <rect x="256" y="130" width="165" height="60" rx="6" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="338" y="158" text-anchor="middle" fill="#0d1b2a" class="lbl">classification-engine.ts</text>
+    <text x="338" y="174" text-anchor="middle" fill="#354656" class="sub">Tavtigian scoring</text>
+
+    <rect x="415" y="130" width="165" height="60" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="497" y="158" text-anchor="middle" fill="#0d1b2a" class="lbl">api.ts</text>
+    <text x="497" y="174" text-anchor="middle" fill="#354656" class="sub">types + fetch wrappers</text>
+
+    <rect x="570" y="130" width="165" height="60" rx="6" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+    <text x="652" y="155" text-anchor="middle" fill="#0d1b2a" class="lbl">pipeline-config.ts</text>
+    <text x="652" y="174" text-anchor="middle" fill="#354656" class="sub">filter presets (imports api.ts)</text>
+
+    <!-- pipeline-config imports api.ts -->
+    <path d="M570,160 Q540,160 540,150 Q540,140 500,140" stroke="#b35c00" stroke-width="1" stroke-dasharray="4 3" fill="none" marker-end="url(#arr)"/>
+
+    <!-- Arrows to JSON config -->
+    <line x1="338" y1="190" x2="338" y2="224" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="652" y1="190" x2="652" y2="224" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- JSON config layer -->
+    <rect x="100" y="226" width="700" height="44" rx="6" fill="#f7f9fb" stroke="#c5d0db" stroke-width="1.5"/>
+    <text x="410" y="252" text-anchor="middle" fill="#6b7c8d" class="lbl">src/config/ JSON files — bundled at build time</text>
+    <text x="410" y="266" text-anchor="middle" fill="#6b7c8d" class="sub">acgs-snv-criteria.json · svig-criteria.json · canvig-gene-mtaf.json · pipelines.json</text>
+
+    <!-- fhir-manifest separate box -->
+    <rect x="240" y="290" width="340" height="22" rx="4" fill="#fce8ea" stroke="#9b2335" stroke-width="1"/>
+    <text x="410" y="305" text-anchor="middle" fill="#9b2335" class="sub">fhir-manifest.ts — standalone, no imports from lib/</text>
+  </svg>
+  </div>
+  <figcaption>Figure 1 · Module dependency map for PR C2. Arrows show import direction (consumer → provider). The dashed line from pipeline-config.ts to api.ts imports the PipelineFilters type only. fhir-manifest.ts has no dependencies on other lib modules.</figcaption>
+  </figure>
+</section>
+
+<section id="data-flow">
+  <h2><span class="sec-num">03</span> Data flow</h2>
+
+  <p>The modules serve three distinct data flows in the application. Understanding which flow each module belongs to helps locate the right file when debugging a problem.</p>
+
+  <table>
+    <thead><tr><th>Flow</th><th>Direction</th><th>Modules involved</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Fetch &amp; display</strong></td>
+        <td>Backend JSON → TypeScript object → formatted string</td>
+        <td><code>api.ts</code> → <code>display-utils.ts</code></td>
+        <td><code>getVariant(id)</code> returns a <code>VariantDetailResponse</code>; <code>formatGnomadAf(v.gnomad_af)</code> renders it</td>
+      </tr>
+      <tr>
+        <td><strong>Classification</strong></td>
+        <td>Applied criteria array → score + label</td>
+        <td><code>classification-engine.ts</code> (reads JSON config)</td>
+        <td><code>classify(criteria, "acgs_snv", rules)</code> → <code>{score:9, classification:"Likely_Pathogenic"}</code></td>
+      </tr>
+      <tr>
+        <td><strong>Upload</strong></td>
+        <td>Form fields → FHIR Bundle JSON → S3 PUT</td>
+        <td><code>fhir-manifest.ts</code>, then <code>api.ts</code> for <code>getUploadUrl()</code> and <code>ingestSample()</code></td>
+        <td><code>buildManifest({labNumber, ...})</code> → JSON string PUT to presigned URL</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Data flow diagram showing three paths through the lib modules">
+    <style>.lbl{font:12px -apple-system,Segoe UI,Inter,sans-serif;font-weight:600}.sub{font:11px -apple-system,Segoe UI,Inter,sans-serif}</style>
+    <defs>
+      <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6b7c8d"/>
+      </marker>
+    </defs>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">DATA FLOW</text>
+
+    <!-- Flow 1: fetch & display -->
+    <rect x="40" y="40" width="110" height="32" rx="4" fill="#003d78"/>
+    <text x="95" y="60" text-anchor="middle" fill="#fff" class="lbl">FastAPI</text>
+    <line x1="150" y1="56" x2="215" y2="56" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="216" y="40" width="110" height="32" rx="4" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="271" y="60" text-anchor="middle" fill="#003d78" class="lbl">api.ts</text>
+    <line x1="326" y1="56" x2="391" y2="56" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="392" y="40" width="135" height="32" rx="4" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="459" y="60" text-anchor="middle" fill="#1a6e47" class="lbl">display-utils.ts</text>
+    <line x1="527" y1="56" x2="592" y2="56" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="593" y="40" width="110" height="32" rx="4" fill="#f0f4f8" stroke="#c5d0db" stroke-width="1.5"/>
+    <text x="648" y="60" text-anchor="middle" fill="#354656" class="lbl">UI string</text>
+
+    <!-- Flow 2: classification -->
+    <rect x="40" y="100" width="110" height="32" rx="4" fill="#4b2d8e"/>
+    <text x="95" y="120" text-anchor="middle" fill="#fff" class="lbl">criteria[]</text>
+    <line x1="150" y1="116" x2="215" y2="116" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="216" y="100" width="160" height="32" rx="4" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="296" y="120" text-anchor="middle" fill="#4b2d8e" class="lbl">classification-engine.ts</text>
+    <line x1="376" y1="116" x2="441" y2="116" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="442" y="100" width="140" height="32" rx="4" fill="#f0f4f8" stroke="#c5d0db" stroke-width="1.5"/>
+    <text x="512" y="120" text-anchor="middle" fill="#354656" class="lbl">score + label</text>
+
+    <!-- Flow 3: upload -->
+    <rect x="40" y="160" width="110" height="32" rx="4" fill="#9b2335"/>
+    <text x="95" y="180" text-anchor="middle" fill="#fff" class="lbl">form fields</text>
+    <line x1="150" y1="176" x2="215" y2="176" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="216" y="160" width="130" height="32" rx="4" fill="#fce8ea" stroke="#9b2335" stroke-width="1.5"/>
+    <text x="281" y="180" text-anchor="middle" fill="#9b2335" class="lbl">fhir-manifest.ts</text>
+    <line x1="346" y1="176" x2="411" y2="176" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="412" y="160" width="80" height="32" rx="4" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="452" y="180" text-anchor="middle" fill="#003d78" class="lbl">api.ts</text>
+    <line x1="492" y1="176" x2="557" y2="176" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="558" y="160" width="80" height="32" rx="4" fill="#003d78"/>
+    <text x="598" y="180" text-anchor="middle" fill="#fff" class="lbl">S3 + ingest</text>
+  </svg>
+  </div>
+  <figcaption>Figure 2 · Three data flows through the PR C2 lib layer. Top: variant data fetched and formatted for display. Middle: analyst-applied criteria scored by the classification engine. Bottom: form fields assembled into a FHIR manifest and uploaded to S3.</figcaption>
+  </figure>
+</section>
+
+<section id="dependencies">
+  <h2><span class="sec-num">04</span> External dependencies</h2>
+
+  <p>All dependencies in this PR are already present in the project. The lib modules introduce <strong>no new npm packages</strong>. They rely only on browser globals (<code>fetch</code>, <code>URL</code>), TypeScript's type system, and JSON files bundled at build time by Vite.</p>
+
+  <table>
+    <thead><tr><th>Import</th><th>Module(s)</th><th>What it provides</th><th>Eagerly loaded?</th></tr></thead>
+    <tbody>
+      <tr><td><code>../config/canvig-gene-mtaf.json</code></td><td>classification-engine.ts</td><td>Set of 33 CanVIG genes used for framework selection (<code>selectFramework()</code>)</td><td>Yes — at module load time; <code>CANVIG_GENE_SET</code> is computed once</td></tr>
+      <tr><td><code>../config/pipelines.json</code></td><td>pipeline-config.ts</td><td>Pipeline labels and default filter presets</td><td>Yes — the <code>pipelines</code> const is computed at module load</td></tr>
+      <tr><td><code>./api</code> (type import only)</td><td>pipeline-config.ts</td><td>The <code>PipelineFilters</code> interface — type only, erased at runtime</td><td>No runtime cost</td></tr>
+      <tr><td><code>import.meta.env.VITE_API_KEY</code></td><td>api.ts (<code>authHeaders()</code>)</td><td>Vite-injected environment variable read at <strong>call time</strong> (not module load) to support test stubbing</td><td>No — read on each call</td></tr>
+      <tr><td><code>fetch</code> (browser global)</td><td>api.ts (<code>request()</code>)</td><td>Browser's built-in HTTP client</td><td>N/A — browser global</td></tr>
+      <tr><td><code>URL</code> (browser global)</td><td>fhir-manifest.ts (not directly), api.ts (<code>URLSearchParams</code>)</td><td>Building query strings for paginated list endpoints</td><td>N/A — browser global</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout amber">
+    <span class="tag">No acgs-snv-criteria.json import in classification-engine.ts</span>
+    <p>The classification engine does <strong>not</strong> import the criteria JSON files. It receives <code>combinationRules</code> as a parameter — the caller (ClassificationPanel in PR D3) loads the JSON and passes the relevant array in. This keeps the engine pure and independently testable without bundled JSON.</p>
+  </div>
+</section>
+
+<section id="inventory">
+  <h2><span class="sec-num">05</span> Function inventory</h2>
+
+  <p>Every exported function across all five modules, with its location, what it returns, and which part of this series covers it in depth.</p>
+
+  <h3>display-utils.ts</h3>
+  <table>
+    <thead><tr><th>Function</th><th>Input → Output</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>formatYearOfBirth</code></td><td><code>string|null|undefined → string</code></td><td>Extract 4-digit year from ISO date; return em-dash for null/undefined</td></tr>
+      <tr><td><code>formatGnomadAf</code></td><td><code>number|null → string</code></td><td>Scientific notation below 0.0001, 4dp above; "absent" for null</td></tr>
+      <tr><td><code>formatRevel</code></td><td><code>number|null → string</code></td><td>3 decimal places; em-dash for null</td></tr>
+      <tr><td><code>formatSpliceAi</code></td><td><code>number|null → string</code></td><td>3 decimal places; em-dash for null</td></tr>
+      <tr><td><code>gnomadAfClass</code></td><td><code>number|null → string</code></td><td>Returns Tailwind class: amber-600 if AF &gt; 0.01, gray-700 otherwise</td></tr>
+      <tr><td><code>revelClass</code></td><td><code>number|null → string</code></td><td>red-600 ≥ 0.7, green-700 ≤ 0.4, gray-700 otherwise</td></tr>
+      <tr><td><code>spliceAiClass</code></td><td><code>number|null → string</code></td><td>orange-600 ≥ 0.5, gray-700 otherwise</td></tr>
+    </tbody>
+  </table>
+
+  <h3>classification-engine.ts</h3>
+  <table>
+    <thead><tr><th>Function / Export</th><th>Input → Output</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>classify</code></td><td><code>(AppliedCriterion[], Framework, CombinationRule[]) → ClassificationResult</code></td><td>Core scoring: sum points, apply thresholds, detect sentinel codes, check combination rules</td></tr>
+      <tr><td><code>selectFramework</code></td><td><code>("germline"|"somatic", string|null) → {framework, isCanvig}</code></td><td>Choose ACGS SNV or SVIG-UK based on case type and CanVIG gene membership</td></tr>
+      <tr><td><code>classificationLabel</code></td><td><code>string|null → string</code></td><td>Human-readable label: "Likely_Pathogenic" → "Likely Pathogenic"</td></tr>
+      <tr><td><code>classificationBadgeClass</code></td><td><code>string|null → string</code></td><td>CSS suffix for badge: "Pathogenic" → "pathogenic" (used as <code>badge-pathogenic</code>)</td></tr>
+      <tr><td><code>getFrameworkVersion</code></td><td><code>Framework → string</code></td><td>Version string for the framework (e.g. "ACGS 2024 Best Practice Guidelines")</td></tr>
+      <tr><td><code>ACGS_VERSION</code>, <code>SVIG_VERSION</code></td><td>Exported constants</td><td>Version strings for display and for inserting into DB records</td></tr>
+    </tbody>
+  </table>
+
+  <h3>api.ts</h3>
+  <table>
+    <thead><tr><th>Function / Class</th><th>Input → Output</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>ApiError</code></td><td>class extends Error</td><td>Typed error with <code>status</code> (HTTP code) and <code>detail</code> (backend message)</td></tr>
+      <tr><td><code>authHeaders</code></td><td><code>() → Record&lt;string,string&gt;</code></td><td>Returns <code>{X-API-Key: ...}</code> when configured; empty object otherwise</td></tr>
+      <tr><td><code>listPatients</code></td><td><code>({search?, limit?, offset?}) → {items, total, limit, offset}</code></td><td>GET /api/patients with optional search and pagination</td></tr>
+      <tr><td><code>getPatient</code></td><td><code>(id) → PatientDetailResponse</code></td><td>GET /api/patients/{id}</td></tr>
+      <tr><td><code>deletePatient</code></td><td><code>(id) → void</code></td><td>DELETE /api/patients/{id}</td></tr>
+      <tr><td><code>getSample</code></td><td><code>(id) → SampleDetail</code></td><td>GET /api/samples/{id}</td></tr>
+      <tr><td><code>deleteSample</code></td><td><code>(id) → void</code></td><td>DELETE /api/samples/{id}</td></tr>
+      <tr><td><code>listVariants</code></td><td><code>(sampleId, VariantFilterParams?) → VariantListResponse</code></td><td>GET /api/samples/{id}/variants with filter/sort params</td></tr>
+      <tr><td><code>getVariant</code></td><td><code>(id) → VariantDetailResponse</code></td><td>GET /api/variants/{id}</td></tr>
+      <tr><td><code>getUploadUrl</code></td><td><code>(UploadUrlParams) → UploadUrlResponse</code></td><td>POST /api/upload-url — gets presigned S3 URLs</td></tr>
+      <tr><td><code>ingestSample</code></td><td><code>(IngestParams) → IngestResponse</code></td><td>POST /api/ingest — triggers S3-based ingest</td></tr>
+      <tr><td><code>updateWorkflow</code></td><td><code>(sampleId, status, userId) → {sample_id, status}</code></td><td>PUT /api/workflow/{id}</td></tr>
+      <tr><td><code>putClassification</code></td><td><code>(variantId, ClassifyPersistPayload) → ClassifyPersistResponse</code></td><td>PUT /api/variants/{id}/classification</td></tr>
+      <tr><td><code>resetClassification</code></td><td><code>(variantId, classificationId, userId) → {new_classification_id}</code></td><td>DELETE /api/variants/{id}/classification/{classificationId}</td></tr>
+    </tbody>
+  </table>
+
+  <h3>pipeline-config.ts</h3>
+  <table>
+    <thead><tr><th>Function</th><th>Input → Output</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>getPipelineDefaults</code></td><td><code>(string|null) → PipelineFilters</code></td><td>Return the default gnomAD AF threshold and consequence/ClinVar filters for the given pipeline key; falls back to sensible defaults if key is unknown</td></tr>
+      <tr><td><code>getPipelineOptions</code></td><td><code>() → {key, label}[]</code></td><td>Return all available pipelines as key/label pairs for a select element</td></tr>
+    </tbody>
+  </table>
+
+  <h3>fhir-manifest.ts</h3>
+  <table>
+    <thead><tr><th>Function</th><th>Input → Output</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>buildManifest</code></td><td><code>({labNumber, specimenName, caseType, pipelineKey, sequencingDate, vcfFilename}) → FhirBundle</code></td><td>Assemble a FHIR R4 Bundle (collection type) with Patient, Specimen, and Task resources; the backend's <code>parse_manifest()</code> function must be able to parse this output</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="naming">
+  <h2><span class="sec-num">06</span> Naming conventions</h2>
+
+  <table>
+    <thead><tr><th>Pattern</th><th>Meaning</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td><code>format*</code></td><td>Returns a formatted string for display; handles null by returning em-dash or "absent"</td><td><code>formatGnomadAf</code>, <code>formatRevel</code></td></tr>
+      <tr><td><code>*Class</code></td><td>Returns a Tailwind CSS class name string based on a value; used in <code>className</code> props</td><td><code>gnomadAfClass</code>, <code>revelClass</code></td></tr>
+      <tr><td><code>list*</code></td><td>GET endpoint returning a paginated list with <code>items</code>, <code>total</code>, <code>limit</code>, <code>offset</code></td><td><code>listPatients</code>, <code>listVariants</code></td></tr>
+      <tr><td><code>get*</code></td><td>GET endpoint returning a single resource by id</td><td><code>getPatient</code>, <code>getSample</code></td></tr>
+      <tr><td><code>delete*</code></td><td>DELETE endpoint; returns <code>void</code> (204 No Content)</td><td><code>deletePatient</code>, <code>deleteSample</code></td></tr>
+      <tr><td><code>*Response</code></td><td>TypeScript interface mirroring a Pydantic response model in the backend</td><td><code>PatientDetailResponse</code>, <code>VariantDetailResponse</code></td></tr>
+      <tr><td><code>*Params</code></td><td>TypeScript interface for query parameters or request body fields</td><td><code>VariantFilterParams</code>, <code>UploadUrlParams</code></td></tr>
+      <tr><td><code>*Payload</code></td><td>Request body for a write operation (POST/PUT/DELETE with body)</td><td><code>ClassifyPersistPayload</code></td></tr>
+      <tr><td><code>Framework</code></td><td>Union type: <code>"acgs_snv" | "svig"</code></td><td>Matches Python's <code>Literal["acgs_snv", "svig"]</code></td></tr>
+      <tr><td><code>private (lowercase, module-scoped)</code></td><td>Not exported — internal helper or constant</td><td><code>headers()</code>, <code>request()</code>, <code>classifyAcgs()</code>, <code>classifySvig()</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="series">
+  <h2><span class="sec-num">07</span> About this series</h2>
+
+  <p>This four-part series covers all five lib modules added in PR C2. Each part builds on the previous but can also be read independently if you need to look up a specific function.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--accent-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="4" width="16" height="3" rx="1" fill="#005eb8"/><rect x="2" y="9" width="12" height="2" rx="1" fill="#005eb8"/><rect x="2" y="13" width="14" height="2" rx="1" fill="#005eb8"/></svg>
+        </div>
+        <div>
+          <div class="card-name">Part 1 · High-level outline</div>
+          <div class="card-sub">You are here</div>
+        </div>
+      </div>
+      <p>What the five modules do, how they relate to each other, the complete function inventory, and naming conventions.</p>
+      <span class="pill blue">Current</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--purple-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="7" stroke="#4b2d8e" stroke-width="2"/><text x="10" y="14" text-anchor="middle" font-size="10" fill="#4b2d8e" font-weight="700">?</text></svg>
+        </div>
+        <div>
+          <div class="card-name">Part 2 · Key concepts</div>
+          <div class="card-sub">Before the code makes sense</div>
+        </div>
+      </div>
+      <p>TypeScript interfaces and generics, Vitest mocking patterns, the Tavtigian point system, FHIR R4 Bundle structure, Vite's <code>import.meta.env</code>, and sentinel code overrides.</p>
+      <span class="pill purple">Concepts</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--green-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#1a6e47" stroke-width="2"/><line x1="7" y1="10" x2="13" y2="10" stroke="#1a6e47" stroke-width="2"/><line x1="10" y1="7" x2="10" y2="13" stroke="#1a6e47" stroke-width="2"/></svg>
+        </div>
+        <div>
+          <div class="card-name">Part 3 · Function walkthrough</div>
+          <div class="card-sub">Every function explained</div>
+        </div>
+      </div>
+      <p>Purpose, inputs/outputs, and key logic for every function in all five modules. Design decisions highlighted where the implementation differs from the obvious approach.</p>
+      <span class="pill green">Walkthrough</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--amber-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="14" height="14" rx="2" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/><text x="10" y="14" text-anchor="middle" font-size="9" fill="#b35c00" font-weight="700">01</text></svg>
+        </div>
+        <div>
+          <div class="card-name">Part 4 · Line-by-line reference</div>
+          <div class="card-sub">The hardest functions annotated</div>
+        </div>
+      </div>
+      <p>Dense annotations for <code>classify()</code>, <code>request&lt;T&gt;()</code>, <code>buildManifest()</code>, and <code>selectFramework()</code> — the functions where reading the code alone leaves important questions unanswered.</p>
+      <span class="pill amber">Reference</span>
+    </div>
+  </div>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_C2_Lib_Modules_Part1.html" class="current">1 · High-level outline</a>
+  <a href="260521_PR_C2_Lib_Modules_Part2.html">2 · Key concepts</a>
+  <a href="260521_PR_C2_Lib_Modules_Part3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_C2_Lib_Modules_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+</main>
+</div>
+
+<footer>
+  Joo Wook Ahn · 21 May 2026 · Code walkthrough for PR C2 of the eastgenomics/variant-viewer frontend SPA series. Sources: frontend/src/lib/ and frontend/src/tests/ on branch pr/C2; backend/app/lib/classification_engine.py for Python reference.
+</footer>
+
+</body>
+</html>

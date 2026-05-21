@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D1 — Display Components · Part 4: Line-by-line reference</title>
+<style>
+  :root{
+    --ink:#0d1b2a; --ink-soft:#354656; --muted:#6b7c8d;
+    --line:#e0e7ef; --line-strong:#c5d0db;
+    --bg:#f7f9fb; --paper:#ffffff;
+    --accent:#005eb8; --accent-deep:#003d78; --accent-mid:#1a73c4; --accent-soft:#e3edf8;
+    --green:#1a6e47; --green-soft:#e0f0e8;
+    --amber:#b35c00; --amber-soft:#fdf0e0;
+    --red:#9b2335; --red-soft:#fce8ea;
+    --purple:#4b2d8e; --purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .acb{margin:20px 0 32px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .acb-header{background:var(--accent-deep);padding:10px 16px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  .acb-fn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#fff;font-weight:700}
+  .acb-desc{font-size:12px;color:#a8c8e8}
+  .acb-code{background:#1e2d3d;padding:0;overflow-x:auto}
+  .acb-code pre{color:#cdd9e5;font:12.5px/1.9 ui-monospace,Menlo,Consolas,monospace;margin:0;padding:16px 20px;white-space:pre}
+  .acb-code .c{color:#6e9cbf}
+  .acb-code .k{color:#79b8ff}
+  .acb-code .s{color:#9ecbff}
+  .acb-code .n{color:#b392f0}
+  .acb-code .f{color:#85e89d}
+  .acb-code .t{color:#ffab70}
+  .acb-annos{border-top:2px solid #2d4a63}
+  .anno-row{display:grid;grid-template-columns:44px 1fr;border-bottom:1px solid var(--line)}
+  .anno-row:last-child{border-bottom:none}
+  .anno-num{background:#f0f4f8;border-right:1px solid var(--line);display:flex;align-items:flex-start;justify-content:center;padding:12px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--accent-deep);padding-top:14px}
+  .anno-txt{padding:12px 16px;font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+  .anno-txt strong{color:var(--ink)}
+  .anno-txt code{font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D1 DISPLAY COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">Part 4</div>
+  <ul>
+    <li><a href="#row-template">19 PatientListTable row template</a></li>
+    <li><a href="#delete-machine">20 DeletePatientButton state machine</a></li>
+    <li><a href="#class-null">21 ClassificationBadge null chain</a></li>
+    <li><a href="#test-mock">22 Test fixture and vi.mock pattern</a></li>
+  </ul>
+  <div class="meta">Part 4 of 4<br>variant-viewer · PR D1<br>Continued from Part 3</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · Frontend SPA · PR D1 of 8 — Part 4 of 4: Line-by-line reference</div>
+  <h1>PR D1 — Line-by-line Reference</h1>
+  <p class="sub">Dense annotated code blocks for the four sections that are correct but require context to understand: the PatientListTable row template, the DeletePatientButton state machine, the ClassificationBadge null guard chain, and the vi.mock test fixture pattern.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> D1 of 8 — targets pr/C2</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D1_Display_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D1_Display_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D1_Display_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D1_Display_Components_4.html" class="current">4 · Line-by-line reference</a>
+</div>
+
+<section id="row-template">
+  <h2><span class="sec-num">19</span> PatientListTable — the row template</h2>
+
+  <p>The table body maps over the <code>patients</code> array and renders one <code>&lt;tr&gt;</code> per patient. Several cells use non-obvious patterns.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">PatientListTable — tbody row</span>
+      <span class="acb-desc">PatientListTable.tsx lines 73–107</span>
+    </div>
+    <div class="acb-code"><pre>{patients.map((p) =&gt; (
+  &lt;tr key={p.id} className="hover:bg-gray-50"&gt;                           <span class="acb-code c">// ①</span>
+    &lt;td className="px-4 py-3 font-mono font-medium text-gray-900"&gt;
+      {p.lab_number}                                                       <span class="acb-code c">// ②</span>
+    &lt;/td&gt;
+    &lt;td className="px-4 py-3 text-gray-500"&gt;{p.sample_count}&lt;/td&gt;
+    &lt;td className="px-4 py-3 text-gray-600"&gt;
+      {p.latest_sample_name ?? <span class="acb-code s">"—"</span>}                                         <span class="acb-code c">// ③</span>
+    &lt;/td&gt;
+    &lt;td className="px-4 py-3 text-gray-500"&gt;
+      {p.pipeline_key ? p.pipeline_key.replace(/_/g, <span class="acb-code s">" "</span>) : <span class="acb-code s">"—"</span>}          <span class="acb-code c">// ④</span>
+    &lt;/td&gt;
+    &lt;td className="px-4 py-3"&gt;
+      {p.latest_workflow_status ? (                                        <span class="acb-code c">// ⑤</span>
+        &lt;WorkflowBadge status={p.latest_workflow_status} /&gt;
+      ) : (
+        &lt;span className="text-gray-400"&gt;—&lt;/span&gt;
+      )}
+    &lt;/td&gt;
+    &lt;td className="px-4 py-3 text-gray-400 text-xs"&gt;
+      {p.latest_ingested_at                                                <span class="acb-code c">// ⑥</span>
+        ? new Date(p.latest_ingested_at).toLocaleDateString(<span class="acb-code s">"en-GB"</span>)
+        : <span class="acb-code s">"—"</span>}
+    &lt;/td&gt;
+    &lt;td className="px-4 py-3"&gt;
+      &lt;Link to={`/patients/${p.id}`}                                       <span class="acb-code c">// ⑦</span>
+            className="text-blue-600 hover:underline text-xs"&gt;
+        View →
+      &lt;/Link&gt;
+    &lt;/td&gt;
+    &lt;td className="px-4 py-3"&gt;
+      &lt;DeletePatientButton                                                 <span class="acb-code c">// ⑧</span>
+        id={p.id}
+        label={p.lab_number}
+        onDelete={onDelete}
+      /&gt;
+    &lt;/td&gt;
+  &lt;/tr&gt;
+))}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row">
+        <div class="anno-num">①</div>
+        <div class="anno-txt"><strong><code>key={p.id}</code></strong> — React requires a stable unique key on list items so it can reconcile the virtual DOM efficiently when the array changes (e.g. after a delete). Using <code>p.id</code> (the database primary key) is correct; using array index would cause React to re-render the wrong rows when an item is removed from the middle of the list.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">②</div>
+        <div class="anno-txt"><strong>Only <code>p.lab_number</code> is rendered as the patient identifier.</strong> <code>p.name</code> (the patient's full name) exists on the <code>PatientSummary</code> type but is deliberately never accessed here. This is Invariant 1. The <code>font-mono</code> class renders the MRN in monospace — this visually distinguishes it from prose text, which is conventional for identifiers and codes in clinical systems.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">③</div>
+        <div class="anno-txt"><strong><code>?? "—"</code></strong> — nullish coalescing. <code>latest_sample_name</code> is <code>string | null</code>: null when the patient has no ingested specimens yet. The em-dash is the standard display convention for "no data" in this codebase — it is more visible than an empty cell and unambiguous to a clinical reviewer.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">④</div>
+        <div class="anno-txt"><strong><code>p.pipeline_key.replace(/_/g, " ")</code></strong> — converts the database identifier <code>dragen_germline</code> to the human-readable label <code>dragen germline</code> for display. The ternary (rather than <code>??</code>) is used here because the fallback is a string <code>"—"</code>, and the transformation must only run when <code>pipeline_key</code> is non-null (calling <code>.replace()</code> on <code>null</code> would throw). Optional chaining <code>p.pipeline_key?.replace(...)</code> would be equally correct but returns <code>undefined</code> which renders as nothing in React, not "—".</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑤</div>
+        <div class="anno-txt"><strong>Ternary for JSX fallback.</strong> <code>??</code> cannot be used here because the fallback is a JSX element, not a string. JSX elements are not null/undefined — they are objects — so <code>?? &lt;span&gt;—&lt;/span&gt;</code> would not work as intended. The ternary <code>condition ? &lt;A /&gt; : &lt;B /&gt;</code> is the correct pattern for JSX conditional rendering.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑥</div>
+        <div class="anno-txt"><strong><code>toLocaleDateString("en-GB")</code></strong> — formats the ISO datetime string (<code>2026-04-01T12:00:00Z</code>) as a UK date (<code>01/04/2026</code>). The <code>"en-GB"</code> locale is explicit. Without a locale argument, <code>toLocaleDateString()</code> uses the browser's locale — which could produce <code>4/1/2026</code> on a machine configured with <code>en-US</code>, ambiguous and potentially confusing in a clinical context.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑦</div>
+        <div class="anno-txt"><strong>React Router <code>Link</code> — not <code>&lt;a href&gt;</code>.</strong> <code>Link to="/patients/1"</code> performs client-side navigation: the React app stays mounted, only the URL and displayed components change. A plain <code>&lt;a href="/patients/1"&gt;</code> would trigger a full page reload, losing all React state and causing a round-trip to the server for the HTML shell.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑧</div>
+        <div class="anno-txt"><strong><code>label={p.lab_number}</code> — MRN in confirmation prompt.</strong> <code>DeletePatientButton</code> renders "Delete <strong>LAB-2026-001</strong>?" in the confirmation row. Passing the MRN as the label (not the name) ensures the confirmation prompt itself does not expose PII. Passing <code>p.name</code> here would violate Invariant 1 even though it is inside the confirmation UI, not visible until the user clicks Delete.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="delete-machine">
+  <h2><span class="sec-num">20</span> DeletePatientButton — the confirmation state machine</h2>
+
+  <p>The delete button's core logic is the async click handler and its surrounding state transitions. This is the only stateful code in the entire PR.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">DeletePatientButton — confirming branch</span>
+      <span class="acb-desc">PatientListTable.tsx lines 20–57</span>
+    </div>
+    <div class="acb-code"><pre><span class="acb-code k">if</span> (confirming) {                                                        <span class="acb-code c">// ①</span>
+  <span class="acb-code k">return</span> (
+    &lt;span className="flex gap-1 items-center"&gt;
+      &lt;span className="text-xs text-gray-700 mr-1"&gt;
+        Delete &lt;strong&gt;{label}&lt;/strong&gt;?                                  <span class="acb-code c">// ②</span>
+      &lt;/span&gt;
+      &lt;button
+        className="btn btn-danger text-xs py-0.5 px-2"
+        disabled={busy}                                                    <span class="acb-code c">// ③</span>
+        onClick={async () =&gt; {
+          setBusy(<span class="acb-code k">true</span>);                                                    <span class="acb-code c">// ④</span>
+          setDeleteError(<span class="acb-code k">null</span>);
+          <span class="acb-code k">try</span> {
+            <span class="acb-code k">await</span> deletePatient(id);                                        <span class="acb-code c">// ⑤</span>
+            onDelete(id);                                                  <span class="acb-code c">// ⑥</span>
+            setConfirming(<span class="acb-code k">false</span>);                                            <span class="acb-code c">// ⑦</span>
+          } <span class="acb-code k">catch</span> (e) {
+            setDeleteError(                                                <span class="acb-code c">// ⑧</span>
+              e <span class="acb-code k">instanceof</span> Error ? e.message : <span class="acb-code s">"Delete failed"</span>
+            );
+          } <span class="acb-code k">finally</span> {
+            setBusy(<span class="acb-code k">false</span>);                                               <span class="acb-code c">// ⑨</span>
+          }
+        }}
+      &gt;
+        {busy ? <span class="acb-code s">"Deleting…"</span> : <span class="acb-code s">"Yes, delete"</span>}                            <span class="acb-code c">// ⑩</span>
+      &lt;/button&gt;
+      &lt;button
+        className="btn btn-secondary text-xs py-0.5 px-2"
+        onClick={() =&gt; { setConfirming(<span class="acb-code k">false</span>); setDeleteError(<span class="acb-code k">null</span>); }}  <span class="acb-code c">// ⑪</span>
+      &gt;
+        Cancel
+      &lt;/button&gt;
+      {deleteError &amp;&amp; (                                                    <span class="acb-code c">// ⑫</span>
+        &lt;span className="text-xs text-red-600 ml-1"&gt;{deleteError}&lt;/span&gt;
+      )}
+    &lt;/span&gt;
+  );
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row">
+        <div class="anno-num">①</div>
+        <div class="anno-txt"><strong>Conditional early return splits the component into two render branches.</strong> The function returns early when <code>confirming</code> is true, rendering the confirmation row. The code after the closing <code>}</code> (a single "Delete" button) is only reached when <code>confirming</code> is false. This is idiomatic React: two mutually exclusive render paths via an early return, cleaner than a large inline ternary.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">②</div>
+        <div class="anno-txt"><strong><code>{label}</code> is the MRN, not the patient name.</strong> The caller passes <code>label={p.lab_number}</code>. This is deliberate — showing "Delete LAB-2026-001?" rather than "Delete Jane Smith?" maintains Invariant 1 even inside the confirmation prompt, which is briefly visible on-screen while the user decides.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">③</div>
+        <div class="anno-txt"><strong><code>disabled={busy}</code> prevents double-submission.</strong> While the API call is in flight (<code>busy=true</code>), the button is disabled. Without this, a user could click the button multiple times before the first response arrives, triggering duplicate DELETE requests. The browser also visually greys the button, communicating that an action is pending.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">④</div>
+        <div class="anno-txt"><strong>State updates are batched at the start of the handler.</strong> <code>setBusy(true)</code> and <code>setDeleteError(null)</code> are set before the <code>await</code>. React 18 batches these updates into a single re-render, so the button disables and any previous error clears simultaneously. Clearing the previous error on retry is important — if the first attempt failed, the second attempt should start clean.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑤</div>
+        <div class="anno-txt"><strong><code>await deletePatient(id)</code></strong> — <code>deletePatient</code> is imported from <code>api.ts</code>. It calls <code>DELETE /api/patients/{id}</code> and throws an <code>ApiError</code> on non-2xx responses. The <code>await</code> pauses the handler until the response arrives. If the server returns 404 (patient already deleted) or 500 (server error), the <code>catch</code> branch runs instead.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑥</div>
+        <div class="anno-txt"><strong><code>onDelete(id)</code> is called only after a successful delete.</strong> This callback (provided by <code>PatientsPage</code>) removes the row from the parent's state. Calling it before the API response would cause the row to disappear optimistically — then if the API fails, the row is gone from the UI but still exists in the database. The current implementation only updates the UI after confirmed success.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑦</div>
+        <div class="anno-txt"><strong><code>setConfirming(false)</code> — close confirmation on success.</strong> This is called in the <code>try</code> block (success path only). On failure, this line is never reached — the confirmation stays open so the error message is visible. If <code>setConfirming(false)</code> were in the <code>finally</code> block instead, the confirmation would close even on error, hiding the error message immediately.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑧</div>
+        <div class="anno-txt"><strong>Error normalisation: <code>e instanceof Error ? e.message : "Delete failed"</code>.</strong> In JavaScript, anything can be thrown — not just <code>Error</code> objects. The <code>instanceof Error</code> guard ensures we only access <code>.message</code> when the thrown value is actually an <code>Error</code> (or subclass). <code>ApiError</code> from <code>api.ts</code> extends <code>Error</code>, so its <code>.message</code> property contains the server's <code>detail</code> string.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑨</div>
+        <div class="anno-txt"><strong><code>finally { setBusy(false) }</strong> — always re-enables the button.</strong> The <code>finally</code> block runs whether the <code>try</code> succeeded or the <code>catch</code> ran. This guarantees the button is never left disabled indefinitely, even if the error handling itself throws. Forgetting this is a common bug in async handlers — the button stays greyed out forever after an error.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑩</div>
+        <div class="anno-txt"><strong>Button label changes during the API call.</strong> <code>{busy ? "Deleting…" : "Yes, delete"}</code> updates the button text inline while the request is in flight. Combined with <code>disabled={busy}</code>, this gives the user clear feedback that their click was registered and the operation is in progress — no spinner component needed for a short-lived operation.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑪</div>
+        <div class="anno-txt"><strong>Cancel clears both <code>confirming</code> and <code>deleteError</code>.</strong> If a previous delete attempt failed and the error is displayed, clicking Cancel both dismisses the confirmation and resets the error. This ensures the next time the user opens the confirmation it starts clean — no stale error message from a previous failed attempt.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">⑫</div>
+        <div class="anno-txt"><strong>Short-circuit rendering: <code>{deleteError &amp;&amp; (...)}</code>.</strong> In JSX, <code>false &amp;&amp; &lt;span&gt;</code> renders nothing. <code>"some error" &amp;&amp; &lt;span&gt;</code> renders the span. This is idiomatic React for conditional rendering of a single element — equivalent to <code>{deleteError ? &lt;span&gt;{deleteError}&lt;/span&gt; : null}</code> but shorter. The error renders inline next to the buttons rather than below them, keeping the entire action visible without layout shift.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="class-null">
+  <h2><span class="sec-num">21</span> ClassificationBadge — the null guard chain</h2>
+
+  <p>The four lines of the <code>ClassificationBadge</code> return logic contain two separate fallback paths that are easy to conflate.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">ClassificationBadge — full function body</span>
+      <span class="acb-desc">ClassificationBadge.tsx lines 23–35</span>
+    </div>
+    <div class="acb-code"><pre><span class="acb-code k">export default function</span> <span class="acb-code f">ClassificationBadge</span>({
+  classification,
+}: {
+  classification: <span class="acb-code t">string</span> | <span class="acb-code k">null</span>;
+}) {
+  <span class="acb-code k">if</span> (!classification) <span class="acb-code k">return</span>                                           <span class="acb-code c">// ①</span>
+    &lt;span className=<span class="acb-code s">"text-gray-400 text-xs"</span>&gt;—&lt;/span&gt;;
+
+  <span class="acb-code k">return</span> (
+    &lt;span className={BADGE_MAP[classification] ?? <span class="acb-code s">"badge bg-gray-100 text-gray-600"</span>}&gt;   <span class="acb-code c">// ②</span>
+      {LABEL_MAP[classification] ?? classification}                       <span class="acb-code c">// ③</span>
+    &lt;/span&gt;
+  );
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row">
+        <div class="anno-num">①</div>
+        <div class="anno-txt"><strong>Early return for null — separate from "unknown" fallback.</strong> <code>if (!classification) return ...</code> handles the case where no classification has been assigned yet (the variant is unclassified). This renders a muted em-dash rather than a badge. It is an early return, not an else branch, keeping the main path unindented. <code>!classification</code> is true for both <code>null</code> and <code>undefined</code> — the prop type says <code>string | null</code> but TypeScript allows passing <code>undefined</code> to optional-like props at call sites.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">②</div>
+        <div class="anno-txt"><strong>Two separate fallbacks in one expression.</strong> <code>BADGE_MAP[classification] ?? "badge bg-gray-100 text-gray-600"</code> resolves to:<br>
+        — the lookup result if the classification is a known key (e.g. <code>"badge badge-pathogenic"</code>)<br>
+        — the fallback grey class string if the key is absent from <code>BADGE_MAP</code>.<br>
+        This fallback handles future classification values (e.g. a new SVIG tier) gracefully — they render as a grey badge rather than causing an error.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">③</div>
+        <div class="anno-txt"><strong><code>LABEL_MAP[classification] ?? classification</code> — raw value as last resort.</strong> If the classification is not in <code>LABEL_MAP</code> (an unknown future value), the raw stored string is displayed verbatim — e.g. <code>"New_Classification"</code>. This is better than displaying nothing (which would happen if the fallback were an empty string) and better than crashing. The combination of ② and ③ means unknown classifications always render as a grey badge with the raw string as label.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="test-mock">
+  <h2><span class="sec-num">22</span> Test fixture and vi.mock pattern</h2>
+
+  <p>The <code>PatientListTable</code> test introduces two patterns that appear across all component tests in later PRs.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">PatientListTable.test.tsx — mock and fixture</span>
+      <span class="acb-desc">PatientListTable.test.tsx lines 1–30</span>
+    </div>
+    <div class="acb-code"><pre><span class="acb-code k">import</span> { render, screen } <span class="acb-code k">from</span> <span class="acb-code s">"@testing-library/react"</span>;
+<span class="acb-code k">import</span> { describe, it, expect, vi } <span class="acb-code k">from</span> <span class="acb-code s">"vitest"</span>;
+<span class="acb-code k">import</span> { MemoryRouter } <span class="acb-code k">from</span> <span class="acb-code s">"react-router-dom"</span>;
+<span class="acb-code k">import</span> PatientListTable <span class="acb-code k">from</span> <span class="acb-code s">"../components/PatientListTable"</span>;
+<span class="acb-code k">import type</span> { PatientSummary } <span class="acb-code k">from</span> <span class="acb-code s">"../lib/api"</span>;
+
+vi.<span class="acb-code f">mock</span>(<span class="acb-code s">"../lib/api"</span>, () =&gt; ({ deletePatient: vi.<span class="acb-code f">fn</span>() }));           <span class="acb-code c">// ①</span>
+
+<span class="acb-code k">const</span> patient: <span class="acb-code t">PatientSummary</span> = {
+  id: <span class="acb-code n">1</span>,
+  lab_number: <span class="acb-code s">"LAB-2026-001"</span>,
+  name: <span class="acb-code s">"Jane Smith"</span>,                                                   <span class="acb-code c">// ②</span>
+  <span class="acb-code c">// dob removed — migration 004                                         // ③</span>
+  sample_count: <span class="acb-code n">2</span>,
+  latest_sample_id: <span class="acb-code n">10</span>,
+  latest_sample_name: <span class="acb-code s">"SPECIMEN_A"</span>,
+  latest_workflow_status: <span class="acb-code s">"pending"</span>,
+  latest_ingested_at: <span class="acb-code s">"2026-04-01T12:00:00Z"</span>,
+  pipeline_key: <span class="acb-code s">"dragen_germline"</span>,
+};
+
+<span class="acb-code k">function</span> <span class="acb-code f">renderTable</span>() {
+  <span class="acb-code k">return</span> render(
+    &lt;MemoryRouter&gt;                                                         <span class="acb-code c">// ④</span>
+      &lt;PatientListTable patients={[patient]} onDelete={vi.<span class="acb-code f">fn</span>()} /&gt;
+    &lt;/MemoryRouter&gt;
+  );
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row">
+        <div class="anno-num">①</div>
+        <div class="anno-txt"><strong><code>vi.mock("../lib/api", () =&gt; ({ deletePatient: vi.fn() }))</code> — factory-form mock.</strong> Vitest replaces the entire <code>api</code> module with the returned object for this test file. The factory form (<code>() =&gt; ({...})</code>) is needed rather than the auto-mock form (<code>vi.mock("../lib/api")</code>) because we want precise control: only <code>deletePatient</code> needs to be a spy — the type exports (interfaces) don't need mocking. Without this mock, the test would import the real <code>api.ts</code> which reads <code>import.meta.env.VITE_API_KEY</code> — an environment variable not set in the Vitest jsdom environment.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">②</div>
+        <div class="anno-txt"><strong>The fixture includes <code>name: "Jane Smith"</code> deliberately.</strong> The test then asserts <code>expect(screen.queryByText("Jane Smith")).not.toBeInTheDocument()</code>. If <code>name</code> were absent from the fixture, this assertion would pass trivially even if the component had a bug that tried to render names — because there would be no name to find. By including a real name value in the fixture, the negative assertion is a genuine guard.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">③</div>
+        <div class="anno-txt"><strong><code>// dob removed — migration 004</code></strong> — explains a non-obvious absence. The <code>PatientSummary</code> type no longer includes <code>dob</code> (the field was removed from the backend model when migration 004 dropped the database column). Someone reading the fixture later might wonder why there is no <code>dob</code> field — the comment provides the answer and links to the migration for investigation.</div>
+      </div>
+      <div class="anno-row">
+        <div class="anno-num">④</div>
+        <div class="anno-txt"><strong><code>MemoryRouter</code> — required because the component uses <code>Link</code>.</strong> React Router's <code>Link</code> component reads routing context from a React context provider. Without a router ancestor, rendering <code>Link</code> throws a runtime error: "useHref() may be used only in the context of a &lt;Router&gt; component." <code>MemoryRouter</code> provides that context using an in-memory history object — no browser URL bar, no navigation side effects, safe for unit tests. The same wrapper pattern is used in all component tests that involve navigation links.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_D1_Display_Components_1.html">1 · High-level outline</a>
+    <a href="260521_PR_D1_Display_Components_2.html">2 · Key concepts</a>
+    <a href="260521_PR_D1_Display_Components_3.html">3 · Function walkthrough</a>
+    <a href="260521_PR_D1_Display_Components_4.html" class="current">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Prepared by Joo Wook Ahn · 21 May 2026 · Source: eastgenomics/variant-viewer pr/D1 branch · frontend/src/components, frontend/src/tests · Continued from Part 3. End of series.
+</footer>
+
+</body>
+</html>

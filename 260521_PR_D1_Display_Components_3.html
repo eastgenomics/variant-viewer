@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D1 — Display Components · Part 3: Function walkthrough</title>
+<style>
+  :root{
+    --ink:#0d1b2a; --ink-soft:#354656; --muted:#6b7c8d;
+    --line:#e0e7ef; --line-strong:#c5d0db;
+    --bg:#f7f9fb; --paper:#ffffff;
+    --accent:#005eb8; --accent-deep:#003d78; --accent-mid:#1a73c4; --accent-soft:#e3edf8;
+    --green:#1a6e47; --green-soft:#e0f0e8;
+    --amber:#b35c00; --amber-soft:#fdf0e0;
+    --red:#9b2335; --red-soft:#fce8ea;
+    --purple:#4b2d8e; --purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}
+  .cb .k{color:#79b8ff}
+  .cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}
+  .cb .f{color:#85e89d}
+  .cb .t{color:#ffab70}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .fn-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .fn-header{background:var(--accent-deep);padding:14px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .fn-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:#fff;font-weight:700}
+  .fn-lines{font-size:12px;color:#a8c8e8}
+  .fn-phase{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+  .fn-phase.stateless{background:#1a6e47;color:#fff}
+  .fn-phase.interactive{background:#b35c00;color:#fff}
+  .fn-phase.test{background:#4b2d8e;color:#fff}
+  .fn-body{padding:18px}
+  .fn-body p{margin-bottom:10px}
+  .io-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .io-box{background:#f7f9fb;border:1px solid var(--line);border-radius:6px;padding:12px}
+  .io-box h4{margin:0 0 6px}
+  .io-box ul{margin:0;padding-left:18px}
+  .io-box li{font-size:13px;margin:3px 0}
+  .file-section{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f0f4f8;border:1px solid var(--line);border-radius:6px;margin:20px 0 8px;font-size:13px}
+  .file-section .fs-name{font-weight:700;color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace}
+  .file-section .fs-range{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D1 DISPLAY COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">Components</div>
+  <ul>
+    <li><a href="#navbar">12 Navbar</a></li>
+    <li><a href="#workflowbadge">13 WorkflowBadge</a></li>
+    <li><a href="#classificationbadge">14 ClassificationBadge</a></li>
+    <li><a href="#patientheader">15 PatientHeader</a></li>
+    <li><a href="#deletebutton">16 DeletePatientButton</a></li>
+    <li><a href="#patientlisttable">17 PatientListTable</a></li>
+  </ul>
+  <div class="toc-section">Tests</div>
+  <ul>
+    <li><a href="#tests">18 Test files</a></li>
+  </ul>
+  <div class="meta">Part 3 of 4<br>variant-viewer · PR D1<br>Continued from Part 2</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · Frontend SPA · PR D1 of 8 — Part 3 of 4: Function walkthrough</div>
+  <h1>PR D1 — Function Walkthrough</h1>
+  <p class="sub">A structured function-by-function walk through every component and test file added in PR D1, covering purpose, inputs, outputs, key logic, and the design decisions behind each.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> D1 of 8 — targets pr/C2</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D1_Display_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D1_Display_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D1_Display_Components_3.html" class="current">3 · Function walkthrough</a>
+  <a href="260521_PR_D1_Display_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="navbar">
+  <h2><span class="sec-num">12</span> Navbar</h2>
+  <div class="file-section"><span class="fs-name">components/Navbar.tsx</span><span class="fs-range">18 lines · 1 export</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">Navbar</span>
+      <span class="fn-lines">lines 1–18</span>
+      <span class="fn-phase stateless">Stateless</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Renders the top navigation bar that appears on every page of the application.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs</h4>
+          <ul>
+            <li>No props — renders identically on every page</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>&lt;nav&gt;</code> element with brand link and two navigation links</li>
+          </ul>
+        </div>
+      </div>
+
+      <p><strong>Key logic:</strong> Uses React Router's <code>Link</code> component rather than a plain HTML <code>&lt;a&gt;</code> tag. This is important: <code>Link</code> performs client-side navigation without reloading the page, preserving the SPA experience. A plain <code>&lt;a href="/"&gt;</code> would trigger a full browser navigation, discarding the React application state and causing a server round-trip.</p>
+
+      <div class="callout blue">
+        <span class="tag">Design decision</span>
+        <p>Navbar accepts no props and has no state. It is entirely self-contained — there is no "active link" highlighting, user name display, or authentication context. These can be added later without changing the component's interface.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="workflowbadge">
+  <h2><span class="sec-num">13</span> WorkflowBadge</h2>
+  <div class="file-section"><span class="fs-name">components/WorkflowBadge.tsx</span><span class="fs-range">22 lines · 1 export</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">WorkflowBadge</span>
+      <span class="fn-lines">lines 1–22</span>
+      <span class="fn-phase stateless">Stateless</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Renders a small coloured pill badge displaying the human-readable label for a workflow status. Matches the backend <code>VALID_TRANSITIONS</code> status values.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props</h4>
+          <ul>
+            <li><code>status: string</code> — one of <code>pending</code>, <code>reviewing</code>, <code>reported</code>, <code>archived</code> (or unknown future value)</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>&lt;span&gt;</code> with CSS class from lookup, e.g. <code>"badge badge-pending"</code></li>
+            <li>Falls back to the raw status string with neutral grey styling for unknown values</li>
+          </ul>
+        </div>
+      </div>
+
+      <p><strong>Key logic:</strong> Two <code>Record&lt;string, string&gt;</code> tables are defined inside the function body. The <code>classes</code> table maps status → CSS class string; the <code>labels</code> table maps status → display text. Both use <code>??</code> fallbacks: unknown statuses render with the raw status value as label and a neutral grey badge style. This makes the component safe against future status additions without requiring a code change.</p>
+
+      <div class="callout amber">
+        <span class="tag">Minor inconsistency</span>
+        <p>The lookup tables are declared inside the function body with <code>const</code>, meaning they are re-created on every render. <code>ClassificationBadge</code> uses module-level constants instead (more efficient). For these tiny 4-entry maps the difference is immeasurable, but the module-level pattern is preferred for new code.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="classificationbadge">
+  <h2><span class="sec-num">14</span> ClassificationBadge</h2>
+  <div class="file-section"><span class="fs-name">components/ClassificationBadge.tsx</span><span class="fs-range">35 lines · 1 export</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">ClassificationBadge</span>
+      <span class="fn-lines">lines 1–35</span>
+      <span class="fn-phase stateless">Stateless</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Renders a coloured badge for a variant classification result, or an em-dash if the classification is null (no classification assigned yet). Covers both ACGS SNV (Pathogenic through Benign) and SVIG-UK (Oncogenic, Likely_Oncogenic) classifications.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props</h4>
+          <ul>
+            <li><code>classification: string | null</code> — classification string or null</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>null</code> → <code>&lt;span class="text-gray-400 text-xs"&gt;—&lt;/span&gt;</code></li>
+            <li>Known value → badge span with matching class, e.g. <code>"badge badge-pathogenic"</code></li>
+            <li>Unknown value → badge span with neutral grey fallback + raw string as text</li>
+          </ul>
+        </div>
+      </div>
+
+      <p><strong>Key logic:</strong> The null guard is a separate early return — if <code>classification</code> is null, the component immediately returns the em-dash span. This is intentional: it separates "no data" from "unknown data", and it avoids the <code>BADGE_MAP[null]</code> lookup which would return <code>undefined</code>.</p>
+
+      <p>Two module-level constants: <code>BADGE_MAP</code> maps the classification string to a CSS class; <code>LABEL_MAP</code> maps it to display text. The underscore in <code>Likely_Pathogenic</code> becomes a space in the label (<code>"Likely Pathogenic"</code>) via this table, not via string manipulation — the mapping is explicit and easy to audit.</p>
+
+      <div class="callout blue">
+        <span class="tag">Design decision — no string manipulation</span>
+        <p>An alternative implementation would derive the display label by replacing underscores with spaces: <code>classification.replace(/_/g, " ")</code>. This would be shorter. The explicit map is preferred because it: (1) allows different display labels for the same stored value if needed in future; (2) makes the set of expected values auditable without reading the backend code; (3) keeps the fallback behaviour visible — unknown values render their raw string, which is visible in tests.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="patientheader">
+  <h2><span class="sec-num">15</span> PatientHeader</h2>
+  <div class="file-section"><span class="fs-name">components/PatientHeader.tsx</span><span class="fs-range">17 lines · 1 export</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">PatientHeader</span>
+      <span class="fn-lines">lines 1–17</span>
+      <span class="fn-phase stateless">Stateless</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Renders a card header at the top of the patient detail page, showing the patient's lab record number (MRN) as a prominent heading. Intentionally minimal.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props</h4>
+          <ul>
+            <li><code>patient: Pick&lt;PatientDetailResponse, "id" | "lab_number"&gt;</code></li>
+            <li>Narrow type — only <code>id</code> and <code>lab_number</code> accessible</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li>White card with <code>&lt;h1&gt;</code> containing <code>patient.lab_number</code></li>
+            <li>No other patient data rendered</li>
+          </ul>
+        </div>
+      </div>
+
+      <p><strong>Key logic:</strong> The component renders exactly one thing: the <code>lab_number</code>. The <code>Pick&lt;&gt;</code> type constraint on the prop means that even if a developer modifies this component and tries to access <code>patient.name</code>, TypeScript will refuse to compile it. This is Invariant 1 enforced at the type system level.</p>
+
+      <div class="callout green">
+        <span class="tag">What was here before (migration 004)</span>
+        <p>An earlier revision of <code>PatientHeader</code> included a <code>formatYearOfBirth(patient.dob)</code> line that displayed the year of birth below the MRN. After <strong>migration 004</strong> dropped the <code>dob</code> column, this call was removed. The prop type was also narrowed to exclude <code>dob</code> from <code>Pick&lt;&gt;</code>. The <code>formatYearOfBirth</code> helper remains in <code>display-utils.ts</code> but is currently unused by any rendered component.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="deletebutton">
+  <h2><span class="sec-num">16</span> DeletePatientButton (inner function)</h2>
+  <div class="file-section"><span class="fs-name">components/PatientListTable.tsx</span><span class="fs-range">lines 8–57 (file-private inner function)</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">DeletePatientButton</span>
+      <span class="fn-lines">lines 8–57 · inner function, not exported</span>
+      <span class="fn-phase interactive">Interactive (useState)</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> A two-step confirmation button that guards the patient delete action. The first click shows a confirmation row; the second click triggers the API call. Errors are shown inline without closing the confirmation.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props</h4>
+          <ul>
+            <li><code>id: number</code> — patient ID to delete</li>
+            <li><code>label: string</code> — the MRN, shown in "Delete <strong>LAB-001</strong>?" prompt</li>
+            <li><code>onDelete: (id: number) =&gt; void</code> — callback called on success</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>State</h4>
+          <ul>
+            <li><code>confirming: boolean</code> — whether confirm row is visible</li>
+            <li><code>busy: boolean</code> — API call in flight</li>
+            <li><code>deleteError: string | null</code> — last error message</li>
+          </ul>
+        </div>
+      </div>
+
+      <p><strong>Key logic:</strong> The component uses a conditional early return to switch between two UI states. When <code>confirming</code> is false, only the small "Delete" text button is rendered. When <code>confirming</code> is true, the entire confirmation row is rendered instead.</p>
+
+      <p>Inside the confirmation click handler, the sequence is: set <code>busy=true</code>, clear any previous error, call <code>deletePatient(id)</code> (from <code>api.ts</code>), then on success call <code>onDelete(id)</code> and close the confirmation. On error, set <code>deleteError</code> with the message — the confirmation stays open so the user sees what went wrong. The <code>finally</code> block always resets <code>busy</code> to false.</p>
+
+      <div class="callout amber">
+        <span class="tag">Why an inner function, not a separate file?</span>
+        <p><code>DeletePatientButton</code> is defined inside <code>PatientListTable.tsx</code> rather than exported from its own file because it is only used in one place and its API (<code>id</code>, <code>label</code>, <code>onDelete</code>) is tightly coupled to the table's row structure. Exporting it would imply it is reusable — which it is not. The equivalent for samples (<code>DeleteSampleButton</code>) is in PR D2, where it is also used by <code>SpecimenCard</code>, so it warrants its own file.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="patientlisttable">
+  <h2><span class="sec-num">17</span> PatientListTable</h2>
+  <div class="file-section"><span class="fs-name">components/PatientListTable.tsx</span><span class="fs-range">lines 59–107 (exported default)</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">PatientListTable</span>
+      <span class="fn-lines">lines 59–107</span>
+      <span class="fn-phase stateless">Stateless outer</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Renders a full HTML table of patients — the main content of the Cases (home) page. Each row shows the MRN, specimen count, latest specimen name, pipeline, workflow status badge, ingested date, a View link, and a Delete action.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props</h4>
+          <ul>
+            <li><code>patients: PatientSummary[]</code> — array of patient summary objects from the API</li>
+            <li><code>onDelete: (id: number) =&gt; void</code> — called when a patient is successfully deleted; parent removes the row from state</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>&lt;div&gt;&lt;table&gt;</code> with thead + tbody</li>
+            <li>One <code>&lt;tr&gt;</code> per patient, including <code>WorkflowBadge</code> and <code>DeletePatientButton</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <p><strong>Key logic:</strong> The outer function itself is stateless — it maps over <code>patients</code> and returns a row for each. All interactivity is delegated to child components: <code>WorkflowBadge</code> handles badge rendering, <code>Link</code> handles navigation, and <code>DeletePatientButton</code> handles the delete interaction.</p>
+
+      <p>Three columns deserving attention:</p>
+      <ul>
+        <li><strong>Pipeline column</strong> — <code>p.pipeline_key?.replace(/_/g, " ")</code> converts <code>dragen_germline</code> to <code>dragen germline</code> for display. The <code>?.</code> optional chaining means <code>replace</code> is only called if <code>pipeline_key</code> is non-null. The ternary then shows <code>"—"</code> for null.</li>
+        <li><strong>Workflow column</strong> — uses a ternary rather than <code>??</code> because the fallback (<code>&lt;span class="text-gray-400"&gt;—&lt;/span&gt;</code>) is JSX, not a string. The <code>??</code> operator cannot produce JSX on its right-hand side in this context.</li>
+        <li><strong>Ingested column</strong> — <code>new Date(p.latest_ingested_at).toLocaleDateString("en-GB")</code> formats the ISO timestamp as a UK date (<code>DD/MM/YYYY</code>). The <code>"en-GB"</code> locale is explicit and correct for an NHS system.</li>
+      </ul>
+
+      <div class="callout green">
+        <span class="tag">Invariant 1 check</span>
+        <p>The <code>&lt;thead&gt;</code> has no NHS number column. The <code>&lt;tbody&gt;</code> renders only <code>p.lab_number</code> as the patient identifier — <code>p.name</code> is never accessed or rendered anywhere in this file. The test suite asserts both: no NHS column header, and the fixture name "Jane Smith" does not appear in the document.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tests">
+  <h2><span class="sec-num">18</span> Test files</h2>
+
+  <p>All four test files follow the same structure: import the component, import Vitest utilities, define a test fixture, and assert rendering behaviour using Testing Library queries.</p>
+
+  <h3>WorkflowBadge.test.tsx — parametric testing with it.each</h3>
+  <p>The test uses <code>it.each</code> with a two-dimensional array to run the same assertion template against all four known statuses in one block. Each row in the array becomes one test case with substituted variables. This avoids four nearly-identical <code>it()</code> blocks. A fifth test checks the graceful fallback for an unknown status string.</p>
+
+  <h3>ClassificationBadge.test.tsx — seven classifications + null</h3>
+  <p>Same <code>it.each</code> pattern, now with seven rows covering both ACGS SNV and SVIG-UK classifications. The final test checks that <code>classification={null}</code> renders the em-dash character (<code>—</code>) rather than nothing.</p>
+
+  <h3>PatientHeader.test.tsx — positive and negative assertions</h3>
+  <p>Two tests, deliberately paired: one asserts the MRN <em>is</em> present (<code>getByText("LAB-2026-001")</code>); the other asserts the patient name is <em>not</em> present (<code>queryByText("Jane Smith")</code> returns <code>null</code>). The fixture object contains a real name so the second assertion would catch a regression. The comment <code>// dob removed — migration 004</code> explains why the fixture lacks a <code>dob</code> field.</p>
+
+  <h3>PatientListTable.test.tsx — vi.mock and MemoryRouter</h3>
+  <p>This test file introduces two patterns not in the simpler badge tests:</p>
+  <ul>
+    <li><strong><code>vi.mock("../lib/api")</code></strong> — replaces the <code>deletePatient</code> function with a Vitest spy before any test runs. Without this, importing <code>api.ts</code> would trigger the <code>import.meta.env</code> read which may not be available in the test environment, and any test that clicks Delete would make a real HTTP call.</li>
+    <li><strong><code>MemoryRouter</code></strong> — wraps the component in a router context. <code>PatientListTable</code> uses React Router's <code>Link</code> component, which requires a router ancestor. <code>MemoryRouter</code> is the in-memory version used in tests — no browser URL bar needed.</li>
+  </ul>
+
+  <div class="series-nav">
+    <a href="260521_PR_D1_Display_Components_1.html">1 · High-level outline</a>
+    <a href="260521_PR_D1_Display_Components_2.html">2 · Key concepts</a>
+    <a href="260521_PR_D1_Display_Components_3.html" class="current">3 · Function walkthrough</a>
+    <a href="260521_PR_D1_Display_Components_4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Prepared by Joo Wook Ahn · 21 May 2026 · Source: eastgenomics/variant-viewer pr/D1 branch · frontend/src/components, frontend/src/tests · Continued from Part 2. Continues in Part 4.
+</footer>
+
+</body>
+</html>

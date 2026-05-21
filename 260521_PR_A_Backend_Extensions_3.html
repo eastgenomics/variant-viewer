@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR A — Backend API Extensions · Part 3 of 4</title>
+<style>
+:root{
+  --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+  --line:#e0e7ef;--line-strong:#c5d0db;
+  --bg:#f7f9fb;--paper:#ffffff;
+  --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+  --green:#1a6e47;--green-soft:#e0f0e8;
+  --amber:#b35c00;--amber-soft:#fdf0e0;
+  --red:#9b2335;--red-soft:#fce8ea;
+  --purple:#4b2d8e;--purple-soft:#ede8f8;
+  --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent-mid);text-decoration:none}
+a:hover{text-decoration:underline}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+main{padding:0 56px 96px;max-width:900px}
+@media(max-width:860px){main{padding:0 24px 64px}}
+h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+p{margin-bottom:13px;color:var(--ink-soft)}
+strong{color:var(--ink)}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:5px 0;color:var(--ink-soft)}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+.toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+.toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.toc ul{list-style:none}
+.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+.toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+.toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+.hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+.hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+.hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+.hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.hero .meta-item{font-size:12px;color:var(--muted)}
+.hero .meta-item strong{color:var(--ink-soft)}
+section{padding-top:52px}
+section+section{border-top:1px solid var(--line)}
+footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+.callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+.callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+.callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+.callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.callout.blue .tag{color:var(--accent-deep)}
+.callout.green .tag{color:var(--green)}
+.callout.amber .tag{color:var(--amber)}
+.callout p:last-child{margin:0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+tr:hover td{background:#fafbfd}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+.cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+.cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+.cb .c{color:#6e9cbf}.cb .k{color:#79b8ff}.cb .s{color:#9ecbff}.cb .n{color:#b392f0}.cb .f{color:#85e89d}.cb .t{color:#ffab70}
+.fn-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+.fn-header{background:var(--accent-deep);padding:14px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.fn-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:#fff;font-weight:700}
+.fn-lines{font-size:12px;color:#a8c8e8}
+.fn-phase{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+.fn-phase.p1{background:#b35c00;color:#fff}
+.fn-phase.p2{background:#1a6e47;color:#fff}
+.fn-phase.p3{background:#4b2d8e;color:#fff}
+.fn-phase.p4{background:#9b2335;color:#fff}
+.fn-body{padding:18px}
+.fn-body p{margin-bottom:10px}
+.io-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.io-box{background:#f7f9fb;border:1px solid var(--line);border-radius:6px;padding:12px}
+.io-box h4{margin:0 0 6px}
+.io-box ul{margin:0;padding-left:18px}
+.io-box li{font-size:13px;margin:3px 0}
+.file-section{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f0f4f8;border:1px solid var(--line);border-radius:6px;margin:20px 0 8px;font-size:13px}
+.file-section .fs-name{font-weight:700;color:var(--ink)}
+.series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+.series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+.series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR A BACKEND EXTENSIONS<br>21 May 2026</div>
+  <div class="toc-section">Part 3 of 4</div>
+  <ul>
+    <li><a href="#patients">patients.py</a></li>
+    <li><a href="#samples">samples.py</a></li>
+    <li><a href="#variants">variants.py</a></li>
+    <li><a href="#classification">classification.py</a></li>
+    <li><a href="#ingest">ingest.py</a></li>
+  </ul>
+  <div class="meta">Part 3 of 4 · Function walkthrough<br>Continued from Part 2</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · Backend API · variant-viewer — Part 3 of 4: Function walkthrough</div>
+  <h1>PR A — Backend API Extensions</h1>
+  <p class="sub">A guided tour of every endpoint function across all five changed route files — purpose, inputs and outputs, and the key logic of each.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> #31 · M_pre1–8</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_A_Backend_Extensions_1.html">1 · High-level outline</a>
+  <a href="260521_PR_A_Backend_Extensions_2.html">2 · Key concepts</a>
+  <a href="260521_PR_A_Backend_Extensions_3.html" class="current">3 · Function walkthrough</a>
+  <a href="260521_PR_A_Backend_Extensions_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="patients">
+  <h2><span class="sec-num">16</span> routes/patients.py</h2>
+
+  <div class="file-section">
+    <div class="fs-name">backend/app/routes/patients.py</div>
+    <span style="color:var(--muted);font-size:12px">3 endpoints · _PatientNotFound sentinel · aggregate subqueries</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">list_patients</span>
+      <span class="fn-lines">lines 50–96</span>
+      <span class="fn-phase p2">Read</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Returns a paginated list of patients. Each item includes the five aggregate fields added in M_pre1: sample count and the most recently ingested sample's id, name, workflow status, ingested_at, and pipeline_key.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs (query params)</h4>
+          <ul>
+            <li><code>limit</code> — 1–200 (default 50)</li>
+            <li><code>offset</code> — ≥0 (default 0)</li>
+            <li><code>search</code> — optional; ILIKE matches on lab_number OR name</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>PatientListResponse</code></li>
+            <li><code>items[]</code> — array of <code>PatientSummary</code></li>
+            <li><code>total</code>, <code>limit</code>, <code>offset</code></li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Two queries run sequentially. First, a COUNT query determines the total (needed for pagination metadata). Second, the main SELECT uses five correlated subqueries — each finds the single most-recently-ingested sample for the patient and extracts one field. A comment in the code notes that this is acceptable at current scale but should be replaced with a LATERAL join if the patient count grows above roughly 10,000.</p>
+      <p>The <code>WHERE</code> clause is built by string concatenation based on whether <code>search</code> is provided. This is safe because the search value is passed as a <code>%s</code> parameter, not interpolated into the string. The <code>GROUP BY p.id</code> is needed because the LEFT JOIN to samples could produce multiple rows per patient.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">get_patient</span>
+      <span class="fn-lines">lines 98–122</span>
+      <span class="fn-phase p2">Read</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Returns full detail for a single patient including the list of associated samples. Each sample includes <code>vcf_filename</code> (added in M_pre7).</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul>
+            <li><code>patient_id</code> — path parameter (int)</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>PatientDetailResponse</code> (extends PatientSummary)</li>
+            <li>Nested <code>samples[]</code> of <code>SampleSummary</code></li>
+            <li>404 if patient not found</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Two sequential queries — one for the patient row, one for all samples belonging to that patient ordered by ingested_at descending. The samples query LEFT JOINs to the workflow table to resolve status (defaulting to <code>'pending'</code> via COALESCE if no workflow row exists). The response is constructed by spreading the patient row and appending the sample list.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">delete_patient</span>
+      <span class="fn-lines">lines 124–159</span>
+      <span class="fn-phase p4">Delete</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Deletes a patient and all dependent rows: variants, workflow entries, samples, and finally the patient row itself. Inserts an audit log entry before the patient delete.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul>
+            <li><code>patient_id</code> — path parameter (int)</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li>204 No Content on success</li>
+            <li>404 if patient not found</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Uses the <code>_do(conn)</code> closure pattern. The closure first verifies the patient exists (raises <code>_PatientNotFound</code> if not). It then runs four DELETEs in dependency order — variants first (so foreign keys don't block), then workflow entries, then samples — before inserting the audit log entry and finally deleting the patient row. The order of the audit INSERT relative to the patient DELETE matters: the <code>entity_id</code> column references a patient id that must still exist at INSERT time.</p>
+      <div class="callout blue">
+        <span class="tag">Why no soft-delete for variants?</span>
+        <p><code>variant_classification</code> rows use soft-delete (a <code>deleted_at</code> timestamp) throughout the classification workflow. Here, however, the <em>variants</em> themselves are hard-deleted because a deleted patient should have no remaining data — the entire clinical record is being removed. The CASCADE constraint on <code>variant_classification.variant_id</code> handles the classification rows automatically when variants are deleted.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="samples">
+  <h2><span class="sec-num">17</span> routes/samples.py</h2>
+
+  <div class="file-section">
+    <div class="fs-name">backend/app/routes/samples.py</div>
+    <span style="color:var(--muted);font-size:12px">3 endpoints · _SampleNotFound sentinel · dynamic filter builder · PatientRef</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">get_sample</span>
+      <span class="fn-lines">lines 55–97</span>
+      <span class="fn-phase p2">Read</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Returns full detail for a single sample including patient identity (as <code>PatientRef</code>, not the full <code>PatientSummary</code>), workflow status, and variant count.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul>
+            <li><code>sample_id</code> — path parameter</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>SampleDetailResponse</code></li>
+            <li><code>patient</code> field is <code>PatientRef</code> (slim)</li>
+            <li>404 if sample not found</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Single query with JOINs to patients (for PatientRef fields), workflow (for status), and variants (for count via COUNT aggregate). The patient is constructed explicitly as a <code>PatientRef</code> instance from the aliased columns <code>patient_id</code>, <code>lab_number</code>, <code>patient_name</code> — not directly from the row dict, because the column names differ from the model field names.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">list_sample_variants</span>
+      <span class="fn-lines">lines 99–199</span>
+      <span class="fn-phase p2">Read</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Returns a paginated, filtered, and sorted list of variants for a sample with their classification summary. This is the most complex function in the PR.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs (query params)</h4>
+          <ul>
+            <li><code>limit</code>, <code>offset</code> — pagination</li>
+            <li><code>sort_by</code> — one of 6 columns (regex-validated)</li>
+            <li><code>sort_dir</code> — "asc" or "desc"</li>
+            <li><code>gnomad_af_max</code> — float 0–1, optional</li>
+            <li><code>consequences</code> — comma-separated VEP terms</li>
+            <li><code>clinvar_exclude</code> — comma-separated ClinVar values to exclude</li>
+            <li><code>gene</code> — ILIKE match on gene name</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>VariantListResponse</code></li>
+            <li><code>items[]</code> of <code>VariantSummary</code></li>
+            <li>Now includes <code>hgvs_c</code>, <code>hgvs_p</code>, <code>clinvar_sig</code></li>
+            <li>404 if sample not found</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic (filter builder):</strong> The function builds a dynamic WHERE clause by starting with <code>["v.sample_id = %s"]</code> and appending additional clauses conditionally. Each clause is paired with its parameters in <code>filter_params</code>. The <code>consequences</code> filter uses PostgreSQL's <code>ANY(%s)</code> operator with a list parameter, and <code>clinvar_exclude</code> uses <code>!= ALL(%s)</code>. Both accept lists because psycopg2 correctly serialises Python lists to PostgreSQL array literals when used as parameters.</p>
+      <p><strong>Key logic (ORDER BY):</strong> <code>sort_by</code> is looked up in the <code>SORTABLE</code> dict (which maps it to a SQL fragment like <code>"v.gene"</code>), and <code>sort_dir</code> is resolved to <code>"ASC"</code> or <code>"DESC"</code> by a ternary. Both are interpolated into the SQL f-string. The comment above the SORTABLE dict explains why this is safe.</p>
+      <p><strong>chrom_order:</strong> The SELECT includes a CASE expression that converts chromosome names to integers for correct numeric ordering (X→23, Y→24, MT→25). This column is stripped from the result dict before constructing <code>VariantSummary</code> objects, so it never appears in the response.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">delete_sample</span>
+      <span class="fn-lines">lines 202–226</span>
+      <span class="fn-phase p4">Delete</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Deletes a sample and all its variants. Mirrors the <code>delete_patient</code> structure exactly.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul>
+            <li><code>sample_id</code> — path parameter</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li>204 No Content on success</li>
+            <li>404 if sample not found</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Uses <code>_SampleNotFound</code> sentinel. Deletes variants first, then workflow entries, then inserts the audit log entry (before the sample DELETE, so <code>entity_id</code> is still valid), then deletes the sample. The high-risk warning for reported/archived specimens is handled client-side only — the backend enforces no such rule, treating all deletions identically.</p>
+    </div>
+  </div>
+</section>
+
+<section id="variants">
+  <h2><span class="sec-num">18</span> routes/variants.py</h2>
+
+  <div class="file-section">
+    <div class="fs-name">backend/app/routes/variants.py</div>
+    <span style="color:var(--muted);font-size:12px">1 endpoint · case_type added · nested classification + criteria</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">get_variant</span>
+      <span class="fn-lines">lines 58–120</span>
+      <span class="fn-phase p2">Read</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Returns full variant detail including all annotation fields, the active classification (if any), and the classification criteria. The only change in this PR is adding <code>case_type</code> to the response.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul>
+            <li><code>variant_id</code> — path parameter</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>VariantDetailResponse</code></li>
+            <li><code>case_type</code> — "germline" or "somatic" (new)</li>
+            <li><code>active_classification</code> — nested with criteria, or null</li>
+            <li>404 if variant not found</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Three sequential queries. First: the variant row JOINed to samples to get <code>case_type</code>. Second: the active <code>variant_classification</code> row (where <code>deleted_at IS NULL</code> — the classification may have been soft-deleted and a blank replacement inserted on reset). Third: if a classification exists, the associated <code>classification_criterion</code> rows.</p>
+      <p><strong>Why case_type matters:</strong> The frontend's <code>ClassificationPage</code> needs to select between the ACGS SNV framework (germline) and the SVIG-UK framework (somatic) before the user makes any changes. Without <code>case_type</code> in the variant response, the page would have to make an additional request to fetch the sample.</p>
+    </div>
+  </div>
+</section>
+
+<section id="classification">
+  <h2><span class="sec-num">19</span> routes/classification.py</h2>
+
+  <div class="file-section">
+    <div class="fs-name">backend/app/routes/classification.py</div>
+    <span style="color:var(--muted);font-size:12px">3 endpoints · nullable locked_by · evidence_links validation · _ConcurrentReset</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">score_classification</span>
+      <span class="fn-lines">POST /classify</span>
+      <span class="fn-phase p2">Score only</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Runs the classification engine and returns the score, classification label, and any warnings. No database write. Used for live preview as the user applies criteria.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul>
+            <li><code>ClassifyRequest</code> body</li>
+            <li><code>criteria[]</code>, <code>framework</code>, <code>combination_rules[]</code></li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>score</code> — integer</li>
+            <li><code>classification</code> — label string</li>
+            <li><code>warnings[]</code> — combination rule violations</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Converts the request body to the internal <code>AppliedCriterion</code> and <code>CombinationRule</code> types via helper functions, calls <code>classify()</code> from <code>lib/classification_engine.py</code>, and returns the result dict. No DB access at all.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">submit_classification</span>
+      <span class="fn-lines">PUT /classification</span>
+      <span class="fn-phase p3">Persist</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Scores and persists a classification. Soft-deletes any existing active classification, inserts a new <code>variant_classification</code> row plus all criteria rows, and writes an audit log entry. If <code>locked_by</code> is null, this is a draft save (no lock timestamp). If non-null, the classification is confirmed.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul>
+            <li><code>ClassificationSubmitRequest</code></li>
+            <li><code>locked_by: str | None</code> — null=draft, non-null=confirm</li>
+            <li><code>user_id: str</code> — for audit log</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>classification_id</code></li>
+            <li><code>score</code>, <code>classification</code>, <code>warnings</code></li>
+            <li>404 if variant not found</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> The function first verifies the variant exists outside the transaction (so a 404 can be raised cheaply without acquiring a transaction lock). It then runs the classification engine synchronously. The <code>_do(conn)</code> closure soft-deletes the existing active classification, inserts the new record, inserts all criteria rows (using <code>psycopg2.extras.Json()</code> to correctly store the evidence_links list as JSONB), and inserts the audit log entry. The <code>locked_at</code> value is determined by an f-string that interpolates the literal SQL keyword <code>NULL</code> or <code>NOW()</code> based on whether <code>body.locked_by</code> is None — this is safe because the decision is made in Python from a Python boolean, not from user input.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">reset_classification</span>
+      <span class="fn-lines">DELETE /classification/{id}</span>
+      <span class="fn-phase p4">Reset</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Soft-deletes the current active classification and inserts a blank replacement — preserving the variant/framework association while clearing the score, lock, and criteria. This allows re-classification without losing the historical record.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul>
+            <li><code>variant_id</code>, <code>classification_id</code> — path</li>
+            <li><code>user_id</code> — for audit log</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>new_classification_id</code></li>
+            <li>404 if classification not found</li>
+            <li>409 on concurrent modification race</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> The function first fetches the existing classification (outside the transaction, for 404 handling). Inside <code>_do</code>, it updates <code>deleted_at = NOW()</code> on the existing record, then checks <code>c.rowcount</code>. If <code>rowcount == 0</code>, another concurrent request already deleted it — the <code>_ConcurrentReset</code> sentinel is raised, which the handler converts to a 409. Otherwise, a blank replacement record is inserted (framework preserved, no score or criteria), and the audit log is written.</p>
+    </div>
+  </div>
+</section>
+
+<section id="ingest">
+  <h2><span class="sec-num">20</span> routes/ingest.py</h2>
+
+  <div class="file-section">
+    <div class="fs-name">backend/app/routes/ingest.py</div>
+    <span style="color:var(--muted);font-size:12px">2 endpoints · S3 path (existing) · ingest-direct (new, dev-only)</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">manual_ingest</span>
+      <span class="fn-lines">POST /ingest (existing)</span>
+      <span class="fn-phase p2">Ingest</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Triggers ingest of a VCF already uploaded to S3. Accepts a JSON body with the S3 key and user ID. Delegates to <code>lib/ingest.ingest_sample()</code> which downloads, validates, and parses the VCF and its FHIR R4 manifest sidecar.</p>
+      <p>This function was added in PR 7 and is unchanged in this PR. It is included here for context.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">ingest_direct</span>
+      <span class="fn-lines">POST /ingest-direct (new)</span>
+      <span class="fn-phase p3">Dev ingest</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Dev-only endpoint. Accepts a VCF file uploaded as <code>multipart/form-data</code> along with patient and specimen metadata as form fields. Parses the VCF locally (no S3), then writes all necessary rows to the database in a single transaction: patient (upserted by lab_number), sample, variants, classification shells, pre-computed criteria, and workflow.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs (form fields)</h4>
+          <ul>
+            <li><code>vcf</code> — file (.vcf or .vcf.gz)</li>
+            <li><code>lab_number</code> — required</li>
+            <li><code>specimen_name</code> — required</li>
+            <li><code>case_type</code> — "germline"|"somatic"</li>
+            <li><code>pipeline_key</code> — optional</li>
+            <li><code>user_id</code> — for audit log</li>
+            <li><code>sequencing_date</code> — optional date</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul>
+            <li><code>sample_id</code> — new sample row ID</li>
+            <li><code>message</code> — success string</li>
+            <li>400 on non-VCF file or parse error</li>
+            <li>409 on duplicate upload</li>
+            <li>413 on file &gt; 500 MB</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic — file handling:</strong> The function reads the entire file into memory, enforces a 500 MB limit, writes to a named temporary file (deleted on context-manager exit), and calls <code>parse_vcf()</code> which requires a path. The <code>vcf.filename</code> is captured into <code>vcf_name</code> before the closure is defined — after <code>await vcf.read()</code>, the <code>UploadFile</code> object may be in an undefined state and its <code>filename</code> attribute should not be relied on inside a thread.</p>
+      <p><strong>Key logic — _do closure:</strong> The transaction callback upserts the patient (using ON CONFLICT to avoid duplicates across multiple uploads), checks idempotency (same filename + patient = duplicate), inserts the sample with an <code>s3_key</code> of <code>"direct:{vcf_name}"</code> as a sentinel value, then iterates over all parsed variants. For each variant it inserts a <code>variants</code> row, selects the appropriate framework via <code>select_framework(case_type, gene)</code>, inserts a blank <code>variant_classification</code> shell, and then inserts any pre-computed criteria (such as BA1 triggered by high gnomAD AF). Finally, a workflow row is inserted with status <code>'pending'</code> and the audit log entry is written.</p>
+
+      <div class="callout amber">
+        <span class="tag">Classification shell</span>
+        <p>Every variant gets a blank <code>variant_classification</code> row inserted immediately on ingest. This shell records the framework version at ingest time and provides the foreign key target for <code>classification_criterion</code> rows. Pre-computed criteria (e.g. BA1 triggered when gnomAD AF exceeds the threshold) are stored as criteria with <code>applied = FALSE</code> and <code>pre_computed = TRUE</code> — the analyst can accept or override them during classification. This mirrors exactly what the production S3-path <code>ingest_sample()</code> function does.</p>
+      </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_A_Backend_Extensions_1.html">1 · High-level outline</a>
+    <a href="260521_PR_A_Backend_Extensions_2.html">2 · Key concepts</a>
+    <a href="260521_PR_A_Backend_Extensions_3.html" class="current">3 · Function walkthrough</a>
+    <a href="260521_PR_A_Backend_Extensions_4.html">4 · Line-by-line reference</a>
+  </div>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  PR A — Backend API Extensions (M_pre1–8) · Code walkthrough Part 3 of 4 · Author: Joo Wook Ahn · Date: 21 May 2026 · Continued from Part 2 · Continues in Part 4.
+</footer>
+
+</body>
+</html>

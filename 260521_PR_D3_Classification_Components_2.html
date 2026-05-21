@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D3 — Classification Components · Part 2: Key concepts</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout.red{border-color:#e8b3b3;background:var(--red-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout.red .tag{color:var(--red)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}
+  .cb .k{color:#79b8ff}
+  .cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}
+  .cb .f{color:#85e89d}
+  .cb .t{color:#ffab70}
+  .concept-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .concept-header{background:var(--accent-deep);padding:12px 18px}
+  .concept-header h3{font-size:16px;font-weight:700;color:#fff;margin:0}
+  .concept-header .sub{font-size:12px;color:#a8c8e8;margin-top:2px}
+  .concept-body{padding:18px}
+  .concept-body p{margin-bottom:10px}
+  .in-this-file{background:var(--green-soft);border:1px solid #a8d4bb;border-radius:6px;padding:12px 16px;margin:12px 0;font-size:13.5px;color:var(--green)}
+  .in-this-file strong{color:var(--green)}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+  .pill.amber{background:var(--amber-soft);color:var(--amber)}
+  .pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill.red{background:var(--red-soft);color:var(--red)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D3: CLASSIFICATION COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">Part 2 · Key concepts</div>
+  <ul>
+    <li><a href="#controlled">Controlled components</a></li>
+    <li><a href="#hooks">useMemo &amp; useCallback</a></li>
+    <li><a href="#useeffect">useEffect for cleanup</a></li>
+    <li><a href="#url-security">URL parsing for security</a></li>
+    <li><a href="#draft-confirm">Draft vs confirmed saves</a></li>
+    <li><a href="#optimistic">Optimistic UI patterns</a></li>
+    <li><a href="#mocking">Vitest partial mock factory</a></li>
+    <li><a href="#criteria-json">Criteria JSON structure</a></li>
+  </ul>
+  <div class="meta">Part 2 of 4 · Concepts needed before reading the code</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Frontend code walkthrough · variant-viewer PR D3</div>
+  <h1>Key concepts — Part 2 of 4</h1>
+  <p class="sub">Everything you need to understand before reading CriterionRow and ClassificationPanel: React controlled components, memoisation, URL security, the draft/confirm save distinction, and Vitest mocking.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 2 of 4 — Key concepts</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D3_Classification_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D3_Classification_Components_2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_D3_Classification_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D3_Classification_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+<!-- ── SECTION 7 ─────────────────────────────────────────── -->
+<section id="controlled">
+  <h2><span class="sec-num">07</span> Controlled components</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>The controlled component pattern</h3>
+      <div class="sub">React fundamental · used throughout CriterionRow and ClassificationPanel</div>
+    </div>
+    <div class="concept-body">
+      <p>In React, a <strong>controlled component</strong> is one where the displayed value is always driven by state (or props), and every user interaction that changes the value goes through a state setter or callback before the display updates. The component never holds a "hidden copy" of its truth — what you see is always what the state says.</p>
+      <p>The opposite is an <strong>uncontrolled component</strong>, where the DOM element manages its own value (like a regular HTML <code>&lt;input&gt;</code> with no React wiring). Uncontrolled inputs are harder to validate, reset, or pre-populate from server data.</p>
+
+      <h4>Minimal example</h4>
+      <div class="cb"><pre><span class="c">// Uncontrolled — React doesn't see the value until submit</span>
+<span class="k">function</span> <span class="f">UncontrolledInput</span>() {
+  <span class="k">const</span> ref = <span class="f">useRef</span>(<span class="k">null</span>);
+  <span class="k">return</span> &lt;input ref={ref} /&gt;;  <span class="c">// DOM owns the value</span>
+}
+
+<span class="c">// Controlled — React always knows the value</span>
+<span class="k">function</span> <span class="f">ControlledInput</span>() {
+  <span class="k">const</span> [value, setValue] = <span class="f">useState</span>(<span class="s">""</span>);
+  <span class="k">return</span> (
+    &lt;input
+      value={value}                        <span class="c">// driven by state</span>
+      onChange={(e) =&gt; setValue(e.target.value)}  <span class="c">// state updated on change</span>
+    /&gt;
+  );
+}</pre></div>
+
+      <div class="in-this-file">
+        <strong>In CriterionRow:</strong> The checkbox (<code>checked={crit.applied}</code>), strength selector (<code>value={crit.strength}</code>), notes textarea (<code>value={crit.notes}</code>), and link input (<code>value={pendingLink}</code>) are all controlled. The checkbox and strength communicate changes up via <code>onChange()</code>; the link input is local state that only becomes a "real" change when the user clicks Add and <code>addLink()</code> validates and calls <code>onChange()</code>.
+      </div>
+      <div class="in-this-file">
+        <strong>In ClassificationPanel:</strong> The framework selector (<code>value={framework}</code>) is controlled by <code>useState</code>. Resetting the panel calls <code>setCriteria(initCriteriaState(defs, []))</code> which wipes all criteria back to defaults — this works cleanly because every criterion's displayed state is driven by the <code>criteria</code> array, not hidden in each CriterionRow's local DOM.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 8 ─────────────────────────────────────────── -->
+<section id="hooks">
+  <h2><span class="sec-num">08</span> useMemo and useCallback</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>useMemo — memoised derived values</h3>
+      <div class="sub">React hook · used in ClassificationPanel for score, framework defs, combination rules</div>
+    </div>
+    <div class="concept-body">
+      <p><code>useMemo</code> tells React: "only recompute this value when these specific dependencies change". Without it, every render would recompute the value from scratch, even if nothing relevant changed.</p>
+
+      <h4>Minimal example</h4>
+      <div class="cb"><pre><span class="c">// Without useMemo: classify() runs on EVERY render</span>
+<span class="k">const</span> result = <span class="f">classify</span>(appliedCriteria, framework, rules);
+
+<span class="c">// With useMemo: classify() only runs when deps change</span>
+<span class="k">const</span> result = <span class="f">useMemo</span>(
+  () =&gt; <span class="f">classify</span>(appliedCriteria, framework, rules),
+  [appliedCriteria, framework, rules]   <span class="c">// dependency array</span>
+);</pre></div>
+
+      <div class="in-this-file">
+        <strong>In ClassificationPanel:</strong> Three <code>useMemo</code> calls work together: (1) <code>defs</code> — the criteria definition array for the current framework (only recomputes when framework changes); (2) <code>combinationRules</code> — the rule list from the same JSON (same dep); (3) <code>{score, classification, warnings}</code> — the live classification result, which depends on <code>appliedCriteria</code>, <code>framework</code>, and <code>combinationRules</code>. Because <code>classify()</code> iterates up to 28 criteria per call, memoising it prevents unnecessary re-runs on unrelated state changes (e.g. a save error appearing).
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>useCallback — stable function identity</h3>
+      <div class="sub">React hook · used in ClassificationPanel for updateCriterion</div>
+    </div>
+    <div class="concept-body">
+      <p><code>useCallback</code> returns a <strong>stable function reference</strong> — the same function object across renders, unless its declared dependencies change. Without it, a new function object is created on every render, and any component that receives it as a prop would also re-render unnecessarily.</p>
+
+      <h4>Minimal example</h4>
+      <div class="cb"><pre><span class="c">// Without useCallback: new fn object every render → all children re-render</span>
+<span class="k">const</span> handleClick = (id: <span class="t">number</span>) =&gt; <span class="f">doSomething</span>(id);
+
+<span class="c">// With useCallback: same fn object unless deps change</span>
+<span class="k">const</span> handleClick = <span class="f">useCallback</span>(
+  (id: <span class="t">number</span>) =&gt; <span class="f">doSomething</span>(id),
+  []   <span class="c">// empty array = created once, never recreated</span>
+);</pre></div>
+
+      <div class="in-this-file">
+        <strong>In ClassificationPanel:</strong> <code>updateCriterion</code> is wrapped in <code>useCallback([], [])</code> (empty deps) because it only calls <code>setCriteria</code> and <code>setFrameworkLocked</code> — both of which are React state setters that are themselves stable references. The result is that all the CriterionRow components receive the same <code>onChange</code> prop reference across every render, preventing cascading re-renders when one criterion changes.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 9 ─────────────────────────────────────────── -->
+<section id="useeffect">
+  <h2><span class="sec-num">09</span> useEffect for side-effect cleanup</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>useEffect — responding to prop changes</h3>
+      <div class="sub">React hook · used in CriterionRow to clear local state when applied goes false</div>
+    </div>
+    <div class="concept-body">
+      <p><code>useEffect</code> runs a side-effect function after the component renders, whenever its dependency array changes. It is commonly used for timers, event listeners, and data fetching — but it is also useful for <strong>synchronising local state with incoming prop changes</strong>.</p>
+
+      <p>The challenge: CriterionRow owns three local state variables (<code>showNotes</code>, <code>pendingLink</code>, <code>linkError</code>) that are only meaningful when the criterion is applied. If the user unchecks the criterion, these should reset to their initial values. But because the checkbox triggers <code>onChange({applied: false})</code>, which updates the parent's state, which then passes the new <code>crit.applied = false</code> prop back down — this is a prop change, not a user action CriterionRow directly observes.</p>
+
+      <h4>How it works in CriterionRow</h4>
+      <div class="cb"><pre><span class="k">useEffect</span>(() =&gt; {
+  <span class="k">if</span> (!crit.applied) {
+    <span class="f">setShowNotes</span>(<span class="k">false</span>);
+    <span class="f">setPendingLink</span>(<span class="s">""</span>);
+    <span class="f">setLinkError</span>(<span class="k">null</span>);
+  }
+}, [crit.applied]);  <span class="c">// runs whenever applied changes</span></pre></div>
+
+      <div class="in-this-file">
+        <strong>Why this matters:</strong> Without this effect, if an analyst applies a criterion, opens the notes panel, types a link, changes their mind and unchecks the criterion, then re-checks it — the notes panel would reappear in its previous state, including any partially typed invalid URL. The effect ensures the panel resets cleanly on every unapply, regardless of how the state change arrived (user action, reset from parent, or programmatic update from a test).
+      </div>
+
+      <div class="callout amber">
+        <span class="tag">Test coverage</span>
+        <p>The test <em>"clears linkError and pendingLink when notes panel is closed"</em> verifies the toggle-close path (the button's onClick handler). The useEffect handles the prop-change path (crit.applied going false from outside). Both paths are tested: the button path by the test, the prop path implicitly by the "disables all inputs when locked" test which exercises a different applied=true but locked=true prop combination.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 10 ─────────────────────────────────────────── -->
+<section id="url-security">
+  <h2><span class="sec-num">10</span> URL parsing for security</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>Using the URL constructor to validate protocols</h3>
+      <div class="sub">Web security · Invariant 3 — isValidEvidenceLink</div>
+    </div>
+    <div class="concept-body">
+      <p>Evidence links are displayed in the browser as clickable <code>&lt;a href="..."&gt;</code> tags. If an attacker (or a compromised admin with API access) stores a <code>javascript:</code> URL in the database, clicking that link would execute JavaScript in the user's browser — a stored cross-site scripting (XSS) attack.</p>
+
+      <p>The defence is to validate the URL's <strong>protocol</strong> — only <code>http:</code> and <code>https:</code> are permitted. The browser's built-in <code>URL</code> constructor is the correct tool: it fully parses the URL according to the URL Living Standard, handling edge cases like percent-encoding, Unicode, and whitespace that a simple string prefix check would miss.</p>
+
+      <h4>Why URL() is better than startsWith("https://")</h4>
+      <div class="cb"><pre><span class="c">// String prefix check — bypassable</span>
+<span class="s">"javascript:alert(1)"</span>.startsWith(<span class="s">"https"</span>)   <span class="c">// false — but:</span>
+<span class="s">"https://x.com\njavascript:alert(1)"</span>.startsWith(<span class="s">"https"</span>)  <span class="c">// true!</span>
+
+<span class="c">// URL constructor — parses correctly</span>
+<span class="k">new</span> <span class="t">URL</span>(<span class="s">"javascript:alert(1)"</span>).protocol   <span class="c">// "javascript:"</span>
+<span class="k">new</span> <span class="t">URL</span>(<span class="s">"https://x.com"</span>).protocol          <span class="c">// "https:"</span>
+<span class="k">new</span> <span class="t">URL</span>(<span class="s">"not a url"</span>)                       <span class="c">// throws TypeError</span></pre></div>
+
+      <h4>The complete implementation</h4>
+      <div class="cb"><pre><span class="k">export function</span> <span class="f">isValidEvidenceLink</span>(url: <span class="t">string</span>): <span class="t">boolean</span> {
+  <span class="k">try</span> {
+    <span class="k">const</span> parsed = <span class="k">new</span> <span class="t">URL</span>(url.trim());        <span class="c">// parse — throws on invalid</span>
+    <span class="k">return</span> parsed.protocol === <span class="s">"http:"</span>         <span class="c">// whitelist: only these two</span>
+        || parsed.protocol === <span class="s">"https:"</span>;
+  } <span class="k">catch</span> {
+    <span class="k">return</span> <span class="k">false</span>;                              <span class="c">// unparseable = rejected</span>
+  }
+}</pre></div>
+
+      <div class="in-this-file">
+        <strong>Two enforcement points:</strong> (1) <code>CriterionRow.addLink()</code> — called when user clicks Add or presses Enter; blocks user-entered <code>javascript:</code> links at input time. (2) <code>ClassificationPanel.initCriteriaState()</code> — filters server-loaded <code>evidence_links</code> through this function before they enter React state. This second enforcement point defends against a scenario where a valid API key holder writes malicious links directly to the database via the API, bypassing the frontend form entirely.
+      </div>
+      <div class="in-this-file">
+        <strong>Backend enforcement too:</strong> <code>backend/app/routes/classification.py</code> applies a Pydantic <code>field_validator</code> on <code>evidence_links</code> that checks the same rule with a regex (<code>r'^https?://'</code>). This is defence-in-depth: even if the frontend validation were bypassed, the backend would reject the <code>PUT /api/variants/{id}/classification</code> request with a 422.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 11 ─────────────────────────────────────────── -->
+<section id="draft-confirm">
+  <h2><span class="sec-num">11</span> Draft saves vs confirmed saves</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>locked_by: null vs string — the backend contract</h3>
+      <div class="sub">API contract · PUT /api/variants/{id}/classification</div>
+    </div>
+    <div class="concept-body">
+      <p>The classification PUT endpoint accepts a single request body shape regardless of whether the save is a draft or a confirmation. The distinguishing field is <code>locked_by</code>:</p>
+
+      <table>
+        <thead><tr><th>Save type</th><th>locked_by value</th><th>locked_at in DB</th><th>Panel effect</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Draft</strong></td><td><code>null</code></td><td>NULL</td><td>Panel stays unlocked; Save draft + Confirm still visible</td></tr>
+          <tr><td><strong>Confirmed</strong></td><td><code>userId</code> (non-empty string)</td><td>NOW()</td><td>Panel locks; only Reset visible</td></tr>
+        </tbody>
+      </table>
+
+      <p>The panel's <code>save(lock: boolean)</code> function implements this contract directly:</p>
+      <div class="cb"><pre><span class="k">async function</span> <span class="f">save</span>(lock: <span class="t">boolean</span>) {
+  <span class="k">const</span> result = <span class="k">await</span> <span class="f">putClassification</span>(variantId, {
+    framework,
+    user_id: userId,
+    locked_by: lock ? userId : <span class="k">null</span>,   <span class="c">// THE key distinction</span>
+    criteria: <span class="c">/* ...all criteria... */</span>,
+  });
+  <span class="f">setClassId</span>(result.classification_id);
+  <span class="k">if</span> (lock) <span class="f">setLockedAt</span>(<span class="k">new</span> <span class="t">Date</span>().<span class="f">toISOString</span>()); <span class="c">// only on confirm</span>
+}</pre></div>
+
+      <div class="callout blue">
+        <span class="tag">Backend note</span>
+        <p>The Python backend uses an f-string to embed the <code>locked_at</code> SQL expression directly: <code>locked_at_sql = "NOW()" if body.locked_by is not None else "NULL"</code>. This is safe because the value is a hard-coded string literal chosen by server-side code, never derived from user input. The Pydantic field validator also rejects empty strings, so <code>locked_by: ""</code> returns a 422 — the only valid options are <code>null</code> or a non-empty user ID string.</p>
+      </div>
+
+      <div class="in-this-file">
+        <strong>In ClassificationPanel:</strong> The Save draft button calls <code>save(false)</code>; Confirm calls <code>save(true)</code>. After a draft save, <code>classId</code> is set (so subsequent saves update rather than create) but <code>lockedAt</code> remains null (so the panel stays unlocked). After confirm, <code>lockedAt</code> is set from the client clock (<code>new Date().toISOString()</code>), which immediately hides Save/Confirm and shows Reset. The actual server timestamp is in the database; the client-side timestamp is used only for the "Confirmed DD/MM/YYYY" display.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 12 ─────────────────────────────────────────── -->
+<section id="optimistic">
+  <h2><span class="sec-num">12</span> Optimistic UI and error recovery</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>Non-optimistic async: wait for server before updating state</h3>
+      <div class="sub">UI pattern · save() and handleReset()</div>
+    </div>
+    <div class="concept-body">
+      <p>An <strong>optimistic update</strong> pattern immediately updates the UI as if the server call succeeded, then rolls back on failure. ClassificationPanel deliberately does <em>not</em> use this — for a clinical classification system, showing a confirmed result before the server has actually confirmed it would be misleading and potentially dangerous.</p>
+
+      <p>Instead, both <code>save()</code> and <code>handleReset()</code> follow a pessimistic pattern:</p>
+      <ol>
+        <li>Set <code>saving: true</code> (disables buttons, shows spinner)</li>
+        <li>Await the API call</li>
+        <li><strong>Only on success:</strong> update the panel state (setClassId, setLockedAt, etc.)</li>
+        <li><strong>On failure:</strong> set <code>saveError</code> — panel stays in its previous state exactly</li>
+        <li><code>finally</code>: clear <code>saving</code> regardless</li>
+      </ol>
+
+      <div class="cb"><pre><span class="k">async function</span> <span class="f">handleReset</span>() {
+  <span class="k">if</span> (!classId) <span class="k">return</span>;
+  <span class="f">setSaving</span>(<span class="k">true</span>);
+  <span class="f">setSaveError</span>(<span class="k">null</span>);
+  <span class="k">try</span> {
+    <span class="k">await</span> <span class="f">apiReset</span>(variantId, classId, userId);
+    <span class="c">// Only if the API call succeeded:</span>
+    <span class="f">setClassId</span>(<span class="k">null</span>);      <span class="f">setLockedAt</span>(<span class="k">null</span>);
+    <span class="f">setFrameworkLocked</span>(<span class="k">false</span>);
+    <span class="f">setCriteria</span>(<span class="f">initCriteriaState</span>(defs, []));
+    <span class="f">setShowResetConfirm</span>(<span class="k">false</span>);
+  } <span class="k">catch</span> (err) {
+    <span class="f">setSaveError</span>(err <span class="k">instanceof</span> Error ? err.message : <span class="s">"Reset failed"</span>);
+    <span class="f">setShowResetConfirm</span>(<span class="k">false</span>); <span class="c">// close confirm; panel stays locked</span>
+  } <span class="k">finally</span> {
+    <span class="f">setSaving</span>(<span class="k">false</span>);
+  }
+}</pre></div>
+
+      <div class="in-this-file">
+        <strong>Reset error design choice:</strong> On reset failure, <code>setShowResetConfirm(false)</code> is called in the catch block. This closes the "Yes / Cancel" confirmation row, but the panel remains in locked state (Reset button still visible). The error banner explains what happened. The analyst can try again. This avoids a stuck "Yes / Cancel" UI while ensuring the panel doesn't falsely show an unlocked state after a failed reset.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 13 ─────────────────────────────────────────── -->
+<section id="mocking">
+  <h2><span class="sec-num">13</span> Vitest partial mock factory</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>vi.mock with async importOriginal — keeping real exports</h3>
+      <div class="sub">Testing pattern · used in ClassificationPanel.test.tsx</div>
+    </div>
+    <div class="concept-body">
+      <p>The test file needs to mock <code>putClassification</code> and <code>resetClassification</code> (so the tests don't make real HTTP calls) but must keep the real <code>ApiError</code> class (so <code>new ApiError(409, ...)</code> in the test produces an object that <code>err instanceof Error</code> returns true for in the component).</p>
+
+      <p>A plain <code>vi.mock("../lib/api")</code> auto-mocks the <em>entire</em> module — including <code>ApiError</code>, which becomes a mock constructor that does not inherit from <code>Error</code>. The component's <code>catch (err) { err instanceof Error ? err.message : "..." }</code> would then always fall through to the fallback string, breaking the error-display tests.</p>
+
+      <p>The solution is a <strong>partial mock factory</strong>:</p>
+      <div class="cb"><pre><span class="f">vi.mock</span>(<span class="s">"../lib/api"</span>, <span class="k">async</span> (importOriginal) =&gt; {
+  <span class="k">const</span> actual = <span class="k">await</span> <span class="f">importOriginal</span>&lt;<span class="k">typeof</span> <span class="k">import</span>(<span class="s">"../lib/api"</span>)&gt;();
+  <span class="k">return</span> {
+    ...actual,              <span class="c">// spread real module (includes real ApiError)</span>
+    putClassification: <span class="f">vi.fn</span>(),   <span class="c">// replace only these two</span>
+    resetClassification: <span class="f">vi.fn</span>(),
+  };
+});</pre></div>
+
+      <p>The factory is declared <code>async</code> and calls <code>importOriginal()</code>, which loads the real module. The result is spread first, then specific functions are overridden with <code>vi.fn()</code>. Everything not listed (<code>ApiError</code>, <code>authHeaders</code>, <code>listPatients</code>, etc.) remains the real implementation.</p>
+
+      <div class="in-this-file">
+        <strong>Why this matters for the error tests:</strong> The test <em>"shows error banner when putClassification rejects"</em> does <code>vi.mocked(putClassification).mockRejectedValue(new ApiError(409, "Concurrent modification"))</code>. The component catches it and checks <code>err instanceof Error</code>. Because <code>ApiError extends Error</code> and <code>ApiError</code> is the <em>real</em> class (not a mock), the instanceof check succeeds and <code>err.message</code> (<code>"Concurrent modification"</code>) reaches the error banner. If <code>ApiError</code> were mocked, the test would pass but for the wrong reason.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 14 ─────────────────────────────────────────── -->
+<section id="criteria-json">
+  <h2><span class="sec-num">14</span> The criteria JSON structure</h2>
+
+  <p>Both criteria files follow the same schema. Understanding the shape helps when reading <code>getCriteriaDefs()</code>, <code>initCriteriaState()</code>, and the CriterionRow render logic.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schema diagram of acgs-snv-criteria.json showing the top-level keys and the structure of a single criterion object">
+    <style>.lbl{font:13px -apple-system,Segoe UI,Inter,sans-serif}.mono{font:12px ui-monospace,Menlo,Consolas,monospace}.sub{font:11px -apple-system,Segoe UI,Inter,sans-serif}</style>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">JSON SCHEMA</text>
+
+    <!-- Root object -->
+    <rect x="30" y="40" width="160" height="200" rx="8" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="110" y="64" text-anchor="middle" class="lbl" font-weight="700" fill="#003d78">root object</text>
+    <line x1="40" y1="74" x2="180" y2="74" stroke="#005eb8" stroke-width="1"/>
+    <text x="45" y="94" class="mono" fill="#354656">version</text>
+    <text x="45" y="112" class="mono" fill="#354656">framework</text>
+    <text x="45" y="130" class="mono" font-weight="700" fill="#003d78">criteria[]</text>
+    <text x="45" y="148" class="mono" font-weight="700" fill="#003d78">combination_rules[]</text>
+    <text x="45" y="166" class="mono" font-weight="700" fill="#003d78">thresholds</text>
+
+    <!-- criteria[] item -->
+    <rect x="260" y="40" width="200" height="220" rx="8" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+    <text x="360" y="64" text-anchor="middle" class="lbl" font-weight="700" fill="#b35c00">criteria[i]</text>
+    <line x1="270" y1="74" x2="450" y2="74" stroke="#b35c00" stroke-width="1"/>
+    <text x="275" y="94" class="mono" fill="#354656">code: "PVS1"</text>
+    <text x="275" y="112" class="mono" fill="#354656">direction: "pathogenic"</text>
+    <text x="275" y="130" class="mono" fill="#354656">category: "functional"</text>
+    <text x="275" y="148" class="mono" fill="#354656">default_strength: "very_strong"</text>
+    <text x="275" y="166" class="mono" fill="#354656">adjustable: true</text>
+    <text x="275" y="184" class="mono" fill="#354656">permitted_strengths: [...]</text>
+    <text x="275" y="202" class="mono" fill="#354656">description: "Null variant..."</text>
+    <text x="275" y="220" class="mono" fill="#354656">pre_computable: true</text>
+
+    <!-- thresholds item -->
+    <rect x="530" y="40" width="260" height="200" rx="8" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="660" y="64" text-anchor="middle" class="lbl" font-weight="700" fill="#1a6e47">thresholds</text>
+    <line x1="540" y1="74" x2="780" y2="74" stroke="#1a6e47" stroke-width="1"/>
+    <text x="545" y="94" class="mono" fill="#354656">pathogenic: 10</text>
+    <text x="545" y="112" class="mono" fill="#354656">likely_pathogenic_min: 6</text>
+    <text x="545" y="130" class="mono" fill="#354656">likely_pathogenic_max: 9</text>
+    <text x="545" y="148" class="mono" fill="#354656">vus_min: 0</text>
+    <text x="545" y="166" class="mono" fill="#354656">vus_max: 5</text>
+    <text x="545" y="184" class="mono" fill="#354656">likely_benign_min: -6</text>
+    <text x="545" y="202" class="mono" fill="#354656">benign: -7</text>
+    <text x="545" y="220" class="mono" fill="#354656">minimum_criteria_for_non_vus: 2</text>
+
+    <!-- Arrows -->
+    <line x1="190" y1="130" x2="258" y2="130" stroke="#b35c00" stroke-width="1.5"/>
+    <polygon points="255,126 262,130 255,134" fill="#b35c00"/>
+    <line x1="190" y1="166" x2="528" y2="166" stroke="#1a6e47" stroke-width="1.5"/>
+    <polygon points="525,162 532,166 525,170" fill="#1a6e47"/>
+
+    <!-- Note: ClassificationPanel uses criteria[] and combination_rules -->
+    <text x="270" y="280" class="sub" fill="#354656">ClassificationPanel uses criteria[] (via getCriteriaDefs), combination_rules (via useMemo), and thresholds live in classification-engine.ts</text>
+  </svg>
+  </div>
+  <figcaption>Figure 2 · Top-level structure of acgs-snv-criteria.json. Each criterion object maps directly to a CriterionDef interface. The thresholds are used by classification-engine.ts, not directly by ClassificationPanel.</figcaption>
+  </figure>
+
+  <p>The 28 ACGS SNV criteria are grouped into six <strong>evidence categories</strong> (functional: 9, segregation: 5, case_evidence: 5, computational: 4, population: 3, other_databases: 2). ClassificationPanel renders them in this fixed order, defined by the <code>EVIDENCE_CATEGORIES</code> constant. The <code>direction</code> field ("pathogenic" / "benign") controls the colour of the criterion code in CriterionRow. The <code>adjustable</code> flag determines whether a strength selector appears; non-adjustable criteria show their fixed strength as italic text.</p>
+
+  <div class="callout green">
+    <span class="tag">Pre-computed criteria</span>
+    <p>Some criteria (e.g. PVS1, BA1, PM2) are marked <code>pre_computable: true</code>. The backend's ingest pipeline runs <code>pre_compute_criteria()</code> to evaluate these automatically from VCF annotations and stores them as <code>pre_computed: true</code> rows in <code>classification_criterion</code>. When <code>initCriteriaState()</code> loads these, the CriterionRow renders a purple "pre-computed value" badge (e.g. "gnomAD AF &lt; 0.001") and marks the state accordingly. The analyst can still override by checking or unchecking the criterion.</p>
+  </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_D3_Classification_Components_1.html">1 · High-level outline</a>
+    <a href="260521_PR_D3_Classification_Components_2.html" class="current">2 · Key concepts</a>
+    <a href="260521_PR_D3_Classification_Components_3.html">3 · Function walkthrough</a>
+    <a href="260521_PR_D3_Classification_Components_4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Continued in Part 3 · Joo Wook Ahn · 21 May 2026 · Source: CriterionRow.tsx, ClassificationPanel.tsx, their tests, backend/app/routes/classification.py, acgs-snv-criteria.json · variant-viewer PR D3
+</footer>
+</body>
+</html>

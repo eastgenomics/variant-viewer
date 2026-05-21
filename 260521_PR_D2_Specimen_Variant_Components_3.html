@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D2 — Specimen &amp; Variant Components · Part 3 · Function walkthrough</title>
+<style>
+:root{
+  --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+  --line:#e0e7ef;--line-strong:#c5d0db;
+  --bg:#f7f9fb;--paper:#ffffff;
+  --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+  --green:#1a6e47;--green-soft:#e0f0e8;
+  --amber:#b35c00;--amber-soft:#fdf0e0;
+  --red:#9b2335;--red-soft:#fce8ea;
+  --purple:#4b2d8e;--purple-soft:#ede8f8;
+  --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent-mid);text-decoration:none}
+a:hover{text-decoration:underline}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+main{padding:0 56px 96px;max-width:900px}
+@media(max-width:860px){main{padding:0 24px 64px}}
+h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+p{margin-bottom:13px;color:var(--ink-soft)}
+strong{color:var(--ink)}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:5px 0;color:var(--ink-soft)}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+.toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+.toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.toc ul{list-style:none}
+.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+.toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+.toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+.hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+.hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+.hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.hero .meta-item{font-size:12px;color:var(--muted)}
+.hero .meta-item strong{color:var(--ink-soft)}
+section{padding-top:52px}
+section+section{border-top:1px solid var(--line)}
+footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+.callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+.callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+.callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+.callout.red{border-color:#e8a8b0;background:var(--red-soft)}
+.callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.callout.blue .tag{color:var(--accent-deep)}
+.callout.green .tag{color:var(--green)}
+.callout.amber .tag{color:var(--amber)}
+.callout.red .tag{color:var(--red)}
+.callout p:last-child{margin:0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+tr:hover td{background:#fafbfd}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+.cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+.cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+.cb .c{color:#6e9cbf}.cb .k{color:#79b8ff}.cb .s{color:#9ecbff}.cb .n{color:#b392f0}.cb .f{color:#85e89d}.cb .t{color:#ffab70}
+.anno{list-style:none;margin:4px 0 24px;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.anno li{display:grid;grid-template-columns:36px 1fr;gap:0;border-bottom:1px solid var(--line);font-size:13.5px}
+.anno li:last-child{border-bottom:none}
+.anno .num{background:var(--accent-deep);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+.anno .txt{padding:10px 14px;color:var(--ink-soft);line-height:1.5}
+.anno .txt strong{color:var(--ink)}
+.fn-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+.fn-header{background:var(--accent-deep);padding:14px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.fn-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:#fff;font-weight:700}
+.fn-lines{font-size:12px;color:#a8c8e8}
+.fn-phase{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+.fn-phase.container{background:#005eb8;color:#fff}
+.fn-phase.mutation{background:#b35c00;color:#fff}
+.fn-phase.fetch{background:#4b2d8e;color:#fff}
+.fn-phase.render{background:#1a6e47;color:#fff}
+.fn-body{padding:18px}
+.fn-body p{margin-bottom:10px}
+.io-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.io-box{background:#f7f9fb;border:1px solid var(--line);border-radius:6px;padding:12px}
+.io-box h4{margin:0 0 6px}
+.io-box ul{margin:0;padding-left:18px}
+.io-box li{font-size:13px;margin:3px 0}
+.file-section{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f0f4f8;border:1px solid var(--line);border-radius:6px;margin:20px 0 8px;font-size:13px}
+.file-section .fs-name{font-weight:700;color:var(--ink)}
+.series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+.series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+.series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D2 — SPECIMEN &amp; VARIANT COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">Part 3 of 4</div>
+  <ul>
+    <li><a href="#specimencard">SpecimenCard</a></li>
+    <li><a href="#workflowcontrol">WorkflowControl</a></li>
+    <li><a href="#deletesamplebutton">DeleteSampleButton</a></li>
+    <li><a href="#columns">COLUMNS constant</a></li>
+    <li><a href="#varianttable">VariantTable</a></li>
+    <li><a href="#fetchvariants">fetchVariants</a></li>
+  </ul>
+  <div class="meta">Continued from Part 2<br>Source: eastgenomics/variant-viewer<br>Branch: pr/D2</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · React frontend · Part 3 of 4</div>
+  <h1>PR D2 — Function Walkthrough</h1>
+  <p class="sub">Every component and function explained with inputs, outputs, key logic, and design decisions — in reviewer order.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 3 of 4 — Function walkthrough</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D2_Specimen_Variant_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_3.html" class="current">3 · Function walkthrough</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="specimencard">
+  <h2><span class="sec-num">12</span> SpecimenCard</h2>
+
+  <div class="file-section">
+    <div class="fs-name">SpecimenCard.tsx</div>
+    <span style="color:var(--muted);font-size:12px">82 lines · container component</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">SpecimenCard</span>
+      <span class="fn-lines">lines 10–82</span>
+      <span class="fn-phase container">Container</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Top-level card for one sample. Renders a metadata header row (specimen name, case type badge, pipeline badge, workflow badge, variant count) plus optional tissue/date metadata, then embeds <code>WorkflowControl</code>, <code>DeleteSampleButton</code>, and <code>VariantTable</code>.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props (inputs)</h4>
+          <ul>
+            <li><code>specimen: SampleDetail</code> — full sample object from API</li>
+            <li><code>patientId: number</code> — passed through to VariantTable for Classify links</li>
+            <li><code>onDeleteSample?: (id: number) =&gt; void</code> — optional callback fired after successful deletion</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Outputs (JSX)</h4>
+          <ul>
+            <li>Outer <code>&lt;div&gt;</code> containing a metadata card and VariantTable</li>
+            <li>No local state — purely derived from props</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Key logic</h4>
+      <p><strong>1. Memoize defaultFilters.</strong> <code>useMemo(() =&gt; getPipelineDefaults(specimen.pipeline_key), [specimen.pipeline_key])</code> ensures the <code>PipelineFilters</code> object keeps a stable reference across re-renders (see Part 2 for why this matters). <code>getPipelineDefaults</code> reads from the bundled <code>pipelines.json</code> and returns an object — without memo, a new object reference on every render would cause VariantTable to reset its filters unnecessarily.</p>
+
+      <p><strong>2. Conditional metadata row.</strong> The tissue and date row only renders when at least one value is non-null: <code>{(specimen.tissue || specimen.sequencing_date) &amp;&amp; (...)}</code>. This avoids an empty row in the card layout for samples where this metadata was not supplied.</p>
+
+      <p><strong>3. Callback relay.</strong> <code>onDeleteSample</code> (the name used in SpecimenCard's props) is passed directly to <code>DeleteSampleButton</code> as <code>onDelete</code>. SpecimenCard does not maintain any list state itself — it simply relays the callback from the parent page down to the delete button.</p>
+
+      <div class="callout green">
+        <span class="tag">Design decision: no state in SpecimenCard</span>
+        <p>SpecimenCard is intentionally stateless. All mutable state — the current workflow status, whether deletion is pending, the variant rows — lives in the child components closest to the data. This keeps SpecimenCard predictable and easy to test: the three tests in <code>SpecimenCard.test.tsx</code> need only mount it with a fixture and assert on the rendered output.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="workflowcontrol">
+  <h2><span class="sec-num">13</span> WorkflowControl</h2>
+
+  <div class="file-section">
+    <div class="fs-name">WorkflowControl.tsx</div>
+    <span style="color:var(--muted);font-size:12px">57 lines · workflow state machine UI</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">WorkflowControl</span>
+      <span class="fn-lines">lines 12–57</span>
+      <span class="fn-phase mutation">Mutation</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Renders a row of buttons for each allowed workflow transition from the current status. When clicked, calls the backend and updates local status on success. Shows an inline error message on failure.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props (inputs)</h4>
+          <ul>
+            <li><code>sampleId: number</code> — passed to <code>updateWorkflow</code> API call</li>
+            <li><code>currentStatus: string</code> — initial value for local status state; also synced via useEffect</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Local state</h4>
+          <ul>
+            <li><code>status</code> — current displayed status (starts from prop, updated on success)</li>
+            <li><code>loading</code> — disables all buttons during an in-flight request</li>
+            <li><code>error</code> — inline error string, cleared on each new attempt</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>The prop-sync useEffect</h4>
+      <p><code>useEffect(() =&gt; { setStatus(currentStatus); }, [currentStatus])</code> ensures that if the parent page refreshes the specimen data (e.g. after navigating away and back), the displayed status reflects the new value from the server — not a stale value from a previous transition. Without this, <code>status</code> would be frozen at the value it had when the component first mounted.</p>
+
+      <div class="callout amber">
+        <span class="tag">Potential race condition</span>
+        <p>If the user triggers a transition and the parent component refreshes <code>currentStatus</code> from the server concurrently, the <code>useEffect</code> and <code>handleTransition</code> success path might both call <code>setStatus</code> on the same render cycle. In practice this is benign — both would set the same (new) status — but it is worth noting for reviewers.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">handleTransition</span>
+      <span class="fn-lines">lines 27–36</span>
+      <span class="fn-phase mutation">Mutation</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Async function called when a transition button is clicked. Calls the API, updates local status on success, sets error string on failure, clears loading in all cases.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs</h4>
+          <ul>
+            <li><code>newStatus: WorkflowStatus</code> — one of the values from TRANSITIONS[status]</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Side effects</h4>
+          <ul>
+            <li>Calls PUT /api/workflow/{id}</li>
+            <li>Sets <code>status</code>, <code>loading</code>, <code>error</code> state</li>
+          </ul>
+        </div>
+      </div>
+
+      <p><strong>User ID source:</strong> <code>import.meta.env.VITE_USER_ID ?? "analyst"</code> — reads from Vite's environment injection, falling back to the literal string <code>"analyst"</code> in development. This value is recorded in the backend's audit log for the transition.</p>
+
+      <p><strong>Error handling:</strong> The catch block checks <code>err instanceof Error</code> before accessing <code>err.message</code> — this is necessary because anything can be thrown in JavaScript (not just Error subclasses). <code>ApiError</code> extends <code>Error</code>, so error messages from the API surface correctly.</p>
+    </div>
+  </div>
+</section>
+
+<section id="deletesamplebutton">
+  <h2><span class="sec-num">14</span> DeleteSampleButton</h2>
+
+  <div class="file-section">
+    <div class="fs-name">DeleteSampleButton.tsx</div>
+    <span style="color:var(--muted);font-size:12px">71 lines · two-phase destructive action</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">DeleteSampleButton</span>
+      <span class="fn-lines">lines 4–71</span>
+      <span class="fn-phase mutation">Mutation</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> A button that requires two interactions to execute a DELETE. The first click shows a confirmation bar; the second click executes the deletion. The confirmation bar shows different content depending on whether the specimen is in a high-risk state.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props</h4>
+          <ul>
+            <li><code>id: number</code> — sample ID for the API call</li>
+            <li><code>name: string</code> — specimen name shown in confirmation text</li>
+            <li><code>workflowStatus: string</code> — determines high-risk warning</li>
+            <li><code>onDelete?: (id: number) =&gt; void</code> — called after successful delete</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Local state</h4>
+          <ul>
+            <li><code>confirming</code> — toggles between trigger and confirmation bar</li>
+            <li><code>busy</code> — disables buttons during API call</li>
+            <li><code>deleteError</code> — inline error message; cleared on each new attempt and on cancel</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>The high-risk warning</h4>
+      <p><code>isHighRisk</code> is <code>true</code> when <code>workflowStatus === "reported" || workflowStatus === "archived"</code>. In the confirming state, the component renders different confirmation text depending on this flag:</p>
+      <ul>
+        <li><strong>High risk:</strong> amber warning <em>"⚠ This specimen has been reported/archived."</em> — signals that deleting has audit implications</li>
+        <li><strong>Normal:</strong> neutral <em>"Delete <strong>SPEC_001</strong>?"</em> — uses the specimen name</li>
+      </ul>
+      <p>There is no hard server-side block for high-risk statuses — the backend returns 204 regardless. The warning is a UX safeguard. The backend's audit log records the deletion either way.</p>
+
+      <div class="callout red">
+        <span class="tag">Silent failure prevention</span>
+        <p>The delete confirmation does <strong>not</strong> close on API failure. The <code>finally</code> block only sets <code>busy = false</code>; the <code>catch</code> block sets <code>deleteError</code> and the component stays in the confirming state. This means the user sees the error inline and can try again or cancel — they are never left wondering whether the deletion succeeded.</p>
+      </div>
+
+      <h4>Callback chain</h4>
+      <p>On success, the component calls <code>onDelete?.(id)</code> (the optional chaining <code>?.</code> means it is safe to call even when no callback is provided) and then sets <code>confirming = false</code>. In the normal use case — inside SpecimenCard inside PatientDetailPage — the callback removes the specimen from the page's state array, causing the SpecimenCard to unmount. The component does not need to reset its own state after success because it will no longer exist.</p>
+    </div>
+  </div>
+</section>
+
+<section id="columns">
+  <h2><span class="sec-num">15</span> COLUMNS constant</h2>
+
+  <div class="file-section">
+    <div class="fs-name">VariantTable.tsx</div>
+    <span style="color:var(--muted);font-size:12px">lines 19–98 · module-level column definitions</span>
+  </div>
+
+  <p>The <code>COLUMNS</code> array is declared at <strong>module level</strong>, not inside the component. This is intentional: TanStack Table compares the columns reference on each render to decide whether to rebuild its internal model. Declaring at module level gives a constant reference — the same array object for the lifetime of the module. Declaring inside the component would create a new array on every render, forcing TanStack to rebuild unnecessarily.</p>
+
+  <p>Each column is created with <code>col.accessor("fieldName", { header, cell })</code>. The <code>accessor</code> string tells TanStack which field to extract from each <code>VariantRow</code> object. The <code>cell</code> function receives a cell context object <code>i</code>; calling <code>i.getValue()</code> returns the typed value for that cell's accessor field.</p>
+
+  <table>
+    <thead>
+      <tr><th>Column</th><th>Accessor</th><th>Cell renderer notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Gene</td><td><code>gene</code></td><td>Bold gray text, em-dash for null</td></tr>
+      <tr><td>HGVSc</td><td><code>hgvs_c</code></td><td>Monospace xs, em-dash for null</td></tr>
+      <tr><td>HGVSp</td><td><code>hgvs_p</code></td><td>Monospace xs, em-dash for null</td></tr>
+      <tr><td>Consequence</td><td><code>consequence</code></td><td>Underscores replaced with spaces (<code>.replace(/_/g, " ")</code>)</td></tr>
+      <tr><td>gnomAD AF</td><td><code>gnomad_af</code></td><td><code>formatGnomadAf(v)</code> + <code>gnomadAfClass(v)</code> from display-utils; colour changes above 0.01</td></tr>
+      <tr><td>REVEL</td><td><code>revel_score</code></td><td><code>formatRevel(v)</code> + <code>revelClass(v)</code>; red ≥0.7, green ≤0.4, gray otherwise</td></tr>
+      <tr><td>SpliceAI</td><td><code>spliceai_max</code></td><td><code>formatSpliceAi(v)</code> + <code>spliceAiClass(v)</code>; orange ≥0.5</td></tr>
+      <tr><td>ClinVar</td><td><code>clinvar_sig</code></td><td>Plain text, em-dash for null</td></tr>
+      <tr><td>Location</td><td><code>chrom</code></td><td>Composite: <code>chrom:pos ref&gt;alt</code> using <code>i.row.original</code> for pos/ref/alt</td></tr>
+      <tr><td>Classification</td><td><code>classification</code></td><td><code>&lt;ClassificationBadge&gt;</code> component from PR D1</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout blue">
+    <span class="tag">Why display-utils are used in columns</span>
+    <p>The gnomAD AF, REVEL, and SpliceAI columns delegate formatting and colour class selection to <code>display-utils.ts</code> (PR C2) rather than inlining the logic. This ensures the same formatting rules apply whether a value is shown in the table or in any other context — a single source of truth.</p>
+  </div>
+</section>
+
+<section id="varianttable">
+  <h2><span class="sec-num">16</span> VariantTable component</h2>
+
+  <div class="file-section">
+    <div class="fs-name">VariantTable.tsx</div>
+    <span style="color:var(--muted);font-size:12px">lines 102–280 · component body and JSX</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">VariantTable</span>
+      <span class="fn-lines">lines 102–280</span>
+      <span class="fn-phase fetch">Fetch + Render</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Fetches variants from the server, manages pagination and filter state, and renders a TanStack Table with a filter bar above and pagination controls below.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props</h4>
+          <ul>
+            <li><code>sampleId: number</code></li>
+            <li><code>patientId: number</code> — for Classify links</li>
+            <li><code>defaultFilters: PipelineFilters</code> — initial filter values (memoized by parent)</li>
+            <li><code>pipelineKey: string | null</code> — shown as a preset label in the filter bar</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Local state (9 variables)</h4>
+          <ul>
+            <li><code>data: VariantRow[]</code> — current page of variants</li>
+            <li><code>total: number</code> — server-reported total count</li>
+            <li><code>loading: boolean</code></li>
+            <li><code>error: string | null</code></li>
+            <li><code>pageIndex: number</code> — 0-based</li>
+            <li><code>filters: PipelineFilters</code></li>
+            <li><code>geneInput: string</code></li>
+            <li><code>sortBy, sortDir</code> — sort state (not yet wired to column headers)</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Filter reset on sample change</h4>
+      <p>The component has a dedicated <code>useEffect</code> (lines 120–124) that runs whenever <code>sampleId</code> or <code>defaultFilters</code> changes: it resets filters to the pipeline defaults, clears the gene input, and resets <code>pageIndex</code> to 0. This ensures that when the user views a second specimen on the same patient page, the variant table starts fresh with the correct defaults for that specimen's pipeline.</p>
+
+      <h4>gnomAD AF NaN guard</h4>
+      <p>The gnomAD AF filter input uses <code>type="number"</code>. When the user clears the field, <code>parseFloat("")</code> returns <code>NaN</code>. If <code>NaN</code> were stored in <code>filters.gnomad_af_max</code> and sent to the backend as a query param, it would produce the string <code>"NaN"</code> — an invalid float that FastAPI would reject with 400. The guard prevents this:</p>
+      <div class="cb"><pre>setFilters((f) =&gt; ({
+  ...f,
+  gnomad_af_max: Number.isNaN(val) ? <span class="k">null</span> : val,
+}));</pre></div>
+      <p>When the field is empty, <code>gnomad_af_max</code> is set to <code>null</code>. In <code>fetchVariants</code>, <code>null</code> values are simply not added to the query string: <code>if (filters.gnomad_af_max != null) q.set(...)</code>. The backend then returns all variants regardless of gnomAD AF, which is the user's intent when they cleared the filter.</p>
+
+      <h4>Table instance creation</h4>
+      <p><code>useReactTable({ data, columns: COLUMNS, getCoreRowModel: getCoreRowModel(), manualPagination: true, pageCount })</code> creates the table instance. <code>getCoreRowModel()</code> is a built-in TanStack factory that returns a row model function — it processes the data array into rows that the render logic can iterate. <code>manualPagination: true</code> tells TanStack not to slice <code>data</code> itself; the component fetches the correct page from the server and passes only that page's rows in <code>data</code>.</p>
+
+      <h4>Render logic</h4>
+      <p>The JSX has three conditional render paths for the table body: a loading row (full-width, colSpan), an empty-state row ("No variants match the current filters."), and the normal row iteration. The loading and empty states use <code>colSpan={COLUMNS.length + 1}</code> — the <code>+1</code> accounts for the Classify action column added after the generated columns.</p>
+    </div>
+  </div>
+</section>
+
+<section id="fetchvariants">
+  <h2><span class="sec-num">17</span> fetchVariants</h2>
+
+  <div class="file-section">
+    <div class="fs-name">VariantTable.tsx</div>
+    <span style="color:var(--muted);font-size:12px">lines 124–158 · useCallback-wrapped fetch</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">fetchVariants</span>
+      <span class="fn-lines">lines 124–158</span>
+      <span class="fn-phase fetch">Fetch</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Builds the query string from current filter/pagination/sort state, fetches <code>GET /api/samples/{sampleId}/variants</code>, and updates <code>data</code>, <code>total</code>, or <code>error</code> state accordingly. Wrapped in <code>useCallback</code> so its reference only changes when a dependency changes.</p>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Dependencies (useCallback array)</h4>
+          <ul>
+            <li><code>sampleId</code></li>
+            <li><code>pageIndex</code></li>
+            <li><code>filters</code> (object reference — stable via useMemo in parent)</li>
+            <li><code>geneInput</code></li>
+            <li><code>sortBy</code>, <code>sortDir</code></li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Side effects</h4>
+          <ul>
+            <li>Sets <code>loading = true</code> at start</li>
+            <li>Sets <code>data</code>, <code>total</code> on success</li>
+            <li>Sets <code>error</code> on failure</li>
+            <li>Sets <code>loading = false</code> in finally</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4>Query string construction</h4>
+      <p>Mandatory params (<code>limit</code>, <code>offset</code>, <code>sort_by</code>, <code>sort_dir</code>) are always included. Optional filter params are only added when they have meaningful values:</p>
+      <ul>
+        <li><code>gnomad_af_max</code> — only when not null (handles cleared input)</li>
+        <li><code>consequences</code>, <code>clinvar_exclude</code> — only when non-empty strings</li>
+        <li><code>gene</code> — only when the trimmed input is non-empty</li>
+      </ul>
+
+      <h4>authHeaders() usage</h4>
+      <p><code>fetch(..., { headers: authHeaders() })</code> reads <code>VITE_API_KEY</code> inside the <code>authHeaders</code> function at call time. This is the correct pattern — it avoids capturing the key at module load time (when it might not yet be set in some test environments). It is the single point in the codebase where the API key is read for direct fetch calls.</p>
+
+      <h4>Response parsing</h4>
+      <p><code>json.items</code> (not <code>json.rows</code> or <code>json.data</code>) — this matches the backend's <code>VariantListResponse</code> Pydantic model, which uses the field name <code>items</code>. <code>json.total</code> is the server-reported total count across all pages, used to compute <code>pageCount</code>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_D2_Specimen_Variant_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_3.html" class="current">3 · Function walkthrough</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+</main>
+</div>
+<footer>
+  Code walkthrough for PR D2 — Specimen &amp; Variant Components. Author: Joo Wook Ahn. Date: 21 May 2026. Source: eastgenomics/variant-viewer branch pr/D2. Continued from Part 2. Continues in Part 4.
+</footer>
+</body>
+</html>

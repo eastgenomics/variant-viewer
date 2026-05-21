@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR A — Backend API Extensions · Part 1 of 4</title>
+<style>
+:root{
+  --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+  --line:#e0e7ef;--line-strong:#c5d0db;
+  --bg:#f7f9fb;--paper:#ffffff;
+  --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+  --green:#1a6e47;--green-soft:#e0f0e8;
+  --amber:#b35c00;--amber-soft:#fdf0e0;
+  --red:#9b2335;--red-soft:#fce8ea;
+  --purple:#4b2d8e;--purple-soft:#ede8f8;
+  --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent-mid);text-decoration:none}
+a:hover{text-decoration:underline}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+main{padding:0 56px 96px;max-width:900px}
+@media(max-width:860px){main{padding:0 24px 64px}}
+h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+p{margin-bottom:13px;color:var(--ink-soft)}
+strong{color:var(--ink)}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:5px 0;color:var(--ink-soft)}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+.toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+.toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.toc ul{list-style:none}
+.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+.toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+.toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+.hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+.hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+.hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+.hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.hero .meta-item{font-size:12px;color:var(--muted)}
+.hero .meta-item strong{color:var(--ink-soft)}
+section{padding-top:52px}
+section+section{border-top:1px solid var(--line)}
+footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+.callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+.callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+.callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+.callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.callout.blue .tag{color:var(--accent-deep)}
+.callout.green .tag{color:var(--green)}
+.callout.amber .tag{color:var(--amber)}
+.callout p:last-child{margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;border-top:3px solid var(--accent)}
+.stat .n{font-size:26px;font-weight:800;color:var(--accent-deep);line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+.card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
+@media(max-width:640px){.card-grid{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:var(--shadow)}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-name{font-weight:700;font-size:14.5px;color:var(--ink);line-height:1.2}
+.card-sub{font-size:11.5px;color:var(--muted)}
+.card p{font-size:13.5px;margin:0 0 10px}
+.card p:last-child{margin:0}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+.pill.green{background:var(--green-soft);color:var(--green)}
+.pill.amber{background:var(--amber-soft);color:var(--amber)}
+.pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+.pill.purple{background:var(--purple-soft);color:var(--purple)}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+tr:hover td{background:#fafbfd}
+figure{margin:24px 0}
+.fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+.series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+.series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+.series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR A BACKEND EXTENSIONS<br>21 May 2026</div>
+  <div class="toc-section">Part 1 of 4</div>
+  <ul>
+    <li><a href="#what">What this PR does</a></li>
+    <li><a href="#extensions">Eight extensions</a></li>
+    <li><a href="#dataflow">Data flow</a></li>
+    <li><a href="#models">Pydantic models</a></li>
+    <li><a href="#inventory">Function inventory</a></li>
+    <li><a href="#decisions">Design decisions</a></li>
+    <li><a href="#series">About this series</a></li>
+  </ul>
+  <div class="meta">Part 1 of 4 · High-level outline<br>Sources: routes/patients.py, routes/samples.py, routes/variants.py, routes/classification.py, routes/ingest.py, docker-compose.yml, migrations/004</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · Backend API · variant-viewer</div>
+  <h1>PR A — Backend API Extensions</h1>
+  <p class="sub">Eight targeted additions to the FastAPI backend that give the frontend SPA the endpoints and fields it needs — delete routes, aggregate fields, filter params, nullable locks, evidence validation, and a dev-only direct ingest path.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> #31 · M_pre1–8</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_A_Backend_Extensions_1.html" class="current">1 · High-level outline</a>
+  <a href="260521_PR_A_Backend_Extensions_2.html">2 · Key concepts</a>
+  <a href="260521_PR_A_Backend_Extensions_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_A_Backend_Extensions_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="what">
+  <h2><span class="sec-num">01</span> What this PR does</h2>
+
+  <p>The variant-viewer backend already shipped a read-only API and a classification engine (PRs 1–7). This PR, labelled M_pre1–8 in the milestone plan, adds the eight specific features the React frontend needs before it can be built. None of the existing endpoints are changed in a breaking way — everything here is additive.</p>
+
+  <p>The changes span five route files, one migration, and the Docker Compose configuration. The guiding principle throughout is that the backend should enforce correctness at the boundary: Pydantic validators reject bad input before it reaches the database, sentinel exceptions keep HTTP concerns out of transaction callbacks, and audit log entries record every destructive action before the final delete runs.</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="n">9</div>
+      <div class="l">files changed</div>
+    </div>
+    <div class="stat">
+      <div class="n">768</div>
+      <div class="l">lines added</div>
+    </div>
+    <div class="stat">
+      <div class="n">16</div>
+      <div class="l">new tests</div>
+    </div>
+    <div class="stat">
+      <div class="n">277</div>
+      <div class="l">total tests passing</div>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <span class="tag">Scope</span>
+    <p>This PR is purely backend. The frontend SPA (PRs C1 through D4) is built in separate branches and reviewed separately. The API contracts agreed here — field names, HTTP status codes, filter parameter names — are what the TypeScript <code>api.ts</code> client is written against.</p>
+  </div>
+</section>
+
+<section id="extensions">
+  <h2><span class="sec-num">02</span> Eight extensions at a glance</h2>
+
+  <p>Each extension corresponds to one milestone in the pre-requisite list. They are independent of each other and could have been shipped separately, but were batched into a single PR because they all need to land before any frontend component can be tested end-to-end.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Milestone</th>
+        <th>File</th>
+        <th>What changed</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>M_pre1</strong></td>
+        <td><code>patients.py</code></td>
+        <td><code>PatientSummary</code> gains five aggregate fields: <code>sample_count</code>, <code>latest_sample_id/name/workflow_status/ingested_at</code>, <code>pipeline_key</code>. Computed via correlated subqueries in <code>list_patients</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>M_pre2</strong></td>
+        <td><code>samples.py</code></td>
+        <td><code>list_sample_variants</code> gains six filter/sort parameters: <code>gnomad_af_max</code>, <code>consequences</code>, <code>clinvar_exclude</code>, <code>gene</code>, <code>sort_by</code>, <code>sort_dir</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>M_pre3</strong></td>
+        <td><code>samples.py</code></td>
+        <td><code>VariantSummary</code> gains <code>hgvs_c</code>, <code>hgvs_p</code>, <code>clinvar_sig</code> — needed for the variant table display columns.</td>
+      </tr>
+      <tr>
+        <td><strong>M_pre4</strong></td>
+        <td><code>patients.py</code></td>
+        <td><code>DELETE /api/patients/{id}</code> — cascade delete with audit log. Uses <code>_PatientNotFound</code> sentinel to avoid raising <code>HTTPException</code> inside a transaction callback.</td>
+      </tr>
+      <tr>
+        <td><strong>M_pre5</strong></td>
+        <td><code>samples.py</code></td>
+        <td><code>DELETE /api/samples/{id}</code> — same pattern as M_pre4 but for samples. <code>_SampleNotFound</code> sentinel.</td>
+      </tr>
+      <tr>
+        <td><strong>M_pre6</strong></td>
+        <td><code>classification.py</code></td>
+        <td><code>locked_by: str | None</code>. <code>None</code> = draft save (no lock timestamp). Non-null string = confirmed save. Empty string rejected by field validator (422).</td>
+      </tr>
+      <tr>
+        <td><strong>M_pre7</strong></td>
+        <td><code>patients.py</code>, <code>samples.py</code></td>
+        <td><code>SampleSummary</code> gains <code>vcf_filename</code>. <code>PatientRef</code> introduced as a slim alternative to <code>PatientSummary</code> for nested use in <code>SampleDetailResponse</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>M_pre8</strong></td>
+        <td><code>ingest.py</code></td>
+        <td><code>POST /api/ingest-direct</code> — dev-only endpoint. Accepts a raw VCF file as <code>multipart/form-data</code>. Parses locally, writes patient/sample/variant/classification rows to DB without S3.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Two additional items fall outside the numbered milestones but are included in this PR: <code>variants.py</code> gains <code>case_type</code> in <code>VariantDetailResponse</code> (needed by the classification page), and <code>docker-compose.yml</code> is updated with a DB healthcheck, the <code>API_KEY</code> env var, and the backend port removed from host exposure.</p>
+</section>
+
+<section id="dataflow">
+  <h2><span class="sec-num">03</span> Data flow</h2>
+
+  <p>All five route files follow the same structural pattern. An HTTP request arrives, FastAPI validates it against a Pydantic model, the handler calls <code>asyncio.to_thread</code> to push a blocking database operation onto a thread pool, and the result is serialised back to JSON via another Pydantic model. For write operations the DB call is wrapped in <code>db.run_in_transaction</code> to guarantee atomicity.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HTTP request to JSON response data flow through FastAPI route handler">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0,8 3,0 6" fill="#005eb8"/>
+      </marker>
+      <marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0,8 3,0 6" fill="#1a6e47"/>
+      </marker>
+    </defs>
+    <style>.lbl{font:13px -apple-system,Segoe UI,Inter,sans-serif}.sub{font:11px -apple-system,Segoe UI,Inter,sans-serif}.hd{font:700 12px -apple-system,Segoe UI,Inter,sans-serif}</style>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">REQUEST &#x2192; RESPONSE FLOW</text>
+
+    <!-- boxes -->
+    <rect x="20" y="50" width="120" height="56" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="80" y="75" text-anchor="middle" class="hd" fill="#003d78">HTTP Request</text>
+    <text x="80" y="93" text-anchor="middle" class="sub" fill="#354656">JSON body / query</text>
+
+    <rect x="190" y="50" width="140" height="56" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="260" y="72" text-anchor="middle" class="hd" fill="#003d78">FastAPI Router</text>
+    <text x="260" y="88" text-anchor="middle" class="sub" fill="#354656">Pydantic validation</text>
+    <text x="260" y="101" text-anchor="middle" class="sub" fill="#354656">422 on bad input</text>
+
+    <rect x="385" y="50" width="150" height="56" rx="6" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="460" y="72" text-anchor="middle" class="hd" fill="#4b2d8e">Route Handler</text>
+    <text x="460" y="88" text-anchor="middle" class="sub" fill="#354656">async def …</text>
+    <text x="460" y="101" text-anchor="middle" class="sub" fill="#354656">asyncio.to_thread()</text>
+
+    <rect x="590" y="50" width="130" height="56" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="655" y="72" text-anchor="middle" class="hd" fill="#1a6e47">DB Thread</text>
+    <text x="655" y="88" text-anchor="middle" class="sub" fill="#354656">db.query() or</text>
+    <text x="655" y="101" text-anchor="middle" class="sub" fill="#354656">run_in_transaction()</text>
+
+    <!-- arrows top row -->
+    <line x1="140" y1="78" x2="188" y2="78" stroke="#005eb8" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="330" y1="78" x2="383" y2="78" stroke="#005eb8" stroke-width="1.5" marker-end="url(#arr)"/>
+    <line x1="535" y1="78" x2="588" y2="78" stroke="#005eb8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- DB box -->
+    <rect x="590" y="170" width="130" height="56" rx="6" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+    <text x="655" y="192" text-anchor="middle" class="hd" fill="#b35c00">PostgreSQL</text>
+    <text x="655" y="208" text-anchor="middle" class="sub" fill="#354656">psycopg2 cursor</text>
+    <text x="655" y="221" text-anchor="middle" class="sub" fill="#354656">parameterised SQL</text>
+
+    <line x1="655" y1="106" x2="655" y2="168" stroke="#1a6e47" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <!-- return path -->
+    <rect x="385" y="170" width="150" height="56" rx="6" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="460" y="192" text-anchor="middle" class="hd" fill="#4b2d8e">Pydantic Model</text>
+    <text x="460" y="208" text-anchor="middle" class="sub" fill="#354656">response_model=…</text>
+    <text x="460" y="221" text-anchor="middle" class="sub" fill="#354656">auto-serialised</text>
+
+    <line x1="588" y1="198" x2="537" y2="198" stroke="#1a6e47" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <rect x="190" y="170" width="140" height="56" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="260" y="192" text-anchor="middle" class="hd" fill="#003d78">JSON Response</text>
+    <text x="260" y="208" text-anchor="middle" class="sub" fill="#354656">200 / 204 / 4xx</text>
+    <text x="260" y="221" text-anchor="middle" class="sub" fill="#354656">application/json</text>
+
+    <line x1="383" y1="198" x2="332" y2="198" stroke="#1a6e47" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+    <!-- transaction path annotation -->
+    <rect x="385" y="250" width="335" height="38" rx="4" fill="#fdf0e0" stroke="#e8c28a" stroke-width="1"/>
+    <text x="552" y="268" text-anchor="middle" class="sub" fill="#b35c00">Write ops only: _do(conn) closure passed to</text>
+    <text x="552" y="282" text-anchor="middle" class="sub" fill="#b35c00">db.run_in_transaction() &#x2014; sentinel exceptions escape cleanly</text>
+  </svg>
+  </div>
+  <figcaption>Figure 1 · HTTP request-to-response flow through a FastAPI route handler. Write operations use a <code>_do(conn)</code> closure passed to <code>db.run_in_transaction()</code>; sentinel exceptions break out of the closure without carrying HTTP knowledge into the database layer.</figcaption>
+  </figure>
+
+  <div class="callout amber">
+    <span class="tag">Key pattern</span>
+    <p>The <code>_do(conn)</code> closure pattern is used consistently for all write endpoints. It is a plain Python function that receives a connection, does work, and either returns a value or raises a private sentinel exception. The async handler wraps <code>db.run_in_transaction(_do)</code> in <code>asyncio.to_thread</code>, then catches the sentinel and converts it to an <code>HTTPException</code>. This keeps the database layer free of any knowledge about HTTP status codes.</p>
+  </div>
+</section>
+
+<section id="models">
+  <h2><span class="sec-num">04</span> Pydantic models introduced</h2>
+
+  <p>Pydantic models serve two roles in FastAPI: they validate incoming request bodies and serialise outgoing responses. Every field name in a model becomes a JSON key in the API response — so the model definitions here are the contract that the TypeScript frontend is written against.</p>
+
+  <table>
+    <thead>
+      <tr><th>Model</th><th>File</th><th>Role</th><th>Key fields added</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>PatientSummary</code></td>
+        <td><code>patients.py</code></td>
+        <td>Response — patient list item</td>
+        <td><code>sample_count</code>, <code>latest_sample_id</code>, <code>latest_sample_name</code>, <code>latest_workflow_status</code>, <code>latest_ingested_at</code>, <code>pipeline_key</code> (all default 0/None)</td>
+      </tr>
+      <tr>
+        <td><code>SampleSummary</code></td>
+        <td><code>patients.py</code></td>
+        <td>Nested in PatientDetailResponse</td>
+        <td><code>vcf_filename</code></td>
+      </tr>
+      <tr>
+        <td><code>PatientRef</code></td>
+        <td><code>samples.py</code></td>
+        <td>Nested in SampleDetailResponse.patient</td>
+        <td>Slim model: <code>id</code>, <code>lab_number</code>, <code>name</code> only — no aggregate fields</td>
+      </tr>
+      <tr>
+        <td><code>VariantSummary</code></td>
+        <td><code>samples.py</code></td>
+        <td>Response — variant list item</td>
+        <td><code>hgvs_c</code>, <code>hgvs_p</code>, <code>clinvar_sig</code> (all default None)</td>
+      </tr>
+      <tr>
+        <td><code>VariantDetailResponse</code></td>
+        <td><code>variants.py</code></td>
+        <td>Response — single variant detail</td>
+        <td><code>case_type</code> (from joined samples row)</td>
+      </tr>
+      <tr>
+        <td><code>CriterionIn</code></td>
+        <td><code>classification.py</code></td>
+        <td>Request — criterion within submit</td>
+        <td><code>evidence_links</code> field validator rejecting non-http/https URLs</td>
+      </tr>
+      <tr>
+        <td><code>ClassificationSubmitRequest</code></td>
+        <td><code>classification.py</code></td>
+        <td>Request — PUT classification body</td>
+        <td><code>locked_by: str | None</code> (None = draft, non-null = confirmed); validator rejects empty string</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Why PatientRef instead of PatientSummary?</h3>
+  <p><code>PatientSummary</code> gained five aggregate fields in M_pre1. Those fields have default values of <code>0</code> or <code>None</code>, which is fine for the list endpoint where they are populated by subqueries. But when a patient object is nested inside <code>SampleDetailResponse</code>, the aggregate fields would always serialise as zeroes and nulls — misleadingly suggesting the patient has no samples when in fact the query simply did not fetch them. <code>PatientRef</code> solves this by declaring only the three fields that are actually retrieved: <code>id</code>, <code>lab_number</code>, and <code>name</code>.</p>
+</section>
+
+<section id="inventory">
+  <h2><span class="sec-num">05</span> Function inventory</h2>
+
+  <table>
+    <thead>
+      <tr><th>Function</th><th>File</th><th>Lines (approx)</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>list_patients</code></td><td>patients.py</td><td>50–96</td><td>Paginated patient list with optional lab_number/name search; correlated subqueries for aggregate fields</td></tr>
+      <tr><td><code>get_patient</code></td><td>patients.py</td><td>98–122</td><td>Single patient detail with nested sample list</td></tr>
+      <tr><td><code>delete_patient</code></td><td>patients.py</td><td>124–159</td><td>Cascade delete patient; sentinel pattern; audit before final delete</td></tr>
+      <tr><td><code>get_sample</code></td><td>samples.py</td><td>55–97</td><td>Sample detail with PatientRef and variant count</td></tr>
+      <tr><td><code>list_sample_variants</code></td><td>samples.py</td><td>99–199</td><td>Paginated variant list with six filter/sort params; dynamic WHERE/ORDER BY with whitelist</td></tr>
+      <tr><td><code>delete_sample</code></td><td>samples.py</td><td>202–226</td><td>Cascade delete sample; same sentinel pattern as delete_patient</td></tr>
+      <tr><td><code>get_variant</code></td><td>variants.py</td><td>58–120</td><td>Variant detail with nested active classification and criteria; joins samples for case_type</td></tr>
+      <tr><td><code>score_classification</code></td><td>classification.py</td><td>~115–125</td><td>Score-only: run engine, return result, no DB write</td></tr>
+      <tr><td><code>submit_classification</code></td><td>classification.py</td><td>~128–210</td><td>Soft-delete existing, insert new record, store criteria, audit; locked_by null = draft</td></tr>
+      <tr><td><code>reset_classification</code></td><td>classification.py</td><td>~213–280</td><td>Soft-delete and insert blank replacement; _ConcurrentReset sentinel for TOCTOU race</td></tr>
+      <tr><td><code>manual_ingest</code></td><td>ingest.py</td><td>42–79</td><td>S3-path ingest trigger (pre-existing); wraps lib/ingest.ingest_sample</td></tr>
+      <tr><td><code>ingest_direct</code></td><td>ingest.py</td><td>83–225</td><td>Dev-only: parse uploaded VCF, write all DB rows (patient, sample, variants, classification shells, workflow)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="decisions">
+  <h2><span class="sec-num">06</span> Key design decisions</h2>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--amber-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="2" y="9" width="16" height="2" rx="1" fill="#b35c00"/>
+            <rect x="9" y="2" width="2" height="16" rx="1" fill="#b35c00"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">Sentinel exceptions</div>
+          <div class="card-sub">_PatientNotFound, _SampleNotFound, _ConcurrentReset</div>
+        </div>
+      </div>
+      <p>Transaction callbacks (<code>_do(conn)</code>) cannot raise <code>HTTPException</code> — FastAPI does not handle exceptions raised in threads. Private exception classes raised inside <code>_do</code> escape the thread, then the async handler catches them and converts to the correct HTTP status code.</p>
+      <span class="pill amber">Safety</span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--accent-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="2" y="2" width="16" height="16" rx="3" fill="none" stroke="#005eb8" stroke-width="2"/>
+            <path d="M6 10l3 3 5-5" stroke="#005eb8" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">Audit before delete</div>
+          <div class="card-sub">Clinical audit trail requirement</div>
+        </div>
+      </div>
+      <p>In both <code>delete_patient</code> and <code>delete_sample</code>, the audit log INSERT runs before the final <code>DELETE FROM patients/samples</code>. This ensures the audit entry is atomically part of the same transaction — if the delete fails, the audit entry is rolled back too — and the entity ID is still valid at insert time.</p>
+      <span class="pill blue">Compliance</span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--purple-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="10" cy="10" r="7" fill="none" stroke="#4b2d8e" stroke-width="2"/>
+            <text x="10" y="14" text-anchor="middle" font-size="9" fill="#4b2d8e" font-weight="700">SQL</text>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">Safe f-string SQL</div>
+          <div class="card-sub">list_sample_variants ORDER BY</div>
+        </div>
+      </div>
+      <p>The ORDER BY clause is built by interpolating <code>order_col</code> and <code>order_dir</code> directly into the SQL string — not via parameters. This is safe because: <code>sort_by</code> is regex-validated by FastAPI before the function body runs (422 on unknown values), the <code>SORTABLE</code> dict maps it to source-code string literals, and <code>order_dir</code> is a ternary between two hard-coded strings. No user input reaches the SQL string.</p>
+      <span class="pill purple">Security</span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--green-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M4 10 a6 6 0 1 1 12 0" stroke="#1a6e47" stroke-width="2" fill="none"/>
+            <path d="M10 4 L10 2 M16 10 L18 10" stroke="#1a6e47" stroke-width="1.5" fill="none"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">locked_by null = draft</div>
+          <div class="card-sub">Classification save semantics</div>
+        </div>
+      </div>
+      <p><code>locked_by: str | None</code>. When <code>None</code>, the INSERT uses the literal SQL string <code>NULL</code> for <code>locked_at</code> (injected via f-string after all user input has already been validated). When non-null, <code>NOW()</code> is used instead. An empty string is rejected by a Pydantic field validator with a 422 — it cannot accidentally be treated as a draft save.</p>
+      <span class="pill green">Correctness</span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--red-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M10 3 L17 16 H3 Z" fill="none" stroke="#9b2335" stroke-width="2" stroke-linejoin="round"/>
+            <line x1="10" y1="9" x2="10" y2="13" stroke="#9b2335" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="10" cy="15" r="1" fill="#9b2335"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">evidence_links server validation</div>
+          <div class="card-sub">Invariant 3 — defence-in-depth</div>
+        </div>
+      </div>
+      <p>The frontend validates evidence links before adding them to state, but the backend also validates them in a <code>@field_validator</code> on <code>CriterionIn.evidence_links</code>. Any URL that does not start with <code>http://</code> or <code>https://</code> (case-insensitive) is rejected with a 422. This prevents <code>javascript:</code> and <code>data:</code> URLs reaching the database even if the client-side check is bypassed.</p>
+      <span class="pill amber">Security</span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--accent-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="3" y="3" width="14" height="14" rx="2" fill="none" stroke="#005eb8" stroke-width="2"/>
+            <line x1="7" y1="10" x2="13" y2="10" stroke="#005eb8" stroke-width="1.5"/>
+            <line x1="7" y1="7" x2="13" y2="7" stroke="#005eb8" stroke-width="1.5"/>
+            <line x1="7" y1="13" x2="10" y2="13" stroke="#005eb8" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="card-name">GDPR migration 004</div>
+          <div class="card-sub">UK data-minimisation principle</div>
+        </div>
+      </div>
+      <p>Migration 004 drops the <code>dob</code> column from the <code>patients</code> table. Date of birth is not required for variant interpretation, and retaining it would be unnecessary personal data under UK GDPR's data-minimisation principle. All code references to <code>dob</code> have been removed from the route models. The migration is wrapped in <code>BEGIN</code>/<code>COMMIT</code> for consistency with migrations 001–003.</p>
+      <span class="pill blue">Compliance</span>
+    </div>
+  </div>
+</section>
+
+<section id="series">
+  <h2><span class="sec-num">07</span> About this series</h2>
+
+  <p>This four-part series walks through all the code in PR A — backend API extensions. Each part targets a different level of detail. Stop at Part 2 if you want to understand the concepts; continue to Parts 3 and 4 for the function-level and line-level detail needed to write or review similar code.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-name">Part 1 · High-level outline</div>
+      <p>What the PR does, the eight extensions, data flow diagram, model inventory, function inventory, and the key design decisions. You are here.</p>
+      <span class="pill blue">Current</span>
+    </div>
+    <div class="card">
+      <div class="card-name">Part 2 · Key concepts</div>
+      <p>Explains every pattern and library a reader needs before the code makes sense: FastAPI routers, Pydantic validators, <code>asyncio.to_thread</code>, sentinel exceptions, parameterised SQL vs f-string interpolation, and GDPR data-minimisation.</p>
+      <span class="pill blue">Next</span>
+    </div>
+    <div class="card">
+      <div class="card-name">Part 3 · Function walkthrough</div>
+      <p>Covers every endpoint function across all five route files. Grouped by file. Each gets purpose, inputs/outputs, and an explanation of the key logic steps.</p>
+    </div>
+    <div class="card">
+      <div class="card-name">Part 4 · Line-by-line reference</div>
+      <p>Dense annotated walkthroughs of the four hardest functions: <code>list_sample_variants</code> (dynamic filter builder), <code>delete_patient</code> (sentinel + cascade), <code>submit_classification</code> (locked_by SQL injection pattern), and <code>ingest_direct</code> (full pipeline in one transaction).</p>
+    </div>
+  </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_A_Backend_Extensions_1.html" class="current">1 · High-level outline</a>
+    <a href="260521_PR_A_Backend_Extensions_2.html">2 · Key concepts</a>
+    <a href="260521_PR_A_Backend_Extensions_3.html">3 · Function walkthrough</a>
+    <a href="260521_PR_A_Backend_Extensions_4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  PR A — Backend API Extensions (M_pre1–8) · Code walkthrough Part 1 of 4 · Author: Joo Wook Ahn · Date: 21 May 2026 · Sources: backend/app/routes/{patients,samples,variants,classification,ingest}.py, migrations/004_remove_patient_dob.sql, docker-compose.yml · Continues in Part 2.
+</footer>
+
+</body>
+</html>
