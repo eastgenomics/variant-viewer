@@ -1,16 +1,31 @@
 services:
   backend:
     build: ./backend
-    ports:
-      - "3000:3000"
+    # Port not exposed to host — only reachable at backend:3000 inside Docker network.
+    # This prevents bypassing nginx auth checks from the host.
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/variantviewer
       AWS_REGION: eu-central-1
+      # API_KEY must be set — backend raises RuntimeError on first request if absent.
+      # Override with a real secret for production deployments.
+      API_KEY: changeme-replace-in-production
+      # VCF_BUCKET_NAME is required for POST /api/upload-url and POST /api/ingest (S3 path).
+      # Leave unset for dev-only workflows (POST /api/ingest-direct does not require it).
+      # VCF_BUCKET_NAME: my-vcf-bucket
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # VITE_* vars are baked into the bundle at build time.
+        # Must match API_KEY above. Override per environment.
+        VITE_API_KEY: changeme-replace-in-production
+        # VITE_USER_ID is recorded in classification audit logs.
+        # Set to a meaningful user identifier per deployment.
+        VITE_USER_ID: analyst
     ports:
       - "5173:80"
     depends_on:
@@ -22,11 +37,20 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: variantviewer
+    # Port exposed for local development convenience (psql access).
+    # Remove this mapping for production deployments.
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Migrations run automatically on first start via docker-entrypoint-initdb.d
       - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d variantviewer"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
 volumes:
   pgdata:

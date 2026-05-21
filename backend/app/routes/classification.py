@@ -13,11 +13,12 @@ DELETE /api/variants/{variant_id}/classification/{classification_id}
 """
 import asyncio
 import json
+import re
 from typing import Any, Literal
 
 import psycopg2.extras
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.lib import db
 from app.lib.classification_engine import (
@@ -50,6 +51,18 @@ class CriterionIn(BaseModel):
     pre_computed: bool = False
     pre_computed_value: str | None = None
 
+    @field_validator("evidence_links")
+    @classmethod
+    def validate_evidence_links(cls, v: list[str]) -> list[str]:
+        """Only http:// and https:// links are permitted (Invariant 3 — server-side)."""
+        _safe = re.compile(r'^https?://', re.IGNORECASE)
+        for link in v:
+            if not _safe.match(link.strip()):
+                raise ValueError(
+                    f"evidence_links must use http:// or https:// — got {link!r}"
+                )
+        return v
+
 
 class CombinationRuleIn(BaseModel):
     rule: str
@@ -69,8 +82,15 @@ class ClassificationSubmitRequest(BaseModel):
     criteria: list[CriterionIn]
     framework: Literal["acgs_snv", "svig"]
     combination_rules: list[CombinationRuleIn] = []
-    locked_by: str
     user_id: str
+    locked_by: str | None = None
+
+    @field_validator("locked_by")
+    @classmethod
+    def locked_by_must_not_be_empty(cls, v: str | None) -> str | None:
+        if v is not None and v.strip() == "":
+            raise ValueError("locked_by must be a non-empty string or null (use null for draft saves)")
+        return v
 
 
 class ResetRequest(BaseModel):
@@ -144,12 +164,14 @@ async def submit_classification(
                 (variant_id,),
             )
 
-            # Insert new classification record
+            # locked_by is None → draft save (locked_at = NULL)
+            # locked_by is a non-empty string → confirmed save (locked_at = NOW())
+            locked_at_sql = "NOW()" if body.locked_by is not None else "NULL"
             c.execute(
                 "INSERT INTO variant_classification "
                 "(variant_id, framework, framework_version, score, classification, "
                 "locked_at, locked_by) "
-                "VALUES (%s, %s, %s, %s, %s, NOW(), %s) RETURNING id",
+                f"VALUES (%s, %s, %s, %s, %s, {locked_at_sql}, %s) RETURNING id",
                 (
                     variant_id,
                     body.framework,
