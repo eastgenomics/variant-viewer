@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D2 — Specimen &amp; Variant Components · Part 2 · Key concepts</title>
+<style>
+:root{
+  --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+  --line:#e0e7ef;--line-strong:#c5d0db;
+  --bg:#f7f9fb;--paper:#ffffff;
+  --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+  --green:#1a6e47;--green-soft:#e0f0e8;
+  --amber:#b35c00;--amber-soft:#fdf0e0;
+  --red:#9b2335;--red-soft:#fce8ea;
+  --purple:#4b2d8e;--purple-soft:#ede8f8;
+  --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent-mid);text-decoration:none}
+a:hover{text-decoration:underline}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+main{padding:0 56px 96px;max-width:900px}
+@media(max-width:860px){main{padding:0 24px 64px}}
+h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+p{margin-bottom:13px;color:var(--ink-soft)}
+strong{color:var(--ink)}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:5px 0;color:var(--ink-soft)}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+.toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+.toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.toc ul{list-style:none}
+.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+.toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+.toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+.hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+.hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+.hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.hero .meta-item{font-size:12px;color:var(--muted)}
+.hero .meta-item strong{color:var(--ink-soft)}
+section{padding-top:52px}
+section+section{border-top:1px solid var(--line)}
+footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+.callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+.callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+.callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+.callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.callout.blue .tag{color:var(--accent-deep)}
+.callout.green .tag{color:var(--green)}
+.callout.amber .tag{color:var(--amber)}
+.callout p:last-child{margin:0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+tr:hover td{background:#fafbfd}
+figure{margin:24px 0}
+.fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+.cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+.cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+.cb .c{color:#6e9cbf}
+.cb .k{color:#79b8ff}
+.cb .s{color:#9ecbff}
+.cb .n{color:#b392f0}
+.cb .f{color:#85e89d}
+.cb .t{color:#ffab70}
+.series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+.series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+.series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+.concept-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+.concept-header{background:var(--accent-deep);padding:12px 18px}
+.concept-header h3{margin:0;color:#fff;font-size:15px}
+.concept-header .concept-sub{color:#a8c8e8;font-size:12px;margin-top:2px}
+.concept-body{padding:18px}
+.concept-body p{margin-bottom:10px}
+.in-this-file{background:var(--green-soft);border:1px solid #a8d4bb;border-radius:6px;padding:12px 16px;margin-top:12px}
+.in-this-file strong{color:var(--green);font-size:11px;letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D2 — SPECIMEN &amp; VARIANT COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">Part 2 of 4</div>
+  <ul>
+    <li><a href="#tanstack">TanStack Table</a></li>
+    <li><a href="#fetch-pattern">useCallback + useEffect fetch</a></li>
+    <li><a href="#usememo">useMemo referential stability</a></li>
+    <li><a href="#state-machine">Workflow state machine</a></li>
+    <li><a href="#partial-mock">Vitest partial mock</a></li>
+  </ul>
+  <div class="meta">Continued from Part 1<br>Source: eastgenomics/variant-viewer<br>Branch: pr/D2</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · React frontend · Part 2 of 4</div>
+  <h1>PR D2 — Key Concepts</h1>
+  <p class="sub">Five concepts needed to understand the specimen and variant components before reading the code: TanStack Table, the fetch pattern, useMemo stability, the workflow state machine, and Vitest partial mocking.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 2 of 4 — Key concepts</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D2_Specimen_Variant_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="tanstack">
+  <h2><span class="sec-num">07</span> TanStack Table</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>TanStack Table (formerly React Table)</h3>
+      <div class="concept-sub">Headless table state manager — brings structure, not HTML</div>
+    </div>
+    <div class="concept-body">
+      <p>Most UI frameworks give you a pre-built <code>&lt;Table&gt;</code> component that renders HTML and manages its own state. TanStack Table does the opposite: it is <strong>headless</strong>. You give it your data and column definitions; it gives you back a <em>model</em> (a plain JavaScript object) that describes what to render. You write the HTML yourself.</p>
+
+      <p>The key concept is the split between <strong>column definitions</strong> (declared once, outside the component) and the <strong>table instance</strong> (created inside the component with <code>useReactTable</code>). Column definitions tell the library what data to show and how to render each cell. The instance ties those definitions to the actual data array and exposes methods like <code>getHeaderGroups()</code> and <code>getRowModel()</code> to drive the render.</p>
+
+      <div class="cb"><pre><span class="c">// 1. Declare columns once, outside the component (no re-creation on render)</span>
+<span class="k">const</span> col = createColumnHelper&lt;VariantRow&gt;();
+<span class="k">const</span> COLUMNS = [
+  col.accessor(<span class="s">"gene"</span>, {
+    header: <span class="s">"Gene"</span>,
+    cell: (i) =&gt; &lt;span&gt;{i.getValue() ?? <span class="s">"—"</span>}&lt;/span&gt;,
+  }),
+  <span class="c">// ...more columns</span>
+];
+
+<span class="c">// 2. Create the table instance inside the component</span>
+<span class="k">const</span> table = useReactTable({
+  data,          <span class="c">// VariantRow[] — changes when fetch completes</span>
+  columns: COLUMNS,
+  getCoreRowModel: getCoreRowModel(),
+  manualPagination: <span class="k">true</span>,   <span class="c">// we manage page state ourselves</span>
+  pageCount,              <span class="c">// total pages, computed from server total</span>
+});
+
+<span class="c">// 3. Render using the instance's iterators</span>
+table.getHeaderGroups().map(hg =&gt;
+  hg.headers.map(header =&gt;
+    &lt;th&gt;{flexRender(header.column.columnDef.header, header.getContext())}&lt;/th&gt;
+  )
+);
+table.getRowModel().rows.map(row =&gt;
+  row.getVisibleCells().map(cell =&gt;
+    &lt;td&gt;{flexRender(cell.column.columnDef.cell, cell.getContext())}&lt;/td&gt;
+  )
+);</pre></div>
+
+      <p><code>flexRender</code> is a helper that can accept either a React component or a plain string as the cell renderer — it handles both cases transparently. <code>getContext()</code> provides the cell's value, row data, and column metadata to the renderer function.</p>
+
+      <p>The <code>manualPagination: true</code> flag is critical: it tells TanStack not to slice the data array itself. The component manages page state (<code>pageIndex</code>) and fetches the correct page from the server. <code>pageCount</code> (the total number of pages) is computed from the server-returned <code>total</code> count and the page size constant.</p>
+
+      <div class="in-this-file">
+        <strong>In VariantTable.tsx</strong>
+        COLUMNS is declared at module level (lines 19–98) so it is created once when the file is imported, not on every component render. The table instance is created at line 161 inside the component, where it can react to the <code>data</code> state variable changing after each fetch.
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="fetch-pattern">
+  <h2><span class="sec-num">08</span> The useCallback + useEffect fetch pattern</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>useCallback + useEffect for data fetching</h3>
+      <div class="concept-sub">Making a fetch re-run when its dependencies change — correctly</div>
+    </div>
+    <div class="concept-body">
+      <p>React's <code>useEffect</code> runs a function after a render, and re-runs it when items in its dependency array change. The naive pattern is to put the fetch directly inside <code>useEffect</code>:</p>
+
+      <div class="cb"><pre><span class="c">// Naive — the async function is re-created on every render</span>
+useEffect(() =&gt; {
+  <span class="k">async function</span> <span class="f">doFetch</span>() { <span class="c">/* ... */</span> }
+  doFetch();
+}, [sampleId, pageIndex, filters]);</pre></div>
+
+      <p>This works, but there is a subtlety: the inline async function is a new object on every render, which is fine here because it is only used inside the effect. The pattern used in <code>VariantTable</code> is slightly different — it separates the fetch logic into a <code>useCallback</code>-wrapped function and then depends on <em>that function reference</em> in the effect:</p>
+
+      <div class="cb"><pre><span class="c">// Pattern used in VariantTable</span>
+<span class="k">const</span> <span class="f">fetchVariants</span> = useCallback(<span class="k">async</span> () =&gt; {
+  <span class="c">// fetch logic here</span>
+}, [sampleId, pageIndex, filters, geneInput, sortBy, sortDir]);
+<span class="c">// fetchVariants is a stable reference — only changes when a dep changes</span>
+
+useEffect(() =&gt; { fetchVariants(); }, [fetchVariants]);
+<span class="c">// effect re-runs only when fetchVariants reference changes</span>
+<span class="c">// which only happens when one of its deps changes — same net result</span></pre></div>
+
+      <p>The result is identical in behaviour but offers a benefit: <code>fetchVariants</code> can be called explicitly (e.g. for a manual refresh button) without needing to duplicate the dependency list. It also makes the effect's intent clearer — <em>"run fetchVariants whenever it becomes a new function."</em></p>
+
+      <div class="callout amber">
+        <span class="tag">Stale closure risk</span>
+        <p>If a variable used inside <code>fetchVariants</code> is not listed in the <code>useCallback</code> dependency array, the function will close over its initial value and never see updates — a "stale closure". Every variable used in <code>fetchVariants</code> that comes from component state or props (<code>sampleId</code>, <code>pageIndex</code>, <code>filters</code>, <code>geneInput</code>, <code>sortBy</code>, <code>sortDir</code>) must be in the array.</p>
+      </div>
+
+      <div class="in-this-file">
+        <strong>In VariantTable.tsx</strong>
+        <code>fetchVariants</code> is defined at lines 124–158 with a dependency array of all six inputs. The <code>useEffect</code> at line 160 has a single dependency: <code>fetchVariants</code>. Whenever any of the six inputs changes, <code>useCallback</code> produces a new function reference, which causes the effect to re-run the fetch.
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="usememo">
+  <h2><span class="sec-num">09</span> useMemo and referential stability</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>useMemo — stable object references across renders</h3>
+      <div class="concept-sub">Why object identity matters in React dependency arrays</div>
+    </div>
+    <div class="concept-body">
+      <p>In JavaScript, two objects with the same content are not equal: <code>{"{}"} === {"{}"}</code> is <code>false</code>. React's <code>useEffect</code> and <code>useCallback</code> dependency arrays use <strong>reference equality</strong> (<code>===</code>) to decide whether a dependency has changed. This has a surprising consequence:</p>
+
+      <div class="cb"><pre><span class="c">// Parent component — re-renders when its own state changes</span>
+<span class="k">function</span> <span class="f">SpecimenCard</span>({ specimen }) {
+  <span class="c">// WITHOUT useMemo: new object on every render</span>
+  <span class="k">const</span> defaultFilters = getPipelineDefaults(specimen.pipeline_key);
+  <span class="c">// { gnomad_af_max: 0.01, consequences: "...", clinvar_exclude: "..." }</span>
+  <span class="c">// This is a NEW object reference every time SpecimenCard renders</span>
+
+  <span class="k">return</span> &lt;<span class="t">VariantTable</span> defaultFilters={defaultFilters} /&gt;;
+  <span class="c">// VariantTable's useEffect sees defaultFilters change on every parent render</span>
+  <span class="c">// → triggers a network fetch even when nothing actually changed</span>
+}</pre></div>
+
+      <div class="cb"><pre><span class="c">// WITH useMemo: same reference unless pipeline_key actually changes</span>
+<span class="k">const</span> defaultFilters = useMemo(
+  () =&gt; getPipelineDefaults(specimen.pipeline_key),
+  [specimen.pipeline_key]  <span class="c">// only recompute when this changes</span>
+);
+<span class="c">// Now VariantTable only refetches when the pipeline actually changes</span></pre></div>
+
+      <p><code>useMemo</code> caches the return value of the function and only calls the function again when one of the listed dependencies changes. The cached value keeps the same object reference between renders — so React's equality check sees no change and does not re-run downstream effects.</p>
+
+      <div class="in-this-file">
+        <strong>In SpecimenCard.tsx (lines 18–21)</strong>
+        <code>defaultFilters</code> is memoized on <code>specimen.pipeline_key</code>. A string primitive is compared by value, so this is stable as long as the pipeline key does not change. VariantTable lists <code>defaultFilters</code> as a dependency of the filter-reset effect (line 121 of VariantTable.tsx), so without the memo, any re-render of SpecimenCard — triggered by, say, a workflow status update — would reset VariantTable's filters and fire a new fetch unnecessarily.
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="state-machine">
+  <h2><span class="sec-num">10</span> The workflow state machine</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>Finite state machine for workflow status</h3>
+      <div class="concept-sub">Why the frontend TRANSITIONS map must match the backend VALID_TRANSITIONS exactly</div>
+    </div>
+    <div class="concept-body">
+      <p>A <strong>finite state machine</strong> is a system that can be in exactly one of a fixed set of states, and where the rules for moving between states are explicit. The variant-viewer workflow is such a machine: a sample is always in exactly one of <code>pending</code>, <code>reviewing</code>, <code>reported</code>, or <code>archived</code>.</p>
+
+      <figure>
+      <div class="fig-wrap">
+      <svg viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Workflow state machine showing transitions between pending, reviewing, reported and archived">
+        <style>.lbl{font:13px -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif}.slbl{font:11px -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif}</style>
+        <text x="14" y="20" font-size="11" letter-spacing="2" fill="#6b7c8d">STATE MACHINE</text>
+        <defs>
+          <marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#005eb8"/></marker>
+          <marker id="a3" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#b35c00"/></marker>
+        </defs>
+        <!-- States -->
+        <rect x="30" y="60" width="100" height="40" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+        <text x="80" y="85" text-anchor="middle" class="lbl" fill="#003d78" font-weight="700">pending</text>
+
+        <rect x="200" y="60" width="100" height="40" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+        <text x="250" y="85" text-anchor="middle" class="lbl" fill="#1a6e47" font-weight="700">reviewing</text>
+
+        <rect x="370" y="60" width="100" height="40" rx="6" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+        <text x="420" y="85" text-anchor="middle" class="lbl" fill="#b35c00" font-weight="700">reported</text>
+
+        <rect x="540" y="60" width="100" height="40" rx="6" fill="#f0f4f8" stroke="#6b7c8d" stroke-width="1.5"/>
+        <text x="590" y="85" text-anchor="middle" class="lbl" fill="#354656" font-weight="700">archived</text>
+
+        <!-- Transitions - main flow -->
+        <line x1="130" y1="80" x2="198" y2="80" stroke="#005eb8" stroke-width="1.5" marker-end="url(#a2)"/>
+        <line x1="300" y1="80" x2="368" y2="80" stroke="#005eb8" stroke-width="1.5" marker-end="url(#a2)"/>
+        <line x1="470" y1="80" x2="538" y2="80" stroke="#005eb8" stroke-width="1.5" marker-end="url(#a2)"/>
+
+        <!-- Skip-to-archived from pending and reviewing -->
+        <path d="M80 60 Q80 30 590 30 L590 58" stroke="#b35c00" stroke-width="1.2" fill="none" stroke-dasharray="4 3" marker-end="url(#a3)"/>
+        <path d="M250 60 Q250 45 590 45 L590 58" stroke="#b35c00" stroke-width="1.2" fill="none" stroke-dasharray="4 3" marker-end="url(#a3)"/>
+        <path d="M420 60 Q420 50 595 50 L595 58" stroke="#b35c00" stroke-width="1.2" fill="none" stroke-dasharray="4 3" marker-end="url(#a3)"/>
+
+        <!-- Terminal badge -->
+        <rect x="566" y="105" width="48" height="18" rx="4" fill="#354656"/>
+        <text x="590" y="118" text-anchor="middle" class="slbl" fill="#fff">terminal</text>
+
+        <!-- Labels -->
+        <text x="164" y="74" text-anchor="middle" class="slbl" fill="#6b7c8d">→ reviewing</text>
+        <text x="334" y="74" text-anchor="middle" class="slbl" fill="#6b7c8d">→ reported</text>
+        <text x="504" y="74" text-anchor="middle" class="slbl" fill="#6b7c8d">→ archived</text>
+        <text x="335" y="26" text-anchor="middle" class="slbl" fill="#b35c00">→ archived (escape hatch)</text>
+      </svg>
+      </div>
+      <figcaption>Figure 2 · Workflow state machine. Solid blue arrows = normal progression. Dashed orange arrows = escape hatch to archived from any state.</figcaption>
+      </figure>
+
+      <p>The backend enforces these transitions in <code>routes/workflow.py</code> with a <code>VALID_TRANSITIONS</code> dict. If the frontend sends a transition not in that dict, the backend returns HTTP 422. The frontend <code>TRANSITIONS</code> map in <code>WorkflowControl.tsx</code> is a copy of this dict — its purpose is purely UX: <strong>only render the buttons for transitions that will actually succeed</strong>. The backend remains the authoritative guard.</p>
+
+      <div class="cb"><pre><span class="c">// backend/app/routes/workflow.py</span>
+VALID_TRANSITIONS: dict[str, list[str]] = {
+    <span class="s">"pending"</span>:   [<span class="s">"reviewing"</span>, <span class="s">"archived"</span>],
+    <span class="s">"reviewing"</span>: [<span class="s">"reported"</span>,  <span class="s">"archived"</span>],
+    <span class="s">"reported"</span>:  [<span class="s">"archived"</span>],
+    <span class="s">"archived"</span>:  [],
+}
+
+<span class="c">// frontend/src/components/WorkflowControl.tsx</span>
+<span class="k">const</span> TRANSITIONS: Record&lt;string, WorkflowStatus[]&gt; = {
+  pending:   [<span class="s">"reviewing"</span>, <span class="s">"archived"</span>],
+  reviewing: [<span class="s">"reported"</span>,  <span class="s">"archived"</span>],
+  reported:  [<span class="s">"archived"</span>],
+  archived:  [],  <span class="c">// empty → no buttons rendered → terminal state</span>
+};</pre></div>
+
+      <p>The <code>archived: []</code> entry is important: <code>TRANSITIONS["archived"] ?? []</code> produces an empty array, so the <code>transitions.map()</code> call renders zero buttons, giving the user a clear visual indication that the sample is in a terminal state.</p>
+
+      <div class="in-this-file">
+        <strong>In WorkflowControl.tsx (lines 5–10)</strong>
+        The <code>TRANSITIONS</code> constant is declared at module level. It is used in the component body: <code>const transitions = TRANSITIONS[status] ?? [];</code>. The <code>?? []</code> fallback handles any unexpected status strings from the database gracefully (shows no buttons rather than crashing).
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="partial-mock">
+  <h2><span class="sec-num">11</span> Vitest partial mock pattern</h2>
+
+  <div class="concept-box">
+    <div class="concept-header">
+      <h3>vi.mock with importOriginal — keeping real exports, replacing specific ones</h3>
+      <div class="concept-sub">Why full auto-mocking breaks class instances like ApiError</div>
+    </div>
+    <div class="concept-body">
+      <p>When you call <code>vi.mock("../lib/api")</code> with no factory, Vitest replaces every export with an auto-generated mock function. This is convenient for most functions, but breaks any export that is a <strong>class</strong>: the constructor becomes a no-op jest spy, so <code>new api.ApiError(409, "message")</code> produces an empty object that is not an instance of <code>Error</code>. When <code>WorkflowControl</code> then does <code>err instanceof Error ? err.message : "Update failed"</code>, it falls through to the fallback string, and the test asserting for the specific error message fails.</p>
+
+      <div class="cb"><pre><span class="c">// WRONG: full auto-mock breaks ApiError class</span>
+vi.mock(<span class="s">"../lib/api"</span>);
+<span class="c">// api.ApiError is now a mock spy, not a real class</span>
+<span class="c">// new api.ApiError(409, "msg") does NOT extend Error</span>
+
+<span class="c">// CORRECT: partial mock — keep real exports, replace only what we need</span>
+vi.mock(<span class="s">"../lib/api"</span>, <span class="k">async</span> (importOriginal) =&gt; {
+  <span class="k">const</span> actual = <span class="k">await</span> importOriginal&lt;<span class="k">typeof</span> <span class="k">import</span>(<span class="s">"../lib/api"</span>)&gt;();
+  <span class="k">return</span> { ...actual, updateWorkflow: vi.fn() };
+  <span class="c">// ApiError is the real class — instanceof Error works</span>
+  <span class="c">// updateWorkflow is a spy — vi.mocked() + mockResolvedValue works</span>
+});
+
+<span class="c">// Now this works as expected in the test:</span>
+vi.mocked(updateWorkflow).mockRejectedValue(
+  <span class="k">new</span> ApiError(<span class="n">409</span>, <span class="s">"Concurrent modification"</span>)
+  <span class="c">// Real ApiError extends Error → err.message === "Concurrent modification"</span>
+);</pre></div>
+
+      <p>The factory function receives <code>importOriginal</code> — a helper that asynchronously imports the real module. Spreading its result (<code>...actual</code>) then selectively overriding only the functions being tested gives you the best of both worlds: real class behaviour for types you are not testing, and controllable spy behaviour for functions you are.</p>
+
+      <div class="in-this-file">
+        <strong>In WorkflowControl.test.tsx (lines 4–11)</strong>
+        The partial mock factory keeps <code>ApiError</code> real and replaces only <code>updateWorkflow</code>. The <code>import { updateWorkflow } from "../lib/api"</code> statement below the mock block imports the spy (Vitest hoisting makes this work even though the import appears after the mock call). Tests then use <code>vi.mocked(updateWorkflow).mockResolvedValue()</code> to control the return value.
+      </div>
+
+      <div class="callout blue">
+        <span class="tag">Note on SpecimenCard test</span>
+        <p>The <code>SpecimenCard.test.tsx</code> uses a different strategy: it full-auto-mocks <code>api</code> and stubs global <code>fetch</code> before each test. The fetch stub satisfies <code>VariantTable</code>'s <code>useEffect</code> fetch immediately, preventing the React "state update after unmount" warnings (<code>act()</code> warnings) that appeared without it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_D2_Specimen_Variant_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D2_Specimen_Variant_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+</main>
+</div>
+<footer>
+  Code walkthrough for PR D2 — Specimen &amp; Variant Components. Author: Joo Wook Ahn. Date: 21 May 2026. Source: eastgenomics/variant-viewer branch pr/D2. Continued from Part 1. Continues in Part 3.
+</footer>
+</body>
+</html>

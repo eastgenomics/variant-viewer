@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR A — Backend API Extensions · Part 2 of 4</title>
+<style>
+:root{
+  --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+  --line:#e0e7ef;--line-strong:#c5d0db;
+  --bg:#f7f9fb;--paper:#ffffff;
+  --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+  --green:#1a6e47;--green-soft:#e0f0e8;
+  --amber:#b35c00;--amber-soft:#fdf0e0;
+  --red:#9b2335;--red-soft:#fce8ea;
+  --purple:#4b2d8e;--purple-soft:#ede8f8;
+  --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent-mid);text-decoration:none}
+a:hover{text-decoration:underline}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+main{padding:0 56px 96px;max-width:900px}
+@media(max-width:860px){main{padding:0 24px 64px}}
+h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+p{margin-bottom:13px;color:var(--ink-soft)}
+strong{color:var(--ink)}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:5px 0;color:var(--ink-soft)}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+.toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+.toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.toc ul{list-style:none}
+.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+.toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+.toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+.hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+.hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+.hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+.hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.hero .meta-item{font-size:12px;color:var(--muted)}
+.hero .meta-item strong{color:var(--ink-soft)}
+section{padding-top:52px}
+section+section{border-top:1px solid var(--line)}
+footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+.callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+.callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+.callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+.callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.callout.blue .tag{color:var(--accent-deep)}
+.callout.green .tag{color:var(--green)}
+.callout.amber .tag{color:var(--amber)}
+.callout p:last-child{margin:0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+tr:hover td{background:#fafbfd}
+figure{margin:24px 0}
+.fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+.cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+.cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+.cb .c{color:#6e9cbf}.cb .k{color:#79b8ff}.cb .s{color:#9ecbff}.cb .n{color:#b392f0}.cb .f{color:#85e89d}.cb .t{color:#ffab70}
+.series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+.series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+.series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+.concept-box{border:1px solid var(--line);border-radius:8px;margin:0 0 36px;overflow:hidden}
+.concept-head{background:var(--accent-deep);padding:12px 18px}
+.concept-head h3{color:#fff;margin:0;font-size:16px}
+.concept-head .sub{color:#a8c8e8;font-size:12px;margin-top:2px}
+.concept-body{padding:18px}
+.concept-body p{margin-bottom:10px}
+.concept-body p:last-child{margin:0}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR A BACKEND EXTENSIONS<br>21 May 2026</div>
+  <div class="toc-section">Part 2 of 4</div>
+  <ul>
+    <li><a href="#fastapi">FastAPI routers &amp; Pydantic</a></li>
+    <li><a href="#async">asyncio.to_thread</a></li>
+    <li><a href="#sentinel">Sentinel exceptions</a></li>
+    <li><a href="#validators">Field validators</a></li>
+    <li><a href="#sql-safety">f-string SQL safety</a></li>
+    <li><a href="#transaction">Transaction callbacks</a></li>
+    <li><a href="#multipart">Multipart uploads</a></li>
+    <li><a href="#gdpr">GDPR data minimisation</a></li>
+  </ul>
+  <div class="meta">Part 2 of 4 · Key concepts<br>Continued from Part 1</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · Backend API · variant-viewer — Part 2 of 4: Key concepts</div>
+  <h1>PR A — Backend API Extensions</h1>
+  <p class="sub">Eight concepts you need to understand before the code makes sense: FastAPI patterns, async threading, sentinel exceptions, Pydantic validators, safe SQL interpolation, transaction callbacks, multipart file handling, and GDPR data minimisation.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> #31 · M_pre1–8</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_A_Backend_Extensions_1.html">1 · High-level outline</a>
+  <a href="260521_PR_A_Backend_Extensions_2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_A_Backend_Extensions_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_A_Backend_Extensions_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="fastapi">
+  <h2><span class="sec-num">08</span> FastAPI routers and Pydantic models</h2>
+
+  <p>FastAPI is a Python web framework that uses type annotations to do two things automatically: validate incoming data and generate API documentation. Understanding these two mechanisms explains why the route files are structured the way they are.</p>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>APIRouter</h3>
+      <div class="sub">Groups related endpoints under a shared URL prefix and dependency</div>
+    </div>
+    <div class="concept-body">
+      <p>Each route file creates one <code>APIRouter</code> with a <code>prefix</code> (e.g. <code>/api/patients</code>) and a shared <code>dependencies</code> list. Any dependency in that list runs before every endpoint in the router — here, <code>require_api_key</code> checks the <code>X-API-Key</code> header and raises a 403 if it is missing or wrong.</p>
+      <div class="cb"><pre><span class="k">router</span> = APIRouter(
+    prefix=<span class="s">"/api/patients"</span>,
+    dependencies=[Depends(require_api_key)],  <span class="c"># runs before every endpoint below</span>
+)
+
+<span class="c"># All these routes require the API key:</span>
+@router.get(<span class="s">""</span>)           <span class="c"># → GET /api/patients</span>
+@router.get(<span class="s">"/{id}"</span>)      <span class="c"># → GET /api/patients/{id}</span>
+@router.delete(<span class="s">"/{id}"</span>)   <span class="c"># → DELETE /api/patients/{id}</span></pre></div>
+      <p><strong>In this PR:</strong> All five route files use this pattern. The shared dependency means no endpoint can accidentally be left unprotected.</p>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>Pydantic BaseModel</h3>
+      <div class="sub">Declares the shape of request bodies and response objects</div>
+    </div>
+    <div class="concept-body">
+      <p>A <code>BaseModel</code> subclass declares fields with type annotations. FastAPI automatically deserialises a JSON request body into the model (returning 422 if the shape is wrong) and serialises a model instance back to JSON in the response.</p>
+      <div class="cb"><pre><span class="k">class</span> <span class="t">PatientSummary</span>(BaseModel):
+    id: <span class="t">int</span>
+    lab_number: <span class="t">str</span>
+    name: <span class="t">str</span> | <span class="k">None</span>          <span class="c"># nullable — serialises as JSON null</span>
+    sample_count: <span class="t">int</span> = <span class="n">0</span>     <span class="c"># default value — omit from JSON, get 0</span>
+
+<span class="c"># FastAPI uses it as response_model= to serialise:</span>
+@router.get(<span class="s">""</span>, response_model=PatientListResponse)
+<span class="k">async def</span> <span class="f">list_patients</span>(...):
+    <span class="k">return</span> PatientListResponse(items=[PatientSummary(**r) <span class="k">for</span> r <span class="k">in</span> rows], ...)</pre></div>
+      <p><strong>In this PR:</strong> <code>PatientSummary</code> gained five aggregate fields with defaults of <code>0</code> or <code>None</code>. The defaults matter: <code>PatientDetailResponse</code> extends <code>PatientSummary</code>, so it inherits those fields. On the detail endpoint the subqueries are not run, so the fields serialise as their defaults — which is correct, because the detail response exposes samples directly.</p>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>Query() parameters</h3>
+      <div class="sub">Declare URL query string parameters with validation</div>
+    </div>
+    <div class="concept-body">
+      <p><code>Query()</code> declares a URL query parameter with optional constraints: <code>ge</code> (greater-than-or-equal), <code>le</code> (less-than-or-equal), <code>pattern</code> (regex). If the client sends a value that violates the constraint, FastAPI returns a 422 before the function body runs.</p>
+      <div class="cb"><pre>@router.get(<span class="s">"/{sample_id}/variants"</span>)
+<span class="k">async def</span> <span class="f">list_sample_variants</span>(
+    sample_id: <span class="t">int</span>,
+    limit: <span class="t">int</span> = Query(<span class="n">50</span>, ge=<span class="n">1</span>, le=<span class="n">200</span>),     <span class="c"># 1–200 only</span>
+    sort_by: <span class="t">str</span> = Query(<span class="s">"chrom"</span>,
+        pattern=<span class="s">r"^(chrom|gene|gnomad_af|...)$"</span>),  <span class="c"># whitelist via regex</span>
+    gnomad_af_max: <span class="t">float</span> | <span class="k">None</span> = Query(<span class="k">None</span>, ge=<span class="n">0</span>, le=<span class="n">1</span>),
+):</pre></div>
+      <p><strong>In this PR:</strong> The <code>pattern=</code> on <code>sort_by</code> is crucial for SQL safety — it ensures that only known column names reach the <code>SORTABLE</code> dict. Any other value causes a 422 before the function body executes, so no user-controlled string ever reaches the f-string SQL interpolation.</p>
+    </div>
+  </div>
+</section>
+
+<section id="async">
+  <h2><span class="sec-num">09</span> asyncio.to_thread — bridging async and blocking code</h2>
+
+  <p>FastAPI is an <em>async</em> framework: route handlers are declared with <code>async def</code> and run on an event loop. The database library (psycopg2) is <em>synchronous</em> — it blocks the calling thread while waiting for PostgreSQL. Calling a blocking function directly from an async handler would freeze the entire event loop, blocking all other requests.</p>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>asyncio.to_thread</h3>
+      <div class="sub">Runs a blocking function on a thread pool without blocking the event loop</div>
+    </div>
+    <div class="concept-body">
+      <p><code>asyncio.to_thread(fn, *args)</code> submits <code>fn(*args)</code> to a thread pool and returns an awaitable. The event loop can serve other requests while the thread is blocked waiting for the database. When the thread finishes, the result is returned to the calling coroutine.</p>
+      <div class="cb"><pre><span class="c"># Without to_thread — BAD: blocks entire event loop</span>
+rows = db.query(<span class="s">"SELECT ..."</span>)       <span class="c"># blocks for 50ms → no other requests served</span>
+
+<span class="c"># With to_thread — GOOD: event loop free while DB runs</span>
+rows = <span class="k">await</span> asyncio.to_thread(
+    db.query,                          <span class="c"># function to call in thread</span>
+    <span class="s">"SELECT ..."</span>,                      <span class="c"># positional arg 1</span>
+    (patient_id,),                     <span class="c"># positional arg 2</span>
+)</pre></div>
+      <p><strong>In this PR:</strong> Every <code>db.query()</code> and <code>db.run_in_transaction()</code> call is wrapped in <code>asyncio.to_thread</code>. This is the standard pattern throughout the codebase.</p>
+    </div>
+  </div>
+</section>
+
+<section id="sentinel">
+  <h2><span class="sec-num">10</span> The sentinel exception pattern</h2>
+
+  <p>This pattern appears in three places in this PR: <code>_PatientNotFound</code>, <code>_SampleNotFound</code>, and <code>_ConcurrentReset</code>. Understanding <em>why</em> it is needed requires understanding what happens when you raise an exception inside a thread.</p>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>Why not raise HTTPException inside _do(conn)?</h3>
+      <div class="sub">The problem with HTTP concerns inside threads</div>
+    </div>
+    <div class="concept-body">
+      <p>The <code>_do(conn)</code> function runs inside a thread (via <code>asyncio.to_thread</code>). If it raises an <code>HTTPException</code>, that exception propagates from the thread back to the async handler — but FastAPI's exception handling is not set up to catch exceptions that originated in threads. The result is an unhandled exception and a 500 error, regardless of what status code was in the <code>HTTPException</code>.</p>
+      <p>A second problem is conceptual: the database callback should not need to know about HTTP. It is a pure data operation — the decision about what HTTP status code a "not found" condition maps to belongs in the async handler, not in the transaction.</p>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>The sentinel pattern</h3>
+      <div class="sub">Private exception classes that carry meaning without HTTP knowledge</div>
+    </div>
+    <div class="concept-body">
+      <div class="cb"><pre><span class="c"># 1. Declare a private sentinel at module level</span>
+<span class="k">class</span> <span class="t">_PatientNotFound</span>(Exception):
+    <span class="k">pass</span>                               <span class="c"># no fields needed — just a type signal</span>
+
+<span class="c"># 2. Raise it inside _do when the condition occurs</span>
+<span class="k">def</span> <span class="f">_do</span>(conn):
+    <span class="k">with</span> conn.cursor() <span class="k">as</span> c:
+        c.execute(<span class="s">"SELECT id FROM patients WHERE id = %s"</span>, (patient_id,))
+        <span class="k">if not</span> c.fetchone():
+            <span class="k">raise</span> _PatientNotFound()    <span class="c"># ← no HTTPException here</span>
+        <span class="c"># ... rest of deletion ...</span>
+
+<span class="c"># 3. Catch the sentinel in the async handler and convert</span>
+<span class="k">try</span>:
+    <span class="k">await</span> asyncio.to_thread(db.run_in_transaction, _do)
+<span class="k">except</span> _PatientNotFound:
+    <span class="k">raise</span> HTTPException(status_code=<span class="n">404</span>, detail=<span class="s">"Patient not found"</span>)</pre></div>
+      <p><strong>Why the leading underscore?</strong> Python convention: a name starting with <code>_</code> is module-private. It signals that this exception is an implementation detail and should never be raised or caught outside the file. The name conveys its meaning to a reader while preventing accidental reuse elsewhere.</p>
+      <p><strong><code>_ConcurrentReset</code> in classification.py:</strong> The same pattern handles a TOCTOU (time-of-check-time-of-use) race. Two requests could both pass the <code>deleted_at IS NULL</code> SELECT and then both attempt to UPDATE. The second one finds <code>rowcount == 0</code> (the row is already deleted), raises <code>_ConcurrentReset</code>, and the handler converts it to a 409 Conflict.</p>
+    </div>
+  </div>
+</section>
+
+<section id="validators">
+  <h2><span class="sec-num">11</span> Pydantic field validators</h2>
+
+  <p>Field validators are methods on a Pydantic model that run after the type conversion but before the model is returned. They can raise <code>ValueError</code> (which Pydantic wraps into a 422 response) or return the (possibly modified) value.</p>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>@field_validator — anatomy</h3>
+      <div class="sub">Declared with a decorator; runs at parse time, not at definition time</div>
+    </div>
+    <div class="concept-body">
+      <div class="cb"><pre><span class="k">class</span> <span class="t">CriterionIn</span>(BaseModel):
+    evidence_links: <span class="t">list</span>[<span class="t">str</span>] = []
+
+    @field_validator(<span class="s">"evidence_links"</span>)   <span class="c"># which field to validate</span>
+    @classmethod                           <span class="c"># must be classmethod in Pydantic v2</span>
+    <span class="k">def</span> <span class="f">validate_evidence_links</span>(cls, v: <span class="t">list</span>[<span class="t">str</span>]) -&gt; <span class="t">list</span>[<span class="t">str</span>]:
+        _safe = re.compile(<span class="s">r'^https?://'</span>, re.IGNORECASE)
+        <span class="k">for</span> link <span class="k">in</span> v:
+            <span class="k">if not</span> _safe.match(link.strip()):
+                <span class="k">raise</span> ValueError(        <span class="c"># ← NOT HTTPException</span>
+                    <span class="s">f"evidence_links must use http:// or https:// — got {link!r}"</span>
+                )
+        <span class="k">return</span> v                          <span class="c"># must return the value (possibly modified)</span></pre></div>
+      <p>When a client sends an evidence link like <code>javascript:alert(1)</code>, Pydantic catches the <code>ValueError</code> and returns:</p>
+      <div class="cb"><pre><span class="c"># HTTP 422 Unprocessable Entity</span>
+{
+  <span class="s">"detail"</span>: [{
+    <span class="s">"loc"</span>: [<span class="s">"body"</span>, <span class="s">"criteria"</span>, <span class="n">0</span>, <span class="s">"evidence_links"</span>],
+    <span class="s">"msg"</span>: <span class="s">"Value error, evidence_links must use http:// or https://..."</span>,
+    <span class="s">"type"</span>: <span class="s">"value_error"</span>
+  }]
+}</pre></div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>locked_by field validator</h3>
+      <div class="sub">Closing the gap between None (draft) and empty string</div>
+    </div>
+    <div class="concept-body">
+      <p>Without the validator, a client could send <code>"locked_by": ""</code>. That is not <code>None</code>, so the code would treat it as a confirmed save (setting <code>locked_at = NOW()</code>) — but storing an empty string as the confirming user's identity is meaningless in an audit trail. The validator rejects it explicitly:</p>
+      <div class="cb"><pre>@field_validator(<span class="s">"locked_by"</span>)
+@classmethod
+<span class="k">def</span> <span class="f">locked_by_must_not_be_empty</span>(cls, v: <span class="t">str</span> | <span class="k">None</span>) -&gt; <span class="t">str</span> | <span class="k">None</span>:
+    <span class="k">if</span> v <span class="k">is not None and</span> v.strip() == <span class="s">""</span>:
+        <span class="k">raise</span> ValueError(
+            <span class="s">"locked_by must be a non-empty string or null (use null for draft saves)"</span>
+        )
+    <span class="k">return</span> v</pre></div>
+      <p>The three valid states are now: <code>null</code> (draft), <code>"analyst-1"</code> (confirmed), or <em>missing from request</em> (treated as null via the default). The ambiguous empty string is rejected.</p>
+    </div>
+  </div>
+</section>
+
+<section id="sql-safety">
+  <h2><span class="sec-num">12</span> f-string SQL safety</h2>
+
+  <p>SQL injection is one of the most common and destructive security vulnerabilities in web applications. The standard defence is parameterised queries: pass user-supplied values as <code>%s</code> parameters, never as part of the SQL string itself. But there are two situations where parameters cannot be used: column names in ORDER BY clauses, and SQL keywords like ASC/DESC. This PR uses both, and it is safe — but the reasoning needs to be understood.</p>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>Why you cannot parameterise ORDER BY</h3>
+      <div class="sub">SQL parameters are for values, not identifiers</div>
+    </div>
+    <div class="concept-body">
+      <p>SQL parameters (the <code>%s</code> placeholders) are for <em>values</em> — strings, numbers, dates. The database driver quotes and escapes them safely. They cannot be used for structural parts of the SQL statement like column names, table names, or keywords. If you tried <code>ORDER BY %s</code> and passed <code>"v.gene"</code>, the database would interpret it as a string literal, not a column reference, and the ORDER BY would have no effect.</p>
+      <div class="cb"><pre><span class="c"># WRONG — %s produces: ORDER BY 'v.gene' ASC (string literal, no effect)</span>
+cursor.execute(<span class="s">"... ORDER BY %s %s"</span>, (<span class="s">"v.gene"</span>, <span class="s">"DESC"</span>))
+
+<span class="c"># CORRECT — whitelist first, then interpolate into the SQL string</span>
+SORTABLE = {
+    <span class="s">"gene"</span>:       <span class="s">"v.gene"</span>,          <span class="c"># source-code literals, not user input</span>
+    <span class="s">"gnomad_af"</span>:  <span class="s">"v.gnomad_af"</span>,
+}
+order_col = SORTABLE[sort_by]        <span class="c"># sort_by is regex-validated by FastAPI</span>
+order_dir = <span class="s">"DESC"</span> <span class="k">if</span> sort_dir == <span class="s">"desc"</span> <span class="k">else</span> <span class="s">"ASC"</span>
+cursor.execute(<span class="s">f"... ORDER BY {order_col} {order_dir}"</span>, params)</pre></div>
+    </div>
+  </div>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three layers of SQL injection defence: FastAPI regex validation, SORTABLE whitelist lookup, and parameterised values">
+    <defs>
+      <marker id="arrb" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0,8 3,0 6" fill="#1a6e47"/>
+      </marker>
+    </defs>
+    <style>.lb{font:13px -apple-system,Segoe UI,Inter,sans-serif}.sb{font:11px -apple-system,Segoe UI,Inter,sans-serif}</style>
+    <text x="16" y="22" font-size="11" letter-spacing="2" fill="#6b7c8d">SQL INJECTION DEFENCE LAYERS</text>
+
+    <!-- Layer 1 -->
+    <rect x="30" y="40" width="220" height="64" rx="6" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+    <text x="140" y="62" text-anchor="middle" class="lb" font-weight="700" fill="#b35c00">Layer 1: FastAPI Query()</text>
+    <text x="140" y="80" text-anchor="middle" class="sb" fill="#354656">pattern=r"^(chrom|gene|...)$"</text>
+    <text x="140" y="96" text-anchor="middle" class="sb" fill="#354656">Returns 422 before function body runs</text>
+
+    <line x1="250" y1="72" x2="290" y2="72" stroke="#1a6e47" stroke-width="1.5" marker-end="url(#arrb)"/>
+
+    <!-- Layer 2 -->
+    <rect x="295" y="40" width="220" height="64" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="405" y="62" text-anchor="middle" class="lb" font-weight="700" fill="#1a6e47">Layer 2: SORTABLE dict</text>
+    <text x="405" y="80" text-anchor="middle" class="sb" fill="#354656">Maps validated key to SQL fragment</text>
+    <text x="405" y="96" text-anchor="middle" class="sb" fill="#354656">All values are source-code literals</text>
+
+    <line x1="515" y1="72" x2="555" y2="72" stroke="#1a6e47" stroke-width="1.5" marker-end="url(#arrb)"/>
+
+    <!-- Layer 3 -->
+    <rect x="560" y="40" width="220" height="64" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="670" y="62" text-anchor="middle" class="lb" font-weight="700" fill="#003d78">Layer 3: %s parameters</text>
+    <text x="670" y="80" text-anchor="middle" class="sb" fill="#354656">All user values (gnomad_af_max,</text>
+    <text x="670" y="96" text-anchor="middle" class="sb" fill="#354656">consequences, gene, limit, offset)</text>
+
+    <!-- annotation -->
+    <rect x="30" y="130" width="750" height="84" rx="6" fill="#f7f9fb" stroke="#e0e7ef" stroke-width="1"/>
+    <text x="405" y="152" text-anchor="middle" class="lb" font-weight="700" fill="#0d1b2a">Result: safe SQL</text>
+    <text x="405" y="173" text-anchor="middle" class="sb" fill="#354656">SELECT ... FROM variants v WHERE v.sample_id = %s AND v.gnomad_af &lt;= %s</text>
+    <text x="405" y="191" text-anchor="middle" class="sb" fill="#354656">ORDER BY v.gene DESC   &#x2190; interpolated from source-code literal, not user input</text>
+    <text x="405" y="207" text-anchor="middle" class="sb" fill="#354656">LIMIT %s OFFSET %s     &#x2190; parameterised</text>
+  </svg>
+  </div>
+  <figcaption>Figure 2 · Three layers of defence in <code>list_sample_variants</code>. User input never reaches the SQL string directly — it is either rejected, mapped to a source-code literal, or passed as a <code>%s</code> parameter.</figcaption>
+  </figure>
+</section>
+
+<section id="transaction">
+  <h2><span class="sec-num">13</span> Transaction callbacks and db.run_in_transaction</h2>
+
+  <p>A database transaction is a set of operations that either all succeed or all fail together. In the variant-viewer codebase, write operations use a callback pattern: a plain Python function <code>_do(conn)</code> is passed to <code>db.run_in_transaction</code>, which opens a connection, begins a transaction, calls <code>_do(conn)</code>, and either commits (if no exception) or rolls back (if an exception escapes).</p>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>The _do(conn) closure pattern</h3>
+      <div class="sub">Transaction work as a captured-variable closure</div>
+    </div>
+    <div class="concept-body">
+      <div class="cb"><pre><span class="k">async def</span> <span class="f">delete_patient</span>(patient_id: <span class="t">int</span>):
+    <span class="k">def</span> <span class="f">_do</span>(conn):                          <span class="c"># ① inner function defined here</span>
+        <span class="k">with</span> conn.cursor() <span class="k">as</span> c:
+            c.execute(<span class="s">"SELECT id FROM patients WHERE id = %s"</span>, (patient_id,))
+            <span class="c"># ② patient_id captured from outer scope (closure)</span>
+            <span class="k">if not</span> c.fetchone():
+                <span class="k">raise</span> _PatientNotFound()
+            c.execute(<span class="s">"DELETE FROM patients WHERE id = %s"</span>, (patient_id,))
+
+    <span class="k">try</span>:                                    <span class="c"># ③ run on a thread, await result</span>
+        <span class="k">await</span> asyncio.to_thread(db.run_in_transaction, _do)
+    <span class="k">except</span> _PatientNotFound:
+        <span class="k">raise</span> HTTPException(status_code=<span class="n">404</span>, detail=<span class="s">"Patient not found"</span>)</pre></div>
+      <p><strong>① Inner function:</strong> <code>_do</code> is defined inside the async handler. It is a plain synchronous function — not async — because psycopg2 is synchronous.</p>
+      <p><strong>② Closure:</strong> <code>_do</code> can read <code>patient_id</code> from the enclosing scope without receiving it as an argument. This is how Python closures work: the inner function captures a reference to the variable, not a copy of it.</p>
+      <p><strong>③ Thread:</strong> <code>db.run_in_transaction(_do)</code> opens a connection and calls <code>_do(conn)</code>. The whole thing runs in a thread. Any exception from <code>_do</code> propagates to the <code>await</code> call, where the <code>try/except</code> converts it.</p>
+    </div>
+  </div>
+</section>
+
+<section id="multipart">
+  <h2><span class="sec-num">14</span> Multipart file uploads with FastAPI</h2>
+
+  <p>The <code>POST /api/ingest-direct</code> endpoint is the only one in this PR that accepts a file upload. The HTTP content type is <code>multipart/form-data</code> — the same format browsers use for HTML file inputs.</p>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>UploadFile and Form</h3>
+      <div class="sub">FastAPI's multipart parameter declarations</div>
+    </div>
+    <div class="concept-body">
+      <div class="cb"><pre><span class="k">from</span> fastapi <span class="k">import</span> File, Form, UploadFile
+
+<span class="k">async def</span> <span class="f">ingest_direct</span>(
+    vcf: UploadFile = File(...),          <span class="c"># binary file part</span>
+    lab_number: <span class="t">str</span> = Form(...),         <span class="c"># text field (required)</span>
+    case_type: Literal[<span class="s">"germline"</span>, <span class="s">"somatic"</span>] = Form(<span class="s">"germline"</span>),  <span class="c"># with default</span>
+    sequencing_date: <span class="t">date</span> | <span class="k">None</span> = Form(<span class="k">None</span>),   <span class="c"># optional typed date</span>
+):</pre></div>
+      <p><code>UploadFile</code> provides <code>vcf.filename</code> (the original filename from the client), <code>vcf.size</code> (byte count, if the client sends Content-Length), and <code>await vcf.read()</code> which reads the full file into memory as bytes.</p>
+      <p><code>Form(...)</code> means the field is required (no default). FastAPI parses text form fields and converts them to the declared type — so <code>sequencing_date: date | None = Form(None)</code> accepts a <code>YYYY-MM-DD</code> string and returns a <code>datetime.date</code> object, or <code>None</code> if absent.</p>
+      <p><strong>In this PR:</strong> the endpoint reads the entire VCF into memory, caps it at 500 MB, writes it to a temporary file, parses it with the VCF parser library, then deletes the temp file and does all DB work in a transaction. The temp file approach is needed because the VCF parser requires a file path, not a byte buffer.</p>
+    </div>
+  </div>
+</section>
+
+<section id="gdpr">
+  <h2><span class="sec-num">15</span> UK GDPR data minimisation and migration 004</h2>
+
+  <p>The UK General Data Protection Regulation (UK GDPR) establishes "data minimisation" as one of its key principles: personal data collected and retained must be "adequate, relevant and limited to what is necessary in relation to the purposes for which they are processed." Retaining data that is not necessary for those purposes is itself a compliance violation, even if the data is kept securely.</p>
+
+  <div class="callout amber">
+    <span class="tag">Regulatory context</span>
+    <p>The variant-viewer's purpose is variant classification for diagnostic genomics. A patient's date of birth is not required for variant interpretation — variants are classified based on allele frequency, computational predictions, and clinical evidence, none of which require the patient's age. Retaining <code>dob</code> would therefore be unnecessary personal data with no processing justification.</p>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-head">
+      <h3>Migration 004</h3>
+      <div class="sub">ALTER TABLE with BEGIN/COMMIT for transactional safety</div>
+    </div>
+    <div class="concept-body">
+      <div class="cb"><pre><span class="c">-- migrations/004_remove_patient_dob.sql</span>
+<span class="c">-- Remove date of birth from the patients table.</span>
+<span class="c">-- DOB is not required for variant interpretation and is unnecessary</span>
+<span class="c">-- personal data under UK GDPR data-minimisation principles.</span>
+BEGIN;
+<span class="k">ALTER TABLE</span> patients <span class="k">DROP COLUMN IF EXISTS</span> dob;
+COMMIT;</pre></div>
+      <p>The <code>IF EXISTS</code> clause makes the migration idempotent: running it twice does not error. The <code>BEGIN</code>/<code>COMMIT</code> wrapper ensures the DDL operation is atomic — consistent with how migrations 001–003 are written in this project.</p>
+      <p>The downstream consequence is that <code>PatientSummary</code> no longer declares a <code>dob</code> field. Any TypeScript code or test that expected <code>dob</code> in the API response must be updated. The PR addresses this by removing <code>dob</code> from the Pydantic model, the SQL queries, the TypeScript interface, and the frontend components — no backwards-compatibility layer is needed because this is a pre-release project.</p>
+    </div>
+  </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_A_Backend_Extensions_1.html">1 · High-level outline</a>
+    <a href="260521_PR_A_Backend_Extensions_2.html" class="current">2 · Key concepts</a>
+    <a href="260521_PR_A_Backend_Extensions_3.html">3 · Function walkthrough</a>
+    <a href="260521_PR_A_Backend_Extensions_4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  PR A — Backend API Extensions (M_pre1–8) · Code walkthrough Part 2 of 4 · Author: Joo Wook Ahn · Date: 21 May 2026 · Continued from Part 1 · Continues in Part 3.
+</footer>
+
+</body>
+</html>

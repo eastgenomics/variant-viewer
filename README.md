@@ -32,7 +32,7 @@ specification/ Design and build specs for each PR group
 | 5 | Lambda ingest pipeline + cyvcf2 migration | Merged |
 | 6 | Auth middleware + read-only API routes | Merged |
 | 7 | Write API routes (classification, workflow, upload) | Merged |
-| 8–11 | React SPA frontend | Pending |
+| 8–11 | React SPA frontend | In Review (PRs #31–#38) |
 | 12 | Infrastructure (Dockerfile, ECS, Lambda runtime) | Pending |
 
 Spec documents for each phase: `specification/` (PRs 2–5) and `specification/api/` (PRs 6–7).

@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR B — Frontend SPA Specification · Part 4: Deep reference</title>
+<style>
+  :root{
+    --ink:#0d1b2a; --ink-soft:#354656; --muted:#6b7c8d;
+    --line:#e0e7ef; --line-strong:#c5d0db;
+    --bg:#f7f9fb; --paper:#ffffff;
+    --accent:#005eb8; --accent-deep:#003d78; --accent-mid:#1a73c4; --accent-soft:#e3edf8;
+    --green:#1a6e47; --green-soft:#e0f0e8;
+    --amber:#b35c00; --amber-soft:#fdf0e0;
+    --red:#9b2335; --red-soft:#fce8ea;
+    --purple:#4b2d8e; --purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .acb{margin:20px 0 32px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .acb-header{background:var(--accent-deep);padding:10px 16px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  .acb-fn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#fff;font-weight:700}
+  .acb-desc{font-size:12px;color:#a8c8e8}
+  .acb-code{background:#1e2d3d;padding:0;overflow-x:auto}
+  .acb-code pre{color:#cdd9e5;font:12.5px/1.9 ui-monospace,Menlo,Consolas,monospace;margin:0;padding:16px 20px;white-space:pre}
+  .acb-annos{border-top:2px solid #2d4a63}
+  .anno-row{display:grid;grid-template-columns:44px 1fr;border-bottom:1px solid var(--line)}
+  .anno-row:last-child{border-bottom:none}
+  .anno-num{background:#f0f4f8;border-right:1px solid var(--line);display:flex;align-items:flex-start;justify-content:center;padding:12px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--accent-deep);padding-top:14px}
+  .anno-txt{padding:12px 16px;font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+  .anno-txt strong{color:var(--ink)}
+  .anno-txt code{font-size:12.5px}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}
+  .cb .k{color:#79b8ff}
+  .cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}
+  .cb .f{color:#85e89d}
+  .cb .t{color:#ffab70}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR B SPECIFICATION<br>21 May 2026</div>
+  <div class="toc-section">Part 4 of 4</div>
+  <ul>
+    <li><a href="#interfaces">19 TypeScript interfaces annotated</a></li>
+    <li><a href="#api-shapes">20 API response shapes annotated</a></li>
+    <li><a href="#scoring">21 Scoring algorithm annotated</a></li>
+    <li><a href="#invariant-cmds">22 Invariant verification commands</a></li>
+    <li><a href="#milestone-table">23 Milestone verification table</a></li>
+  </ul>
+  <div class="meta">Continued from Part 3 · Source: specification/frontend/ on pr/B</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Frontend Engineering · Clinical Bioinformatics · East Genomics</div>
+  <h1>PR B — Frontend SPA Specification</h1>
+  <p class="sub">Part 4 of 4: Deep reference — annotated TypeScript interfaces, API response shapes, scoring algorithm logic, and invariant verification commands.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Series</strong> Part 4 of 4</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_B_Specification_1.html">1 · High-level outline</a>
+  <a href="260521_PR_B_Specification_2.html">2 · Key concepts</a>
+  <a href="260521_PR_B_Specification_3.html">3 · Document walkthrough</a>
+  <a href="260521_PR_B_Specification_4.html" class="current">4 · Deep reference</a>
+</div>
+
+<section id="interfaces">
+  <h2><span class="sec-num">19</span> TypeScript interfaces — annotated</h2>
+  <p>These are the hardest parts of DESIGN.md §4 to understand correctly. Each interface below has inline annotations explaining every non-obvious decision.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">PatientSummary</span>
+      <span class="acb-desc">DESIGN.md §4 — items[] entry from GET /api/patients</span>
+    </div>
+    <div class="acb-code"><pre>export interface PatientSummary {
+  id: number;
+  lab_number: string;                         // ①
+  name: string | null;                        // ②
+  // dob removed — migration 004 (GDPR)       // ③
+  sample_count: number;                       // ④
+  latest_sample_id: number | null;
+  latest_sample_name: string | null;
+  latest_workflow_status: string | null;      // ⑤
+  latest_ingested_at: string | null;
+  pipeline_key: string | null;
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>lab_number is the MRN</strong> — the Medical Record Number. In the NHS context this is the primary patient identifier. It is displayed in the UI as "MRN" (the column header), not as "lab_number".</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>name is present but never rendered</strong> — the backend returns it, the TypeScript type includes it, but no component renders it. This is deliberate data minimisation. A reviewer should check that no component accesses <code>patient.name</code> for display purposes.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>dob deliberately absent</strong> — Migration 004 (<code>ALTER TABLE patients DROP COLUMN IF EXISTS dob</code>) removed this column from PostgreSQL for UK GDPR data-minimisation reasons. Any code that queries <code>patients.dob</code> will produce a SQL error at runtime. The comment in the interface makes this explicit so implementors don't assume it's a mistake.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Aggregate fields from M_pre1</strong> — <code>sample_count</code> and the <code>latest_*</code> fields are computed by subqueries in the backend list_patients SQL. They don't exist in the database as columns; they are derived at query time. Before M_pre1 is implemented, the backend returns only <code>id</code>, <code>lab_number</code>, <code>name</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>Nullable workflow status</strong> — a patient with no specimens has <code>latest_workflow_status: null</code>. PatientListTable must handle this: if null, show a dash rather than rendering a WorkflowBadge with an undefined status.</div></div>
+    </div>
+  </div>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">VariantDetailResponse</span>
+      <span class="acb-desc">DESIGN.md §4 — response from GET /api/variants/{id}</span>
+    </div>
+    <div class="acb-code"><pre>export interface VariantDetailResponse {
+  id: number;
+  chrom: string; pos: number; ref: string; alt: string;
+  gene: string | null;
+  consequence: string | null;
+  hgvs_c: string | null;
+  hgvs_p: string | null;
+  gnomad_af: number | null;
+  revel_score: number | null;
+  spliceai_max: number | null;
+  clinvar_sig: string | null;
+  info_json: Record&lt;string, unknown&gt;;         // ①
+  case_type: string;                           // ②
+  active_classification: ClassificationDetail | null;  // ③
+}
+
+export interface ClassificationDetail {
+  id: number;
+  framework: string;
+  framework_version: string;
+  score: number | null;
+  classification: string | null;
+  locked_at: string | null;
+  locked_by: string | null;
+  criteria: CriterionDetail[];                 // ④
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>info_json is an opaque bag</strong> — the raw VCF INFO field stored as JSON. The SPA does not render it directly (no column in VariantTable for it), but it is included in the type because it is returned by the API. <code>Record&lt;string, unknown&gt;</code> allows any key-value structure without TypeScript errors.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>case_type was added after review</strong> — ClassificationPage uses it to call <code>selectFramework(case_type, gene)</code>. Without it, all variants would be classified with the ACGS SNV (germline) framework, even somatic variants. The backend routes/variants.py was updated in PR A to include this field in the SQL SELECT.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>active_classification can be null</strong> — a variant that has never been classified has <code>active_classification: null</code>. ClassificationPage must handle this: pass <code>initialClassification={null}</code> and <code>initialCriteria={[]}</code> to ClassificationPanel. The panel will show an empty form ready for the first classification.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>criteria is nested inside active_classification</strong> — not a top-level field. ClassificationPage must destructure: pass the classification (minus criteria) as <code>initialClassification</code> and the criteria array separately as <code>initialCriteria</code>. Passing the whole <code>active_classification</code> object including criteria would mean the ClassificationPanel receives criteria it doesn't expect.</div></div>
+    </div>
+  </div>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">PipelineFilters</span>
+      <span class="acb-desc">DESIGN.md §4 — filter preset shape returned by getPipelineDefaults()</span>
+    </div>
+    <div class="acb-code"><pre>export interface PipelineFilters {
+  gnomad_af_max: number | null;  // ①
+  consequences: string;          // ②
+  clinvar_exclude: string;       // ③
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>null means "no filter"</strong> — when the user clears the gnomAD AF input field, <code>parseFloat("")</code> returns <code>NaN</code>. The VariantTable component converts NaN to null and omits the <code>gnomad_af_max</code> parameter from the API query entirely. If we used a non-nullable number, we'd have to choose an arbitrary fallback value that changes filter behaviour.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Comma-separated VEP terms</strong> — e.g. <code>"stop_gained,frameshift_variant,missense_variant"</code>. An empty string means no consequence filter (all consequences shown). The backend splits this on commas and applies <code>consequence = ANY(%s)</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Comma-separated ClinVar values to exclude</strong> — e.g. <code>"Benign,Likely_benign"</code>. An empty string means no exclusion. The backend applies <code>clinvar_sig != ALL(%s)</code>. Note: variants with <code>clinvar_sig = null</code> are never excluded (the SQL condition is <code>(v.clinvar_sig IS NULL OR v.clinvar_sig != ALL(...))</code>).</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="api-shapes">
+  <h2><span class="sec-num">20</span> API response shapes — the tricky parts</h2>
+  <p>Most API response shapes are straightforward. These four deserve extra attention because they have non-obvious conventions or have been corrected after review.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">GET /api/patients — items wrapper</span>
+      <span class="acb-desc">REFERENCE.md §1.1</span>
+    </div>
+    <div class="acb-code"><pre>{
+  "items": [ ... ],    // ① NOT "patients"
+  "total": 100,        // ② server-side total, not items.length
+  "limit": 50,
+  "offset": 0
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>items, not patients</strong> — this is the standard FastAPI pagination wrapper. The field is named <code>items</code> (generic) not <code>patients</code> (specific). PatientsPage must read <code>r.items</code>, not <code>r.patients</code>. This was one of the critical findings from the round-1 code review.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>total is the server count, not the array length</strong> — <code>items.length</code> will be at most <code>limit</code> (50 by default). <code>total</code> is the count of all matching records. PatientsPage uses <code>total</code> for the count subtitle and decrements it when a patient is deleted locally.</div></div>
+    </div>
+  </div>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">PUT /api/variants/{id}/classification — response</span>
+      <span class="acb-desc">REFERENCE.md §1.3</span>
+    </div>
+    <div class="acb-code"><pre>{
+  "classification_id": 45,   // ①
+  "score": 9,
+  "classification": "Likely_Pathogenic",
+  "warnings": []
+}
+
+// Request body: locked_by field
+{
+  "locked_by": null,         // ② draft save
+  "locked_by": "analyst-1"  // ③ confirmed save
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Top-level classification_id</strong> — the ID of the newly created classification record is at the top level of the response, not nested inside an object. ClassificationPanel reads <code>result.classification_id</code> to update its <code>classId</code> state. If you tried to read <code>result.id</code> or <code>result.classification.id</code>, you'd get undefined.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>null locked_by = draft save</strong> — the backend sets <code>locked_at = NULL</code> in the INSERT when <code>locked_by</code> is null. The classification is saved but not locked. ClassificationPanel keeps the Save draft and Confirm buttons visible after a draft save.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Non-null locked_by = confirmed save</strong> — the backend sets <code>locked_at = NOW()</code>. ClassificationPanel sets <code>lockedAt = new Date().toISOString()</code> on success and switches to showing the Reset button. The locked_by value is taken from <code>import.meta.env.VITE_USER_ID ?? "analyst"</code>.</div></div>
+    </div>
+  </div>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">POST /api/upload-url — request and response</span>
+      <span class="acb-desc">REFERENCE.md §1.4</span>
+    </div>
+    <div class="acb-code"><pre>// Request body (note: vcf_filename, not filename)
+{
+  "vcf_filename": "sample.vcf.gz",   // ①
+  "run_date": "2026-05-18"           // ②
+}
+
+// Response
+{
+  "vcf_url": "https://s3...",        // ③ presigned PUT URL for VCF
+  "manifest_url": "https://s3...",   // ④ presigned PUT URL for manifest
+  "vcf_key": "runs/2026-05-18/sample.vcf.gz",
+  "manifest_key": "runs/2026-05-18/sample.manifest.json",
+  "expires_in": 3600
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>vcf_filename not filename</strong> — the backend UploadUrlRequest Pydantic model uses the field name <code>vcf_filename</code>. The Next.js reference used a different field name. This was caught in round-3 code review. Sending <code>filename</code> would result in a 422 Validation Error from FastAPI.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>run_date is optional</strong> — if omitted, the backend defaults to today's date as the S3 key prefix (<code>runs/YYYY-MM-DD/...</code>). UploadForm omits it, relying on the backend default.</div></div>
+      <div class="anno-row"><div class="anno-num">③④</div><div class="anno-txt"><strong>Two separate presigned URLs</strong> — the prod upload path requires two S3 PUTs: one for the VCF file and one for the FHIR R4 Bundle manifest (built by <code>fhir-manifest.ts</code>). The manifest is a JSON sidecar that the Lambda ingest function reads to extract patient metadata. Uploading only the VCF without the manifest will cause the ingest to fail with a "manifest not found" error.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="scoring">
+  <h2><span class="sec-num">21</span> The classification scoring algorithm — annotated</h2>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">classify(criteria, framework, combinationRules)</span>
+      <span class="acb-desc">classification-engine.ts — the core algorithm</span>
+    </div>
+    <div class="acb-code"><pre>export function classify(
+  criteria: AppliedCriterion[],
+  framework: Framework,
+  combinationRules: CombinationRule[]
+): ClassificationResult {
+  const applied = criteria.filter(c => c.applied);          // ①
+
+  const appliedCodeSet = new Set(applied.map(c => c.criterion_code));
+  for (const rule of combinationRules) {                     // ②
+    if (rule.codes.length &lt; 2) continue;
+    const matchCount = rule.codes.filter(code =>
+      appliedCodeSet.has(code)).length;
+    if (matchCount &gt;= 2) warnings.push(rule.message);
+  }
+
+  if (framework === 'acgs_snv') {
+    const hasBA1 = applied.some(c => c.criterion_code === 'BA1');
+    if (hasBA1) return { score: -999, classification: 'Benign', warnings };  // ③
+
+    let score = 0;
+    for (const c of applied) {
+      const dir = getCriterionDirection(c.criterion_code, framework);  // ④
+      if (dir === 'pathogenic') score += STRENGTH_POINTS[c.strength] ?? 0;
+      else if (dir === 'benign') score += BENIGN_POINTS[c.strength] ?? 0;
+    }
+
+    if (applied.length &lt; 2 &amp;&amp; score !== 0) {
+      warnings.push('ACGS requires minimum 2 criteria...');  // ⑤
+    }
+
+    return { score, classification: classifyAcgs(score, false), warnings };
+  } else {
+    // SVIG path: O1 (Oncogenic sentinel) &gt; B1 (Benign sentinel) &gt; B2 (VUS)  // ⑥
+    const hasO1 = applied.some(c => c.criterion_code === 'O1');
+    if (hasO1) return { score: 999, classification: 'Oncogenic', warnings };
+    const hasB1 = applied.some(c => c.criterion_code === 'B1');
+    if (hasB1) return { score: -999, classification: 'Benign', warnings };
+    const hasB2 = applied.some(c => c.criterion_code === 'B2');
+    if (hasB2) return { score: 0, classification: 'VUS', warnings };
+    // ... normal SVIG point scoring follows
+  }
+}</pre></div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Filter applied-only upfront</strong> — unapplied criteria (checkbox unchecked) contribute zero points and are excluded from all downstream processing. The criteria array always contains all criteria (one per criterion definition), but most are unapplied at any given time.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Combination rule check using a Set</strong> — uses a Set of applied criterion codes (not an array) for O(1) lookup. For each rule (e.g. "two PM criteria act as one PS"), if two or more of the rule's codes are present in the applied set, a warning is pushed. Note: the warning is advisory — it does not change the score.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>BA1 standalone override returns sentinel score −999</strong> — BA1 (gnomAD AF &gt;5%) immediately overrides all other criteria and returns Benign with sentinel score −999 (not the calculated sum). This sentinel is never shown to the user — the display shows "Benign" not "−999". The sentinel distinguishes BA1-driven Benign from score-driven Benign (≤−6).</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>getCriterionDirection() from code prefix</strong> — direction is not stored in the applied criterion state. It is derived from the criterion code: <code>PVS|PS|PM|PP</code> prefixes → pathogenic; <code>BA|BS|BP</code> prefixes → benign. This means the direction lookup uses the code string, not a field in the criteria JSON. A typo in a criterion code would silently produce zero weight.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>Minimum 2 criteria warning</strong> — ACGS guidelines require at least 2 applied criteria for any non-VUS classification (BA1 excepted). With only 1 criterion applied and a non-zero score, a warning is emitted but the classification is still computed and displayed. The warning does not block saving.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>SVIG sentinel priority order: O1 &gt; B1 &gt; B2</strong> — critically, this must match the Python backend. An earlier version of the TypeScript engine had the order reversed (B2 before B1 and O1), which would cause misclassification of variants with O1+B2 co-applied. O1 (standalone Oncogenic) always wins; then B1 (standalone Benign); then B2 (forces VUS regardless of score). This order was verified by golden test cases O1+B2 → Oncogenic and B1+B2 → Benign.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="invariant-cmds">
+  <h2><span class="sec-num">22</span> Invariant verification commands</h2>
+  <p>These are the exact commands from <code>build-prompt.md</code> that verify each invariant. They should pass on the tip of PR D4 before merging.</p>
+
+  <div class="cb"><pre><span class="c"># Invariant 1 — No patient PII in the UI</span>
+<span class="c"># Expected: no output (comments are permitted)</span>
+grep -r <span class="s">"nhs_number"</span> frontend/src/components/ frontend/src/pages/
+
+<span class="c"># Invariant 2 — API key never logged</span>
+<span class="c"># Expected: only one line — the header assignment in authHeaders()</span>
+grep -n <span class="s">"VITE_API_KEY"</span> frontend/src/lib/api.ts
+
+<span class="c"># Invariant 3 — Evidence links validated (automated)</span>
+<span class="c"># Expected: test passes</span>
+cd frontend &amp;&amp; npm test -- CriterionRow
+
+<span class="c"># Invariant 4 — Classification engine matches Python (automated)</span>
+<span class="c"># Expected: all 4 golden cases pass</span>
+cd frontend &amp;&amp; npm test -- classification-engine
+
+<span class="c"># Invariant 5 — No direct DB/S3 access</span>
+<span class="c"># Expected: no output</span>
+grep -r <span class="s">"psycopg2\|boto3\|pg\|postgres"</span> frontend/src/</pre></div>
+
+  <div class="callout amber">
+    <span class="tag">Common violations to watch for</span>
+    <p>Invariant 1 is most commonly violated by a well-intentioned "show patient name in the header" change. Invariant 2 is violated by including the key in a thrown Error message for debugging: <code>throw new Error(`Request failed for key ${apiKey}`)</code>. Invariant 3 is violated if the rejection logic uses <code>startsWith('http')</code> instead of a proper URL parse — this would accept <code>httpexample.com</code> as valid.</p>
+  </div>
+</section>
+
+<section id="milestone-table">
+  <h2><span class="sec-num">23</span> Milestone verification table</h2>
+  <p>From <code>build-prompt.md</code>. Each row is a quality gate that must pass before proceeding to the next milestone.</p>
+
+  <table>
+    <thead><tr><th>Milestone</th><th>Description</th><th>Verification command</th><th>Expected</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>M_pre1–8</strong></td>
+        <td>Backend extensions (PR A)</td>
+        <td><code>cd backend &amp;&amp; .venv/bin/pytest -q --tb=no</code></td>
+        <td>All 277+ tests green</td>
+      </tr>
+      <tr>
+        <td><strong>M19</strong></td>
+        <td>Scaffold (PR C1)</td>
+        <td><code>cd frontend &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; npm test</code></td>
+        <td>Build succeeds; 0 tests</td>
+      </tr>
+      <tr>
+        <td><strong>M20</strong></td>
+        <td>display-utils.ts</td>
+        <td><code>npm test -- display-utils</code></td>
+        <td>22 tests green</td>
+      </tr>
+      <tr>
+        <td><strong>M21</strong></td>
+        <td>classification-engine.ts</td>
+        <td><code>npm test -- classification-engine</code></td>
+        <td>29 tests green (incl. 4 golden cases)</td>
+      </tr>
+      <tr>
+        <td><strong>M22</strong></td>
+        <td>api.ts + fhir-manifest.ts</td>
+        <td><code>npm test -- api.test fhir-manifest</code></td>
+        <td>15 tests green</td>
+      </tr>
+      <tr>
+        <td><strong>M23</strong></td>
+        <td>Display components (PR D1)</td>
+        <td><code>npm test -- WorkflowBadge ClassificationBadge PatientListTable PatientHeader</code></td>
+        <td>21 tests green</td>
+      </tr>
+      <tr>
+        <td><strong>M24</strong></td>
+        <td>Specimen + variant components (PR D2)</td>
+        <td><code>npm test -- SpecimenCard WorkflowControl VariantTable</code></td>
+        <td>9 tests green</td>
+      </tr>
+      <tr>
+        <td><strong>M25</strong></td>
+        <td>Classification components (PR D3)</td>
+        <td><code>npm test -- ClassificationPanel CriterionRow</code></td>
+        <td>15 tests green</td>
+      </tr>
+      <tr>
+        <td><strong>M26</strong></td>
+        <td>Pages + UploadForm (PR D4)</td>
+        <td><code>npm test &amp;&amp; npx tsc --noEmit &amp;&amp; npm run build &amp;&amp; docker build -t vv-frontend .</code></td>
+        <td>117 tests; 0 TS errors; dist/ built; Docker image builds</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout green">
+    <span class="tag">End state</span>
+    <p>When all milestones pass, the frontend SPA is complete: 117 Vitest tests across 14 test files, 0 TypeScript compiler errors, a clean production build in <code>dist/</code>, a working Docker image served by nginx with correct SPA routing and <code>/api</code> proxying to the FastAPI backend on port 3000, and all five clinical safety invariants verified.</p>
+  </div>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_B_Specification_1.html">1 · High-level outline</a>
+  <a href="260521_PR_B_Specification_2.html">2 · Key concepts</a>
+  <a href="260521_PR_B_Specification_3.html">3 · Document walkthrough</a>
+  <a href="260521_PR_B_Specification_4.html" class="current">4 · Deep reference</a>
+</div>
+
+</main>
+</div>
+<footer>
+  Continued from Part 3. · Joo Wook Ahn · 21 May 2026 · Source: specification/frontend/ on branch pr/B, variant-viewer (eastgenomics/variant-viewer)
+</footer>
+</body>
+</html>

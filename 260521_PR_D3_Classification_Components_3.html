@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D3 — Classification Components · Part 3: Function walkthrough</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout.red{border-color:#e8b3b3;background:var(--red-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout.red .tag{color:var(--red)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}.cb .k{color:#79b8ff}.cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}.cb .f{color:#85e89d}.cb .t{color:#ffab70}
+  .fn-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .fn-header{background:var(--accent-deep);padding:14px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .fn-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:#fff;font-weight:700}
+  .fn-lines{font-size:12px;color:#a8c8e8}
+  .fn-phase{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+  .fn-phase.security{background:#9b2335;color:#fff}
+  .fn-phase.init{background:#005eb8;color:#fff}
+  .fn-phase.component{background:#4b2d8e;color:#fff}
+  .fn-phase.api{background:#1a6e47;color:#fff}
+  .fn-phase.util{background:#b35c00;color:#fff}
+  .fn-body{padding:18px}
+  .fn-body p{margin-bottom:10px}
+  .io-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .io-box{background:#f7f9fb;border:1px solid var(--line);border-radius:6px;padding:12px}
+  .io-box h4{margin:0 0 6px}
+  .io-box ul{margin:0;padding-left:18px}
+  .io-box li{font-size:13px;margin:3px 0}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+  .pill.amber{background:var(--amber-soft);color:var(--amber)}
+  .pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill.red{background:var(--red-soft);color:var(--red)}
+  .pill.purple{background:var(--purple-soft);color:var(--purple)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D3: CLASSIFICATION COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">CriterionRow.tsx</div>
+  <ul>
+    <li><a href="#fn-valid">isValidEvidenceLink</a></li>
+    <li><a href="#fn-interfaces">CriterionDef / CriterionState</a></li>
+    <li><a href="#fn-criterion-row">CriterionRow component</a></li>
+    <li><a href="#fn-add-link">addLink (inner)</a></li>
+  </ul>
+  <div class="toc-section">ClassificationPanel.tsx</div>
+  <ul>
+    <li><a href="#fn-get-defs">getCriteriaDefs</a></li>
+    <li><a href="#fn-init-state">initCriteriaState</a></li>
+    <li><a href="#fn-panel">ClassificationPanel component</a></li>
+    <li><a href="#fn-update">updateCriterion</a></li>
+    <li><a href="#fn-save">save</a></li>
+    <li><a href="#fn-reset">handleReset</a></li>
+  </ul>
+  <div class="toc-section">Tests</div>
+  <ul>
+    <li><a href="#tests-summary">Test coverage overview</a></li>
+  </ul>
+  <div class="meta">Part 3 of 4 · One fn-box per function</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Frontend code walkthrough · variant-viewer PR D3</div>
+  <h1>Function walkthrough — Part 3 of 4</h1>
+  <p class="sub">Every function in CriterionRow.tsx and ClassificationPanel.tsx, with purpose, inputs/outputs, key logic, and design decisions.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 3 of 4 — Function walkthrough</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D3_Classification_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D3_Classification_Components_2.html">2 · Key concepts</a>
+  <a href="260521_PR_D3_Classification_Components_3.html" class="current">3 · Function walkthrough</a>
+  <a href="260521_PR_D3_Classification_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+<!-- ── SECTION 15 ─────────────────────────────────────────── -->
+<section id="criterionrow-fns">
+  <h2><span class="sec-num">15</span> CriterionRow.tsx — functions</h2>
+
+  <div class="fn-box" id="fn-valid">
+    <div class="fn-header">
+      <span class="fn-name">isValidEvidenceLink</span>
+      <span class="fn-lines">lines 4–10</span>
+      <span class="fn-phase security">Security</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Returns <code>true</code> only if the URL's protocol is <code>http:</code> or <code>https:</code>. All other protocols — including <code>javascript:</code>, <code>data:</code>, <code>ftp:</code>, <code>blob:</code> and relative paths — return <code>false</code>.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul><li><code>url: string</code> — any string; may be malformed</li></ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul><li><code>boolean</code> — true only for http/https</li></ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Calls <code>new URL(url.trim())</code> which parses the full URL according to the WHATWG URL Living Standard. On a malformed string this throws a <code>TypeError</code>; the <code>try/catch</code> converts that to <code>false</code>. On success, it checks <code>parsed.protocol</code> against exactly two allowed values. The function is exported so that <code>ClassificationPanel.initCriteriaState()</code> can reuse it without duplicating the logic.</p>
+      <div class="callout red">
+        <span class="tag">Security design decision</span>
+        <p>Using <code>new URL()</code> rather than a regex or string prefix ensures the browser's own URL parser — the same engine that evaluates <code>href</code> attributes — is used for validation. A regex like <code>/^https?:\/\//</code> could be defeated by unusual encodings or newlines in adversarial inputs; the URL constructor normalises first. The <code>url.trim()</code> call handles accidental whitespace that a user might paste.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box" id="fn-interfaces">
+    <div class="fn-header">
+      <span class="fn-name">CriterionDef / CriterionState interfaces</span>
+      <span class="fn-lines">lines 12–30</span>
+      <span class="fn-phase util">Interfaces</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Define the shapes that flow between ClassificationPanel and CriterionRow. Both are exported; ClassificationPanel imports them to type its own state arrays.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>CriterionDef fields</h4>
+          <ul>
+            <li><code>code</code> — e.g. "PVS1"</li>
+            <li><code>direction</code> — "pathogenic" | "benign" | "oncogenic"</li>
+            <li><code>adjustable</code> — whether strength can be changed</li>
+            <li><code>permitted_strengths</code> — valid values for selector</li>
+            <li><code>description</code> — human text for tooltip/label</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>CriterionState fields</h4>
+          <ul>
+            <li><code>criterion_code</code> — matches def.code</li>
+            <li><code>applied</code> — is the checkbox ticked?</li>
+            <li><code>strength</code> — current selected strength</li>
+            <li><code>notes</code> — free text textarea value</li>
+            <li><code>evidence_links</code> — validated URLs array</li>
+            <li><code>pre_computed</code> / <code>pre_computed_value</code></li>
+          </ul>
+        </div>
+      </div>
+      <p>The separation of <code>CriterionDef</code> (read-only schema from JSON) and <code>CriterionState</code> (mutable per-session values) is deliberate: it ensures the schema cannot be accidentally mutated, and state can be reset independently by recreating <code>CriterionState[]</code> without touching the defs.</p>
+    </div>
+  </div>
+
+  <div class="fn-box" id="fn-criterion-row">
+    <div class="fn-header">
+      <span class="fn-name">CriterionRow</span>
+      <span class="fn-lines">lines 38–196</span>
+      <span class="fn-phase component">React component</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Renders a single classification criterion as a controlled form row. Displays the criterion code (colour-coded by direction), description, optional pre-computed value badge, and — when applied — strength controls and a collapsible notes/links panel.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props</h4>
+          <ul>
+            <li><code>def: CriterionDef</code> — the criterion schema</li>
+            <li><code>crit: CriterionState</code> — current values (read-only)</li>
+            <li><code>locked: boolean</code> — true when classification is confirmed</li>
+            <li><code>onChange: (updates) =&gt; void</code> — partial update callback</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Local state (3 vars)</h4>
+          <ul>
+            <li><code>showNotes: boolean</code> — notes panel open?</li>
+            <li><code>pendingLink: string</code> — link input value</li>
+            <li><code>linkError: string | null</code> — inline error message</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong></p>
+      <ol>
+        <li>The checkbox calls <code>onChange({applied: e.target.checked})</code> — the parent owns the actual boolean.</li>
+        <li>The strength selector is only rendered when <code>crit.applied</code> is true. If <code>def.adjustable</code> is true, a <code>&lt;select&gt;</code> shows <code>def.permitted_strengths</code>; otherwise italic fixed-strength text is shown.</li>
+        <li>The "Add notes / links" toggle shows/hides the notes panel. Clicking Hide while the panel is open calls <code>setPendingLink("")</code> and <code>setLinkError(null)</code> to clear transient state.</li>
+        <li>Server-received <code>evidence_links</code> are rendered as clickable <code>&lt;a&gt;</code> tags with <code>target="_blank" rel="noopener noreferrer"</code>. Each has an × remove button when unlocked.</li>
+        <li>The <code>useEffect([crit.applied])</code> resets all three local state vars when the criterion is unchecked from outside.</li>
+      </ol>
+      <div class="callout blue">
+        <span class="tag">Why locked disables everything</span>
+        <p>When <code>locked={true}</code> is passed, the checkbox, strength selector, notes textarea, and the Add button all receive <code>disabled={locked}</code> or are conditionally not rendered (<code>{!locked &amp;&amp; (...)}</code>). This means the component is rendered identically for confirmed classifications — the analyst can see the full state but cannot modify anything.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box" id="fn-add-link">
+    <div class="fn-header">
+      <span class="fn-name">addLink (inner function)</span>
+      <span class="fn-lines">~lines 60–70 inside CriterionRow</span>
+      <span class="fn-phase security">Security</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Validates the current <code>pendingLink</code> value and either appends it to <code>evidence_links</code> via the onChange callback (on success) or sets <code>linkError</code> (on rejection). Clears <code>pendingLink</code> on success.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input (from closure)</h4>
+          <ul>
+            <li><code>pendingLink</code> — current input value</li>
+            <li><code>crit.evidence_links</code> — existing links array</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Side effects</h4>
+          <ul>
+            <li>Calls <code>onChange</code> with updated <code>evidence_links</code></li>
+            <li>Calls <code>setPendingLink("")</code> on success</li>
+            <li>Calls <code>setLinkError()</code> on rejection</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Guards first with <code>if (!pendingLink) return</code> (prevents empty submissions). Then passes the link through <code>isValidEvidenceLink()</code>. On rejection, sets the inline error message and <strong>does not call onChange</strong> — the invalid URL never enters the parent's state. On success, clears the error, calls onChange with a new array (spread of existing plus new link), then clears the input.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 16 ─────────────────────────────────────────── -->
+<section id="panel-fns">
+  <h2><span class="sec-num">16</span> ClassificationPanel.tsx — functions</h2>
+
+  <div class="fn-box" id="fn-get-defs">
+    <div class="fn-header">
+      <span class="fn-name">getCriteriaDefs</span>
+      <span class="fn-lines">lines ~33–37</span>
+      <span class="fn-phase util">Utility</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Returns the criteria array for the specified framework from the bundled JSON files.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul><li><code>framework: Framework</code> — "acgs_snv" | "svig"</li></ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul><li><code>CriterionDef[]</code> — typed criteria array</li></ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> A simple conditional expression returning <code>acgsCriteria.criteria</code> or <code>svigCriteria.criteria</code>. The <code>as unknown as CriterionDef[]</code> cast is needed because the JSON is typed as a literal schema by TypeScript's <code>resolveJsonModule</code>; this cast asserts it matches the interface.</p>
+      <div class="callout amber">
+        <span class="tag">Why a standalone function?</span>
+        <p>This is extracted from the component so that the framework-switch handler inside the component's JSX can call <code>getCriteriaDefs(next)</code> with the <em>new</em> framework value before committing the framework state change. Calling <code>getCriteriaDefs(framework)</code> inside the onChange handler would use the stale <code>framework</code> closure value from before the state update.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box" id="fn-init-state">
+    <div class="fn-header">
+      <span class="fn-name">initCriteriaState</span>
+      <span class="fn-lines">lines ~39–60</span>
+      <span class="fn-phase security">Security + Init</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Maps a criteria definitions array into a <code>CriterionState[]</code>, merging any server-loaded existing values. Critically, re-validates server-loaded evidence links through <code>isValidEvidenceLink()</code> before storing them in state.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs</h4>
+          <ul>
+            <li><code>defs: CriterionDef[]</code> — full criteria schema</li>
+            <li><code>existing: Partial&lt;CriterionDetail&gt;[]</code> — server-loaded criteria (may be empty)</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Output</h4>
+          <ul><li><code>CriterionState[]</code> — one entry per def, defaults filled in where no existing match</li></ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong></p>
+      <ol>
+        <li>For each def in the schema, find any matching existing criterion by <code>criterion_code</code>.</li>
+        <li>Extract <code>evidence_links</code> from the existing entry (defaults to <code>[]</code>).</li>
+        <li><strong>Filter links through <code>isValidEvidenceLink()</code></strong> — any link that fails validation is silently dropped. The inline comment explains why: "a valid API key holder could inject javascript: URLs via API".</li>
+        <li>Construct a <code>CriterionState</code> object with merged values, defaulting to false/default_strength/"" for unapplied criteria.</li>
+      </ol>
+      <div class="callout red">
+        <span class="tag">Why re-validate server-loaded links?</span>
+        <p>The frontend validation in <code>addLink()</code> prevents a user from entering a bad link via the form. The backend Pydantic validator prevents bad links in the PUT request body. But neither protects against a link that was written directly to the database (bypassing the API) by someone with database access, or a future bug that skips the backend validator. Re-validating on load ensures that even in those scenarios, no <code>javascript:</code> URL can ever reach an <code>href</code> attribute in the DOM.</p>
+      </div>
+      <p>This function is also called on reset (<code>initCriteriaState(defs, [])</code>) to return all criteria to their blank defaults, and on framework switch (<code>initCriteriaState(getCriteriaDefs(next), [])</code>) to start fresh in the new framework.</p>
+    </div>
+  </div>
+
+  <div class="fn-box" id="fn-panel">
+    <div class="fn-header">
+      <span class="fn-name">ClassificationPanel</span>
+      <span class="fn-lines">lines ~62–290</span>
+      <span class="fn-phase component">React component</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Orchestrates the complete classification session for a single variant. Manages 8 state variables, renders the panel header with live score, all criterion rows grouped by evidence category, warnings, error banners, and save/reset controls.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Props</h4>
+          <ul>
+            <li><code>variantId: number</code></li>
+            <li><code>caseType: "germline" | "somatic"</code></li>
+            <li><code>gene: string | null</code></li>
+            <li><code>initialClassification: Omit&lt;ClassificationDetail, "criteria"&gt; | null</code></li>
+            <li><code>initialCriteria: Partial&lt;CriterionDetail&gt;[]</code></li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>State variables (8)</h4>
+          <ul>
+            <li><code>framework</code> — "acgs_snv" | "svig"</li>
+            <li><code>frameworkLocked</code> — bool</li>
+            <li><code>criteria</code> — CriterionState[]</li>
+            <li><code>classId</code> — number | null</li>
+            <li><code>lockedAt</code> — string | null</li>
+            <li><code>saving</code> — bool</li>
+            <li><code>saveError</code> — string | null</li>
+            <li><code>showResetConfirm</code> — bool</li>
+          </ul>
+        </div>
+      </div>
+      <h4>Derived values (3 useMemos)</h4>
+      <ul>
+        <li><code>defs</code> — criteria schema for current framework (updates on framework change)</li>
+        <li><code>combinationRules</code> — rule list for current framework</li>
+        <li><code>{score, classification, warnings}</code> — live scoring result (updates on any criterion change)</li>
+      </ul>
+      <p><strong>Render structure:</strong></p>
+      <ol>
+        <li>Panel header: framework selector + score display + classification badge + save/reset buttons</li>
+        <li>Warnings banner (amber) — shown when combination rules are violated</li>
+        <li>Save error banner (red) — shown after a failed API call</li>
+        <li>Reset confirmation row (red) — "This will delete all criteria…"</li>
+        <li>Criteria grid — <code>EVIDENCE_CATEGORIES.map()</code> → one section heading per category → <code>CriterionRow</code> per criterion</li>
+      </ol>
+      <div class="callout blue">
+        <span class="tag">The framework selector lock</span>
+        <p>When the panel first renders with no existing classification, the framework selector is enabled (frameworkLocked: false). The moment the analyst applies any criterion (<code>"applied" in updates</code> in <code>updateCriterion</code>), <code>setFrameworkLocked(true)</code> is called. The rationale: criteria codes (PVS1, PP3 etc.) are framework-specific; allowing the analyst to switch frameworks after applying criteria would leave orphaned state. Once locked, the selector is only re-enabled on Reset (which wipes all criteria).</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box" id="fn-update">
+    <div class="fn-header">
+      <span class="fn-name">updateCriterion</span>
+      <span class="fn-lines">~lines 115–126</span>
+      <span class="fn-phase component">useCallback</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Stable callback passed to every CriterionRow's <code>onChange</code> prop. Updates a single criterion in the <code>criteria</code> array by code, and locks the framework selector if the update included an <code>applied</code> change.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Inputs</h4>
+          <ul>
+            <li><code>code: string</code> — criterion_code to update</li>
+            <li><code>updates: Partial&lt;CriterionState&gt;</code> — fields to merge</li>
+          </ul>
+        </div>
+        <div class="io-box">
+          <h4>Side effects</h4>
+          <ul>
+            <li>Calls <code>setCriteria(prev =&gt; ...)</code> with updated array</li>
+            <li>Calls <code>setFrameworkLocked(true)</code> if <code>"applied" in updates</code></li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong> Uses the functional update form of <code>setCriteria</code> — <code>prev =&gt; prev.map(c =&gt; c.criterion_code === code ? {...c, ...updates} : c)</code>. This is important because <code>updateCriterion</code> is wrapped in <code>useCallback([], [])</code> (empty deps), meaning it closes over the initial state. The functional updater gives it access to the current state at call time, not the stale state at creation time.</p>
+    </div>
+  </div>
+
+  <div class="fn-box" id="fn-save">
+    <div class="fn-header">
+      <span class="fn-name">save (async)</span>
+      <span class="fn-lines">~lines 130–150</span>
+      <span class="fn-phase api">API</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Serialises current panel state and calls <code>putClassification()</code>. A single function handles both draft and confirmed saves, distinguished by the <code>lock: boolean</code> parameter.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Input</h4>
+          <ul><li><code>lock: boolean</code> — false = draft, true = confirm</li></ul>
+        </div>
+        <div class="io-box">
+          <h4>Side effects on success</h4>
+          <ul>
+            <li><code>setClassId(result.classification_id)</code></li>
+            <li><code>setLockedAt(now)</code> — only if lock=true</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Key logic:</strong></p>
+      <ol>
+        <li>Sets <code>saving: true</code> and clears <code>saveError</code>.</li>
+        <li>Calls <code>putClassification(variantId, {framework, user_id: userId, locked_by: lock ? userId : null, criteria: [...]})</code>.</li>
+        <li>The criteria are serialised to include only fields the API expects: <code>criterion_code, applied, strength, notes, evidence_links</code>. Empty notes are converted to <code>undefined</code> (omitted in JSON); empty evidence_links arrays are similarly omitted.</li>
+        <li>On success: sets <code>classId</code> (enables future updates rather than creates); conditionally sets <code>lockedAt</code> from the <em>client clock</em> — used only for the "Confirmed DD/MM/YYYY" label, not as the authoritative timestamp.</li>
+        <li>On failure: sets <code>saveError</code>. Panel stays in exactly its previous state — no partial updates.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="fn-box" id="fn-reset">
+    <div class="fn-header">
+      <span class="fn-name">handleReset (async)</span>
+      <span class="fn-lines">~lines 152–170</span>
+      <span class="fn-phase api">API</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Calls the backend reset endpoint, then on success clears all classification state back to blank. On failure, closes the confirmation row and shows an error banner — the panel remains locked and the analyst can retry.</p>
+      <div class="io-grid">
+        <div class="io-box">
+          <h4>Guard</h4>
+          <ul><li><code>if (!classId) return</code> — no-op if nothing to reset</li></ul>
+        </div>
+        <div class="io-box">
+          <h4>On success</h4>
+          <ul>
+            <li>setClassId(null), setLockedAt(null)</li>
+            <li>setFrameworkLocked(false)</li>
+            <li>setCriteria(initCriteriaState(defs, []))</li>
+            <li>setShowResetConfirm(false)</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Error handling design:</strong> In the catch block, <code>setShowResetConfirm(false)</code> is called before <code>setSaveError()</code>. This dismisses the "Yes reset / Cancel" row so the analyst is not left staring at a confirmation prompt that does nothing — the panel returns to its locked state with the error banner explaining what happened. This is deliberately asymmetric with the success path: success clears <em>all</em> state, failure clears only <em>UI state</em> (the confirm row) while leaving the backend state unchanged.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 17 ─────────────────────────────────────────── -->
+<section id="tests-summary">
+  <h2><span class="sec-num">17</span> Test coverage overview</h2>
+
+  <p>15 tests across 2 test files. The table below maps each test to the invariant or behaviour it verifies.</p>
+
+  <h4>CriterionRow.test.tsx (6 tests)</h4>
+  <table>
+    <thead><tr><th>Test name</th><th>What it verifies</th><th>Key assertion</th></tr></thead>
+    <tbody>
+      <tr><td>renders criterion code and description</td><td>Basic render</td><td><code>getByText("PVS1")</code></td></tr>
+      <tr><td>rejects javascript: evidence links</td><td><strong>Invariant 3</strong></td><td><code>onChange</code> not called after typing javascript: and clicking Add</td></tr>
+      <tr><td>accepts https: evidence links</td><td>Happy-path link addition</td><td><code>onChange</code> called with correct evidence_links array</td></tr>
+      <tr><td>disables all inputs when locked</td><td>Confirmed-state read-only</td><td>checkbox has <code>disabled</code> attribute</td></tr>
+      <tr><td>clears linkError and pendingLink when notes panel is closed</td><td>Toggle-close cleanup</td><td>Error text absent and input empty after hide+reopen</td></tr>
+      <tr><td>clears pendingLink input after successful link add</td><td>Input reset after success</td><td>Input value is "" after Add</td></tr>
+    </tbody>
+  </table>
+
+  <h4>ClassificationPanel.test.tsx (9 tests)</h4>
+  <table>
+    <thead><tr><th>Test name</th><th>What it verifies</th><th>Key assertion</th></tr></thead>
+    <tbody>
+      <tr><td>shows score of 0 and VUS with no criteria applied</td><td>Initial state</td><td>Score "0" and "Variant of Uncertain Significance" visible</td></tr>
+      <tr><td>shows framework selector (unlocked initially)</td><td>Initial unlocked state</td><td>combobox not disabled</td></tr>
+      <tr><td>renders Save draft and Confirm buttons</td><td>Unlocked buttons</td><td>Both buttons present</td></tr>
+      <tr><td>calls putClassification on Confirm</td><td>Confirm save path</td><td>putClassification called with locked_by = any string</td></tr>
+      <tr><td>calls putClassification with locked_by=null on Save draft</td><td>Draft save path; save/confirm buttons stay visible</td><td>locked_by is null; Save draft still in DOM</td></tr>
+      <tr><td>shows error banner when putClassification rejects</td><td>Save error recovery</td><td>"concurrent modification" text in DOM after rejection</td></tr>
+      <tr><td>shows Reset button when locked</td><td>Confirmed locked state</td><td>Reset visible; Save draft absent</td></tr>
+      <tr><td>calls resetClassification on confirmed reset</td><td>Reset happy path</td><td>resetClassification called with correct ids</td></tr>
+      <tr><td>shows error banner when resetClassification rejects</td><td>Reset error recovery; panel stays locked</td><td>Error text in DOM; Reset classification button still present</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout green">
+    <span class="tag">Coverage note</span>
+    <p>The tests mock only the API calls, not the classification engine — meaning the live score calculation is exercised in every test that renders the panel. The "shows score of 0 and VUS" test implicitly verifies that <code>classify([], "acgs_snv", [])</code> returns <code>{score: 0, classification: "VUS"}</code> through the real TypeScript engine. The golden cases for the engine itself are in the separate <code>classification-engine.test.ts</code> (PR C2).</p>
+  </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_D3_Classification_Components_1.html">1 · High-level outline</a>
+    <a href="260521_PR_D3_Classification_Components_2.html">2 · Key concepts</a>
+    <a href="260521_PR_D3_Classification_Components_3.html" class="current">3 · Function walkthrough</a>
+    <a href="260521_PR_D3_Classification_Components_4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Continued in Part 4 · Joo Wook Ahn · 21 May 2026 · Source: CriterionRow.tsx, ClassificationPanel.tsx, their tests · variant-viewer PR D3
+</footer>
+</body>
+</html>

@@ -50,6 +50,7 @@ class VariantDetailResponse(BaseModel):
     spliceai_max: float | None
     clinvar_sig: str | None
     info_json: dict
+    case_type: str
     active_classification: ClassificationDetail | None
 
 
@@ -117,5 +118,6 @@ async def get_variant(variant_id: int):
         spliceai_max=variant["spliceai_max"],
         clinvar_sig=variant["clinvar_sig"],
         info_json=variant["info_json"],
+        case_type=variant["case_type"],
         active_classification=active_classification,
     )

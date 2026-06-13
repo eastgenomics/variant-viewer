@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR C2 — Pure TypeScript Library Modules · Part 3: Function walkthrough</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}.cb .k{color:#79b8ff}.cb .s{color:#9ecbff}.cb .n{color:#b392f0}.cb .f{color:#85e89d}.cb .t{color:#ffab70}
+  .fn-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .fn-header{background:var(--accent-deep);padding:14px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .fn-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:#fff;font-weight:700}
+  .fn-lines{font-size:12px;color:#a8c8e8}
+  .fn-phase{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+  .fn-phase.p1{background:#b35c00;color:#fff}
+  .fn-phase.p2{background:#1a6e47;color:#fff}
+  .fn-phase.p3{background:#4b2d8e;color:#fff}
+  .fn-phase.p4{background:#9b2335;color:#fff}
+  .fn-phase.setup{background:#005eb8;color:#fff}
+  .fn-body{padding:18px}
+  .fn-body p{margin-bottom:10px}
+  .io-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .io-box{background:#f7f9fb;border:1px solid var(--line);border-radius:6px;padding:12px}
+  .io-box h4{margin:0 0 6px}
+  .io-box ul{margin:0;padding-left:18px}
+  .io-box li{font-size:13px;margin:3px 0}
+  .file-section{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f0f4f8;border:1px solid var(--line);border-radius:6px;margin:20px 0 8px;font-size:13px}
+  .file-section .fs-name{font-weight:700;color:var(--ink)}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR C2 LIB MODULES<br>21 May 2026</div>
+  <div class="toc-section">display-utils.ts</div>
+  <ul>
+    <li><a href="#display-formatters">Format functions</a></li>
+    <li><a href="#display-class-helpers">CSS class helpers</a></li>
+  </ul>
+  <div class="toc-section">classification-engine.ts</div>
+  <ul>
+    <li><a href="#engine-private">Private helpers</a></li>
+    <li><a href="#classify">classify()</a></li>
+    <li><a href="#select-framework">selectFramework()</a></li>
+    <li><a href="#engine-display">Display helpers</a></li>
+  </ul>
+  <div class="toc-section">api.ts</div>
+  <ul>
+    <li><a href="#api-error">ApiError class</a></li>
+    <li><a href="#api-auth">authHeaders + request</a></li>
+    <li><a href="#api-patients">Patient endpoints</a></li>
+    <li><a href="#api-variants">Variant endpoints</a></li>
+    <li><a href="#api-upload">Upload + workflow</a></li>
+    <li><a href="#api-classification">Classification endpoints</a></li>
+  </ul>
+  <div class="toc-section">pipeline-config.ts / fhir-manifest.ts</div>
+  <ul>
+    <li><a href="#pipeline-config">pipeline-config functions</a></li>
+    <li><a href="#fhir-manifest">buildManifest()</a></li>
+  </ul>
+  <div class="meta">Part 3 of 4 — every function covered</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · variant-viewer frontend · PR C2 of 8</div>
+  <h1>PR C2 — Function Walkthrough</h1>
+  <p class="sub">Purpose, inputs/outputs, and key logic for every function across all five lib modules. Design decisions highlighted where the implementation differs from the obvious approach.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Part</strong> 3 of 4 — Function walkthrough</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_C2_Lib_Modules_Part1.html">1 · High-level outline</a>
+  <a href="260521_PR_C2_Lib_Modules_Part2.html">2 · Key concepts</a>
+  <a href="260521_PR_C2_Lib_Modules_Part3.html" class="current">3 · Function walkthrough</a>
+  <a href="260521_PR_C2_Lib_Modules_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+<!-- ═══ display-utils.ts ═══════════════════════════════════════════════════ -->
+<section id="display-formatters">
+  <h2><span class="sec-num">17</span> display-utils.ts — Format functions</h2>
+
+  <div class="file-section"><span class="fs-name">frontend/src/lib/display-utils.ts</span><span style="color:var(--muted);font-size:12px">Lines 1–33</span></div>
+
+  <p>Seven small pure functions. Four format a number or date to a display string; three return a Tailwind CSS class based on a value. All return a safe default (em-dash or <code>"absent"</code> or <code>"text-gray-700"</code>) when the input is null or undefined — they never throw.</p>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">formatYearOfBirth</span>
+      <span class="fn-lines">L1–5</span>
+      <span class="fn-phase setup">display-utils</span>
+    </div>
+    <div class="fn-body">
+      <p>Extracts the 4-digit year from an ISO date string. Handles both full dates (<code>"1990-05-14"</code>) and year-only strings (<code>"1990"</code>). Returns em-dash for null or undefined.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Input</h4><ul><li><code>dob: string | null | undefined</code></li></ul></div>
+        <div class="io-box"><h4>Output</h4><ul><li><code>string</code> — "1990", or "—"</li></ul></div>
+      </div>
+      <div class="cb"><pre><span class="k">const</span> match = dob.match(<span class="s">/^(\d{4})(?:-|$)/</span>);
+<span class="k">return</span> match ? match[<span class="n">1</span>] : <span class="s">"—"</span>;</pre></div>
+      <p>The regex captures exactly 4 digits at the start of the string, followed by either a dash (full ISO date) or end of string (year-only). Group 1 is the year.</p>
+      <div class="callout amber"><span class="tag">Privacy note</span><p>This function is intentionally the <em>only</em> function that shows any patient age-related information. The full date of birth is never displayed; only the year is shown, and even then only in limited contexts. The <code>dob</code> column was dropped from the database by migration 004 — this function is kept for any future re-introduction.</p></div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">formatGnomadAf</span>
+      <span class="fn-lines">L7–11</span>
+      <span class="fn-phase setup">display-utils</span>
+    </div>
+    <div class="fn-body">
+      <p>Formats a gnomAD allele frequency for display. Very small values (below 0.0001) use scientific notation to avoid strings like <code>"0.0000"</code> that look like zero. Returns <code>"absent"</code> (not em-dash) for null because an absent value in gnomAD is clinically meaningful — it means the variant was not observed in the reference population.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Input</h4><ul><li><code>af: number | null</code></li></ul></div>
+        <div class="io-box"><h4>Output</h4><ul><li><code>"absent"</code>, <code>"1.00e-5"</code>, or <code>"0.0123"</code></li></ul></div>
+      </div>
+      <p>Boundary case: <code>af = 0.0001</code> returns <code>"0.0001"</code> (4 decimal places, not scientific). The check is <code>af &lt; 0.0001</code> (strictly less than), so the boundary value itself uses the regular format.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">formatRevel / formatSpliceAi</span>
+      <span class="fn-lines">L13–19</span>
+      <span class="fn-phase setup">display-utils</span>
+    </div>
+    <div class="fn-body">
+      <p>Identical pattern: 3 decimal places, or em-dash for null. REVEL and SpliceAI scores are always in [0, 1]; 3dp gives enough precision to distinguish values without being noisy.</p>
+    </div>
+  </div>
+</section>
+
+<section id="display-class-helpers">
+  <h2><span class="sec-num">18</span> display-utils.ts — CSS class helpers</h2>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">gnomadAfClass</span>
+      <span class="fn-lines">L21–23</span>
+      <span class="fn-phase setup">display-utils</span>
+    </div>
+    <div class="fn-body">
+      <p>Returns <code>"text-amber-600"</code> if the allele frequency exceeds 1% (0.01), otherwise <code>"text-gray-700"</code>. The 1% threshold is a rough population-frequency filter: common variants (AF &gt; 1%) are unlikely to be disease-causing, so they are highlighted amber to draw the analyst's eye for potential de-prioritisation.</p>
+      <div class="callout blue"><span class="tag">Design decision</span><p>Null returns the neutral gray class rather than a distinct "unknown" class. Missing gnomAD data is common for rare or novel variants and should not be visually alarming — the "absent" label from <code>formatGnomadAf</code> already communicates absence.</p></div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">revelClass</span>
+      <span class="fn-lines">L25–30</span>
+      <span class="fn-phase setup">display-utils</span>
+    </div>
+    <div class="fn-body">
+      <p>REVEL scores range 0–1. Scores ≥ 0.7 indicate computational evidence for pathogenicity (red); ≤ 0.4 indicate evidence against (green); between 0.4 and 0.7 are inconclusive (gray). These thresholds match the ACGS recommended REVEL cutoffs.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">spliceAiClass</span>
+      <span class="fn-lines">L32–33</span>
+      <span class="fn-phase setup">display-utils</span>
+    </div>
+    <div class="fn-body">
+      <p>SpliceAI delta scores ≥ 0.5 indicate a strong splice-site effect (orange); below 0.5 they are considered low-risk (gray). The orange colour distinguishes splice effects from the red used for REVEL pathogenic scores.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ classification-engine.ts ════════════════════════════════════════════ -->
+<section id="engine-private">
+  <h2><span class="sec-num">19</span> classification-engine.ts — Private helpers</h2>
+
+  <div class="file-section"><span class="fs-name">frontend/src/lib/classification-engine.ts</span><span style="color:var(--muted);font-size:12px">Lines 1–80</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">classifyAcgs</span>
+      <span class="fn-lines">not exported</span>
+      <span class="fn-phase p3">private</span>
+    </div>
+    <div class="fn-body">
+      <p>Applies the ACGS SNV score threshold table. The <code>hasBA1</code> parameter is checked first because BA1 overrides the score — even a score of +50 returns Benign if BA1 was applied. Called only from <code>classify()</code> after the BA1 sentinel check confirms BA1 is not present, so in practice <code>hasBA1</code> will always be <code>false</code> here; the parameter exists to mirror the Python backend's structure exactly.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">classifySvig</span>
+      <span class="fn-lines">not exported</span>
+      <span class="fn-phase p3">private</span>
+    </div>
+    <div class="fn-body">
+      <p>Applies the SVIG-UK threshold table, respecting sentinel priority O1 &gt; B1 &gt; B2 &gt; point thresholds. The priority order is a deliberate departure from B2 being checked first in an earlier draft — if both O1 and B2 are applied, the variant is Oncogenic, not VUS.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">getCriterionDirection</span>
+      <span class="fn-lines">not exported</span>
+      <span class="fn-phase p3">private</span>
+    </div>
+    <div class="fn-body">
+      <p>Determines whether a criterion code contributes pathogenic, benign, or oncogenic points, based on its prefix. Uses regex matching to classify the prefix: <code>/^(PVS|PS|PM|PP)/</code> → pathogenic (ACGS); <code>/^(BA|BS|BP)/</code> → benign (ACGS); <code>/^O/</code> → oncogenic (SVIG); <code>/^B/</code> → benign (SVIG). Returns null for unrecognised codes (which are silently skipped).</p>
+      <div class="callout amber"><span class="tag">Difference from Python</span><p>The Python backend raises a <code>ValueError</code> on unrecognised codes ("typos fail loud"). The TypeScript engine returns <code>null</code> and skips unknown codes silently. This is a deliberate frontend trade-off: the UI receives criteria codes from the database (which were validated by the backend at ingest time), so unrecognised codes should not crash the UI — they simply contribute zero points.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="classify">
+  <h2><span class="sec-num">20</span> classification-engine.ts — classify()</h2>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">classify</span>
+      <span class="fn-lines">L96–162</span>
+      <span class="fn-phase p4">core engine</span>
+    </div>
+    <div class="fn-body">
+      <p>The central function. Takes the full array of criteria (applied and unapplied), the framework, and the combination rules. Returns score, classification label, and any warnings. This function is covered in detail in Part 4 (line-by-line reference).</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Inputs</h4><ul><li><code>criteria: AppliedCriterion[]</code> — all criteria, applied or not</li><li><code>framework: Framework</code> — "acgs_snv" or "svig"</li><li><code>combinationRules: CombinationRule[]</code> — conflict rules from config</li></ul></div>
+        <div class="io-box"><h4>Output</h4><ul><li><code>ClassificationResult</code></li><li><code>score</code>: integer (or ±999 for sentinels)</li><li><code>classification</code>: e.g. "Likely_Pathogenic"</li><li><code>warnings</code>: string array</li></ul></div>
+      </div>
+      <h4>Algorithm steps</h4>
+      <ol>
+        <li>Filter to applied criteria only (<code>criteria.filter(c =&gt; c.applied)</code>)</li>
+        <li>Build a Set of applied codes for O(1) combination-rule checking</li>
+        <li>Check all combination rules; append messages to warnings array</li>
+        <li>Check for sentinel codes (BA1 for ACGS; O1/B1/B2 for SVIG) — return immediately if found</li>
+        <li>Sum points using <code>STRENGTH_POINTS</code> (pathogenic/oncogenic) or <code>BENIGN_STRENGTH_POINTS</code> (benign)</li>
+        <li>Check minimum-criteria warning for ACGS (≥2 required for non-VUS)</li>
+        <li>Apply threshold table via <code>classifyAcgs()</code> or <code>classifySvig()</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section id="select-framework">
+  <h2><span class="sec-num">21</span> classification-engine.ts — selectFramework() and display helpers</h2>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">selectFramework</span>
+      <span class="fn-lines">L164–178</span>
+      <span class="fn-phase p2">framework selection</span>
+    </div>
+    <div class="fn-body">
+      <p>Returns the correct framework and a boolean indicating whether the gene is in the CanVIG panel. The CanVIG set is loaded at module initialisation and stored as a JavaScript <code>Set</code> for O(1) membership checks. Gene names are normalised to uppercase before lookup.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Inputs</h4><ul><li><code>caseType: "germline" | "somatic"</code></li><li><code>gene: string | null</code></li></ul></div>
+        <div class="io-box"><h4>Output</h4><ul><li><code>{framework: Framework, isCanvig: boolean}</code></li></ul></div>
+      </div>
+      <p>The <code>CANVIG_GENE_SET</code> constant (module-level) is computed once when the module is first imported. It reads from the bundled JSON and builds a <code>Set&lt;string&gt;</code> of uppercase gene symbols. The 33 CanVIG genes include BRCA1, BRCA2, TP53, MLH1, MSH2, and others on the CanVIG-Germline panel.</p>
+    </div>
+  </div>
+
+  <div class="fn-box" id="engine-display">
+    <div class="fn-header">
+      <span class="fn-name">classificationLabel / classificationBadgeClass</span>
+      <span class="fn-lines">L180–217</span>
+      <span class="fn-phase setup">display helpers</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>classificationLabel</strong> converts internal label strings to display text. <code>"Likely_Pathogenic"</code> → <code>"Likely Pathogenic"</code> (underscore removed, proper spacing). Returns em-dash for null. Unknown strings pass through unchanged (future-proof for new classifications).</p>
+      <p><strong>classificationBadgeClass</strong> maps a classification string to the CSS suffix used for the badge component: <code>"Pathogenic"</code> → <code>"pathogenic"</code> (used as <code>class="badge badge-pathogenic"</code> in the UI). Falls back to <code>"vus"</code> for null or unknown values — the neutral badge style.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ api.ts ═══════════════════════════════════════════════════════════════ -->
+<section id="api-error">
+  <h2><span class="sec-num">22</span> api.ts — ApiError class</h2>
+
+  <div class="file-section"><span class="fs-name">frontend/src/lib/api.ts</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">ApiError</span>
+      <span class="fn-lines">exported class</span>
+      <span class="fn-phase setup">error type</span>
+    </div>
+    <div class="fn-body">
+      <p>Extends the built-in <code>Error</code> class with two additional properties: <code>status</code> (the HTTP status code, e.g. 401, 409) and <code>detail</code> (the error message from the backend's JSON <code>{"detail": "..."}</code> response body). Components catch <code>ApiError</code> and use its properties to show appropriate error messages or handle specific status codes.</p>
+      <div class="cb"><pre><span class="k">class</span> <span class="t">ApiError</span> <span class="k">extends</span> <span class="t">Error</span> {
+  <span class="k">constructor</span>(<span class="k">public readonly</span> status: <span class="t">number</span>, <span class="k">public readonly</span> detail: <span class="t">string</span>) {
+    <span class="k">super</span>(detail);   <span class="c">// sets this.message = detail</span>
+    <span class="k">this</span>.name = <span class="s">"ApiError"</span>;
+  }
+}</pre></div>
+      <p>The <code>public readonly</code> shorthand in the constructor parameters automatically creates and assigns class properties — no need for separate property declarations. Setting <code>this.name</code> ensures <code>error.toString()</code> shows <code>"ApiError: message"</code> rather than <code>"Error: message"</code>, which helps in test assertions.</p>
+    </div>
+  </div>
+</section>
+
+<section id="api-auth">
+  <h2><span class="sec-num">23</span> api.ts — authHeaders() and request()</h2>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">authHeaders</span>
+      <span class="fn-lines">exported</span>
+      <span class="fn-phase setup">auth</span>
+    </div>
+    <div class="fn-body">
+      <p>Returns a headers object containing <code>X-API-Key</code> when <code>VITE_API_KEY</code> is set; empty object otherwise. Reading the env var at call time (not module load) means tests can stub it between test cases. Exported so components making direct <code>fetch()</code> calls (e.g. <code>VariantTable</code>) can use the same auth without duplicating the logic.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">request&lt;T&gt;</span>
+      <span class="fn-lines">private</span>
+      <span class="fn-phase p3">HTTP client</span>
+    </div>
+    <div class="fn-body">
+      <p>The internal HTTP client that all public endpoint functions call. Merges auth headers, checks <code>resp.ok</code>, throws <code>ApiError</code> on failure, handles 204 No Content, and returns the JSON-decoded body typed as <code>T</code>. Covered in detail in Part 4.</p>
+    </div>
+  </div>
+</section>
+
+<section id="api-patients">
+  <h2><span class="sec-num">24</span> api.ts — Patient and sample endpoints</h2>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">listPatients</span>
+      <span class="fn-lines">exported</span>
+      <span class="fn-phase p1">read</span>
+    </div>
+    <div class="fn-body">
+      <p>Builds a query string from the optional <code>search</code>, <code>limit</code>, and <code>offset</code> parameters using <code>URLSearchParams</code>. Parameters are only appended if defined — this avoids sending <code>?search=&amp;limit=undefined</code> to the backend. Returns a paginated response with <code>items</code>, <code>total</code>, <code>limit</code>, and <code>offset</code>.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">deletePatient / deleteSample</span>
+      <span class="fn-lines">exported</span>
+      <span class="fn-phase p4">write</span>
+    </div>
+    <div class="fn-body">
+      <p>Both issue a DELETE request and return <code>void</code> (the backend responds with 204 No Content). The <code>await request(...)</code> call is not assigned to anything — the return value is discarded. If the request fails, <code>request()</code> throws an <code>ApiError</code> which propagates to the caller.</p>
+    </div>
+  </div>
+</section>
+
+<section id="api-variants">
+  <h2><span class="sec-num">25</span> api.ts — Variant endpoints</h2>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">listVariants</span>
+      <span class="fn-lines">exported</span>
+      <span class="fn-phase p1">read</span>
+    </div>
+    <div class="fn-body">
+      <p>Accepts an optional <code>VariantFilterParams</code> object (which extends <code>PipelineFilters</code> via <code>Partial&lt;&gt;</code>). The parameter serialisation loop skips null and empty-string values, which matters for the <code>gnomad_af_max: null</code> case when the user clears the filter field.</p>
+      <div class="cb"><pre>Object.entries(params).<span class="f">forEach</span>(([k, v]) =&gt; {
+  <span class="k">if</span> (v != <span class="k">null</span> &amp;&amp; v !== <span class="s">""</span>) q.<span class="f">set</span>(k, String(v));   <span class="c">// skip null and ""</span>
+});</pre></div>
+      <p>Note: <code>v != null</code> uses loose equality, which catches both <code>null</code> and <code>undefined</code> in one check.</p>
+    </div>
+  </div>
+</section>
+
+<section id="api-upload">
+  <h2><span class="sec-num">26</span> api.ts — Upload, workflow, and classification</h2>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">updateWorkflow</span>
+      <span class="fn-lines">exported</span>
+      <span class="fn-phase p2">workflow</span>
+    </div>
+    <div class="fn-body">
+      <p>Issues a PUT to <code>/api/workflow/{sampleId}</code> with <code>{status, user_id}</code> as JSON body. The <code>userId</code> is recorded in the audit log on the backend. The <code>WorkflowStatus</code> type (<code>"pending" | "reviewing" | "reported" | "archived"</code>) ensures the caller cannot pass an invalid status — TypeScript will report a compile error.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">putClassification</span>
+      <span class="fn-lines">exported</span>
+      <span class="fn-phase p2">classification</span>
+    </div>
+    <div class="fn-body">
+      <p>Issues a PUT to persist a classification. The key field is <code>ClassifyPersistPayload.locked_by</code>: when <code>null</code>, the backend stores a draft (no <code>locked_at</code> timestamp); when a non-empty string (the analyst's user ID), the backend sets <code>locked_at = NOW()</code>. This is the draft-vs-confirm distinction that Invariant 2 of the clinical safety requirements depends on.</p>
+    </div>
+  </div>
+
+  <div class="fn-box" id="api-classification">
+    <div class="fn-header">
+      <span class="fn-name">resetClassification</span>
+      <span class="fn-lines">exported</span>
+      <span class="fn-phase p4">classification</span>
+    </div>
+    <div class="fn-body">
+      <p>Soft-deletes the current active classification and inserts a blank replacement. Uses a DELETE request <em>with a body</em> (<code>{user_id}</code>) — unusual but permitted by HTTP and supported by the FastAPI backend. Returns <code>{new_classification_id}</code> which the component uses to update its local state.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ pipeline-config.ts and fhir-manifest.ts ═════════════════════════════ -->
+<section id="pipeline-config">
+  <h2><span class="sec-num">27</span> pipeline-config.ts</h2>
+
+  <div class="file-section"><span class="fs-name">frontend/src/lib/pipeline-config.ts</span><span style="color:var(--muted);font-size:12px">Lines 1–25</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">getPipelineDefaults</span>
+      <span class="fn-lines">L11–17</span>
+      <span class="fn-phase setup">config</span>
+    </div>
+    <div class="fn-body">
+      <p>Looks up the default filter configuration for a pipeline key. Uses the optional chaining (<code>?.</code>) and nullish coalescing (<code>??</code>) operators to handle a null/unknown key gracefully. If the pipeline key is null or not found in the JSON, returns a conservative default: 1% AF threshold, empty consequence filter, empty ClinVar exclusion filter.</p>
+      <div class="cb"><pre><span class="k">const</span> config = pipelineKey ? pipelines[pipelineKey] : <span class="k">null</span>;
+<span class="k">return</span> config?.default_filters ?? { gnomad_af_max: <span class="n">0.01</span>, consequences: <span class="s">""</span>, clinvar_exclude: <span class="s">""</span> };</pre></div>
+      <p><code>config?.default_filters</code>: if <code>config</code> is null (unknown pipeline), evaluates to <code>undefined</code>. The <code>??</code> then supplies the fallback object. This single line replaces an if/else block.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">getPipelineOptions</span>
+      <span class="fn-lines">L19–23</span>
+      <span class="fn-phase setup">config</span>
+    </div>
+    <div class="fn-body">
+      <p>Converts the <code>pipelines.json</code> object into an array of <code>{key, label}</code> pairs suitable for a <code>&lt;select&gt;</code> element. <code>Object.entries()</code> returns an array of <code>[key, value]</code> tuples; the <code>.map()</code> picks just the key and the label from each tuple.</p>
+    </div>
+  </div>
+</section>
+
+<section id="fhir-manifest">
+  <h2><span class="sec-num">28</span> fhir-manifest.ts — buildManifest()</h2>
+
+  <div class="file-section"><span class="fs-name">frontend/src/lib/fhir-manifest.ts</span><span style="color:var(--muted);font-size:12px">Lines 1–56</span></div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">buildManifest</span>
+      <span class="fn-lines">L13–56</span>
+      <span class="fn-phase p2">upload</span>
+    </div>
+    <div class="fn-body">
+      <p>Constructs a FHIR R4 collection Bundle from the upload form's field values. Returns a plain JavaScript object — the caller is responsible for JSON-stringifying it and uploading it to the presigned S3 manifest URL.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>Input</h4><ul><li><code>labNumber</code></li><li><code>specimenName</code></li><li><code>caseType: "germline" | "somatic"</code></li><li><code>pipelineKey: string | null</code></li><li><code>sequencingDate: string | null</code></li><li><code>vcfFilename</code></li></ul></div>
+        <div class="io-box"><h4>Output</h4><ul><li><code>FhirBundle</code> object with 3 entries: Patient, Specimen, Task</li></ul></div>
+      </div>
+      <h4>Key design points</h4>
+      <ul>
+        <li>The <strong>Patient</strong> resource uses only the NHS Lab System identifier (<code>https://fhir.example-lab.org/Id/lab-number</code>). Name and NHS number are deliberately omitted.</li>
+        <li>The <strong>Specimen</strong> <code>collection</code> field is conditionally included — <code>sequencingDate ? {...} : undefined</code>. When the field is <code>undefined</code>, <code>JSON.stringify()</code> omits it entirely from the output.</li>
+        <li>The case type is stored as a custom <strong>FHIR extension</strong> on the Specimen resource using the <code>CASE_TYPE_EXT</code> URL. The backend's <code>parse_manifest()</code> looks for this exact extension URL.</li>
+        <li>The <strong>Task</strong> <code>code</code> field is <code>pipelineKey ? {text: pipelineKey} : undefined</code> — optional, same pattern as collection.</li>
+      </ul>
+      <div class="callout green"><span class="tag">Backend compatibility</span><p>The backend's <code>parse_manifest()</code> in <code>app/lib/fhir_manifest.py</code> navigates this exact JSON structure to extract patient lab number, specimen name, case type, pipeline key, sequencing date, and VCF filename. The constants <code>NHS_LAB_SYSTEM</code> and <code>CASE_TYPE_EXT</code> must match the corresponding constants in the Python file precisely. The 9 fhir-manifest tests verify the bundle shape; the backend integration tests verify the round-trip.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_C2_Lib_Modules_Part1.html">1 · High-level outline</a>
+  <a href="260521_PR_C2_Lib_Modules_Part2.html">2 · Key concepts</a>
+  <a href="260521_PR_C2_Lib_Modules_Part3.html" class="current">3 · Function walkthrough</a>
+  <a href="260521_PR_C2_Lib_Modules_Part4.html">4 · Line-by-line reference</a>
+</div>
+
+</main>
+</div>
+
+<footer>
+  Joo Wook Ahn · 21 May 2026 · Function walkthrough for PR C2 lib modules. Continued from Part 2 (key concepts). Continues in Part 4 (line-by-line reference).
+</footer>
+
+</body>
+</html>

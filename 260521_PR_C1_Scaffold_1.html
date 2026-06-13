@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR C1 — Frontend Scaffold · Part 1: High-level outline</title>
+<style>
+  :root{
+    --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+    --line:#e0e7ef;--line-strong:#c5d0db;
+    --bg:#f7f9fb;--paper:#ffffff;
+    --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+    --green:#1a6e47;--green-soft:#e0f0e8;
+    --amber:#b35c00;--amber-soft:#fdf0e0;
+    --red:#9b2335;--red-soft:#fce8ea;
+    --purple:#4b2d8e;--purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+  @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;border-top:3px solid var(--accent)}
+  .stat .n{font-size:26px;font-weight:800;color:var(--accent-deep);line-height:1.1;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
+  @media(max-width:640px){.card-grid{grid-template-columns:1fr}}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:var(--shadow)}
+  .card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .card-name{font-weight:700;font-size:14.5px;color:var(--ink);line-height:1.2}
+  .card-sub{font-size:11.5px;color:var(--muted)}
+  .card p{font-size:13.5px;margin:0 0 10px}
+  .card p:last-child{margin:0}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+  .pill.amber{background:var(--amber-soft);color:var(--amber)}
+  .pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill.purple{background:var(--purple-soft);color:var(--purple)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+  .ref{display:inline-block;background:#f0f4f8;border:1px solid var(--line);border-radius:4px;padding:1px 7px;font-size:11.5px;color:var(--ink-soft);font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+  /* Series nav */
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  /* Inline code */
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  /* File section banner */
+  .file-section{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f0f4f8;border:1px solid var(--line);border-radius:6px;margin:20px 0 8px;font-size:13px}
+  .file-section .fs-name{font-weight:700;color:var(--ink)}
+  .file-section .fs-range{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR C1 SCAFFOLD<br>21 May 2026</div>
+  <div class="toc-section">This part</div>
+  <ul>
+    <li><a href="#what">What PR C1 does</a></li>
+    <li><a href="#phases">Build pipeline phases</a></li>
+    <li><a href="#dataflow">Data flow</a></li>
+    <li><a href="#deps">External dependencies</a></li>
+    <li><a href="#inventory">File inventory</a></li>
+    <li><a href="#series">How to use this series</a></li>
+  </ul>
+  <div class="toc-section">Series</div>
+  <ul>
+    <li><a href="260521_PR_C1_Scaffold_1.html">Part 1 · High-level outline</a></li>
+    <li><a href="260521_PR_C1_Scaffold_2.html">Part 2 · Key concepts</a></li>
+    <li><a href="260521_PR_C1_Scaffold_3.html">Part 3 · File walkthrough</a></li>
+    <li><a href="260521_PR_C1_Scaffold_4.html">Part 4 · Line-by-line reference</a></li>
+  </ul>
+  <div class="meta">Source: variant-viewer branch pr/C1<br>PR C1 of 8 in stacked series<br>Part 1 of 4</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · Frontend engineering · Part 1 of 4</div>
+  <h1>PR C1 — Frontend Scaffold</h1>
+  <p class="sub">A complete orientation to the Vite + React + Tailwind project wiring before examining any individual file in detail.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> C1 of 8 · branch pr/C1</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_C1_Scaffold_1.html" class="current">1 · High-level outline</a>
+  <a href="260521_PR_C1_Scaffold_2.html">2 · Key concepts</a>
+  <a href="260521_PR_C1_Scaffold_3.html">3 · File walkthrough</a>
+  <a href="260521_PR_C1_Scaffold_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="what">
+  <h2><span class="sec-num">01</span> What PR C1 does</h2>
+
+  <p>PR C1 is the first frontend PR in the stacked series. It adds <strong>everything needed to build, test, and containerise a React SPA</strong> — but none of the actual application code. Every component file, page file, and library module is either absent or a one-line placeholder at this point. The application logic lands in PRs C2 through D4.</p>
+
+  <p>Think of this PR as laying a factory floor before any machinery arrives. After merging C1 you can run <code>npm run build</code> and get a valid <code>dist/</code> bundle; run <code>npm test</code> and get zero tests (cleanly, without error); and run <code>docker build</code> to get a working nginx image that serves the empty shell with correct SPA routing.</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="n">15</div>
+      <div class="l">Files added or changed</div>
+    </div>
+    <div class="stat">
+      <div class="n">5</div>
+      <div class="l">Build / config tools wired</div>
+    </div>
+    <div class="stat">
+      <div class="n">46</div>
+      <div class="l">Tailwind component classes defined</div>
+    </div>
+    <div class="stat">
+      <div class="n">46</div>
+      <div class="l">Classification criteria bundled (28 ACGS + 18 SVIG)</div>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <span class="tag">Scope boundary</span>
+    <p>PR C1 contains <strong>no business logic</strong>. The <code>App.tsx</code> is a placeholder that renders nothing. All real components, pages, and library functions are introduced in PRs C2–D4. Reviewing C1 means asking: does the build wiring make sense? Is the Docker image correct? Are the Tailwind classes right?</p>
+  </div>
+</section>
+
+<section id="phases">
+  <h2><span class="sec-num">02</span> Build pipeline phases</h2>
+
+  <p>Seven distinct phases produce the final deployable artefact from source files. Each phase has a specific tool responsible for it.</p>
+
+  <figure>
+  <div class="fig-wrap">
+  <svg viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Build pipeline showing seven phases from source to deployed container">
+    <style>.lbl{font:700 13px -apple-system,Segoe UI,Inter,sans-serif}.sub{font:11px -apple-system,Segoe UI,Inter,sans-serif}.tiny{font:11px -apple-system,Segoe UI,Inter,sans-serif}</style>
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6b7c8d"/>
+      </marker>
+    </defs>
+    <text x="16" y="20" font-size="11" letter-spacing="2" fill="#6b7c8d">BUILD PIPELINE</text>
+    <!-- boxes -->
+    <!-- 1 Source -->
+    <rect x="20" y="40" width="96" height="56" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="68" y="66" text-anchor="middle" class="lbl" fill="#003d78">Source</text>
+    <text x="68" y="83" text-anchor="middle" class="sub" fill="#6b7c8d">.tsx .ts .css</text>
+    <!-- arrow -->
+    <line x1="116" y1="68" x2="136" y2="68" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <!-- 2 TypeScript -->
+    <rect x="136" y="40" width="96" height="56" rx="6" fill="#ede8f8" stroke="#4b2d8e" stroke-width="1.5"/>
+    <text x="184" y="63" text-anchor="middle" class="lbl" fill="#4b2d8e">TypeScript</text>
+    <text x="184" y="80" text-anchor="middle" class="sub" fill="#6b7c8d">tsc --noEmit</text>
+    <!-- arrow -->
+    <line x1="232" y1="68" x2="252" y2="68" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <!-- 3 Tailwind -->
+    <rect x="252" y="40" width="96" height="56" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="300" y="63" text-anchor="middle" class="lbl" fill="#1a6e47">Tailwind</text>
+    <text x="300" y="80" text-anchor="middle" class="sub" fill="#6b7c8d">PostCSS scan</text>
+    <!-- arrow -->
+    <line x1="348" y1="68" x2="368" y2="68" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <!-- 4 Vite -->
+    <rect x="368" y="40" width="96" height="56" rx="6" fill="#fdf0e0" stroke="#b35c00" stroke-width="1.5"/>
+    <text x="416" y="63" text-anchor="middle" class="lbl" fill="#b35c00">Vite</text>
+    <text x="416" y="80" text-anchor="middle" class="sub" fill="#6b7c8d">bundle + tree-shake</text>
+    <!-- arrow -->
+    <line x1="464" y1="68" x2="484" y2="68" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <!-- 5 dist/ -->
+    <rect x="484" y="40" width="96" height="56" rx="6" fill="#f0f4f8" stroke="#6b7c8d" stroke-width="1.5"/>
+    <text x="532" y="63" text-anchor="middle" class="lbl" fill="#354656">dist/</text>
+    <text x="532" y="80" text-anchor="middle" class="sub" fill="#6b7c8d">HTML+JS+CSS</text>
+    <!-- arrow -->
+    <line x1="580" y1="68" x2="600" y2="68" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <!-- 6 Docker -->
+    <rect x="600" y="40" width="96" height="56" rx="6" fill="#e3edf8" stroke="#005eb8" stroke-width="1.5"/>
+    <text x="648" y="63" text-anchor="middle" class="lbl" fill="#003d78">Docker</text>
+    <text x="648" y="80" text-anchor="middle" class="sub" fill="#6b7c8d">nginx:alpine</text>
+    <!-- arrow -->
+    <line x1="696" y1="68" x2="716" y2="68" stroke="#6b7c8d" stroke-width="1.5" marker-end="url(#arr)"/>
+    <!-- 7 Deployed -->
+    <rect x="716" y="40" width="84" height="56" rx="6" fill="#e0f0e8" stroke="#1a6e47" stroke-width="1.5"/>
+    <text x="758" y="63" text-anchor="middle" class="lbl" fill="#1a6e47">Deployed</text>
+    <text x="758" y="80" text-anchor="middle" class="sub" fill="#6b7c8d">port 80</text>
+    <!-- Test path label -->
+    <rect x="136" y="130" width="212" height="44" rx="6" fill="#fce8ea" stroke="#9b2335" stroke-width="1"/>
+    <text x="242" y="150" text-anchor="middle" class="lbl" fill="#9b2335">Vitest</text>
+    <text x="242" y="167" text-anchor="middle" class="sub" fill="#9b2335">jsdom environment</text>
+    <line x1="184" y1="96" x2="184" y2="130" stroke="#9b2335" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="756" y="195" text-anchor="end" class="tiny" fill="#6b7c8d">Separate test path runs alongside build — shares vite.config.ts</text>
+  </svg>
+  </div>
+  <figcaption>Figure 1 · Seven build phases from TypeScript source to deployed nginx container. Vitest runs a parallel test path sharing the same Vite configuration file.</figcaption>
+  </figure>
+
+  <table>
+    <thead><tr><th>Phase</th><th>Tool</th><th>Config file</th><th>What it produces</th></tr></thead>
+    <tbody>
+      <tr><td>Type-check</td><td>TypeScript compiler (<code>tsc</code>)</td><td><code>tsconfig.json</code></td><td>Errors only — no JS output (<code>noEmit: true</code>)</td></tr>
+      <tr><td>CSS transform</td><td>PostCSS + Tailwind</td><td><code>postcss.config.cjs</code>, <code>tailwind.config.ts</code></td><td>Purged utility CSS + component layer classes</td></tr>
+      <tr><td>Bundle</td><td>Vite 5 (Rollup)</td><td><code>vite.config.ts</code></td><td><code>dist/assets/index-*.js</code> + <code>index-*.css</code></td></tr>
+      <tr><td>Test</td><td>Vitest 2 + jsdom</td><td><code>vite.config.ts</code> (test block)</td><td>Pass/fail output; no artefacts</td></tr>
+      <tr><td>Containerise</td><td>Docker (multi-stage)</td><td><code>Dockerfile</code></td><td><code>node:20-slim</code> builder → <code>nginx:alpine</code> image</td></tr>
+      <tr><td>Serve</td><td>nginx</td><td><code>nginx.conf</code></td><td>Static file serving with SPA fallback + <code>/api</code> proxy</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="dataflow">
+  <h2><span class="sec-num">03</span> Data flow</h2>
+
+  <p>Three separate file categories flow through the build at different points.</p>
+
+  <table>
+    <thead><tr><th>File type</th><th>Enters at</th><th>Transformed by</th><th>Final form in dist/</th></tr></thead>
+    <tbody>
+      <tr><td><code>.tsx</code> / <code>.ts</code> source</td><td>Vite dev server or <code>npm run build</code></td><td>Vite (esbuild/Rollup) + TypeScript</td><td>Single hashed <code>.js</code> bundle</td></tr>
+      <tr><td><code>index.css</code> (Tailwind source)</td><td>PostCSS plugin during Vite CSS pass</td><td>Tailwind JIT + autoprefixer</td><td>Single hashed <code>.css</code> file with only used classes</td></tr>
+      <tr><td><code>src/config/*.json</code></td><td>Import statements in TS modules (C2+)</td><td>Vite JSON plugin (built-in)</td><td>Inlined as JS object literals in the main bundle</td></tr>
+      <tr><td><code>index.html</code></td><td>Vite entry point</td><td>Vite HTML transform (script tag → hashed bundle ref)</td><td><code>dist/index.html</code> with updated asset URLs</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout amber">
+    <span class="tag">Important: JSON bundling</span>
+    <p>The criteria JSON files (<code>acgs-snv-criteria.json</code>, <code>svig-criteria.json</code>, <code>canvig-gene-mtaf.json</code>) are <strong>bundled into the JS at build time</strong> via <code>resolveJsonModule: true</code> in tsconfig. They are not fetched at runtime. This means any change to the criteria requires a rebuild and redeployment — but it also means the classification engine works offline with zero network latency.</p>
+  </div>
+</section>
+
+<section id="deps">
+  <h2><span class="sec-num">04</span> External dependencies</h2>
+
+  <h3>Runtime dependencies (<code>dependencies</code>)</h3>
+  <table>
+    <thead><tr><th>Package</th><th>Version</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td><code>react</code></td><td>^18.3</td><td>Component model, hooks, virtual DOM diffing</td></tr>
+      <tr><td><code>react-dom</code></td><td>^18.3</td><td>Browser DOM renderer; <code>createRoot</code> entry point</td></tr>
+      <tr><td><code>react-router-dom</code></td><td>^6.26</td><td>Client-side routing (<code>BrowserRouter</code>, <code>Routes</code>, <code>Route</code>, <code>useParams</code>, <code>Navigate</code>)</td></tr>
+      <tr><td><code>@tanstack/react-table</code></td><td>^8.20</td><td>Headless table engine for <code>VariantTable</code> (introduced in D2)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Development dependencies (<code>devDependencies</code>)</h3>
+  <table>
+    <thead><tr><th>Package</th><th>Purpose in this project</th></tr></thead>
+    <tbody>
+      <tr><td><code>vite</code> + <code>@vitejs/plugin-react</code></td><td>Build bundler and dev server; React plugin adds SWC transforms and Fast Refresh</td></tr>
+      <tr><td><code>typescript</code></td><td>Type-checking (<code>tsc --noEmit</code>) — Vite uses esbuild for transpilation, not tsc</td></tr>
+      <tr><td><code>vitest</code></td><td>Test runner; re-uses the same Vite config and transform pipeline</td></tr>
+      <tr><td><code>jsdom</code></td><td>Simulated browser DOM for tests — provides <code>document</code>, <code>window</code>, etc. without a real browser</td></tr>
+      <tr><td><code>@testing-library/react</code></td><td>React rendering helpers (<code>render</code>, <code>screen</code>) for component tests</td></tr>
+      <tr><td><code>@testing-library/jest-dom</code></td><td>Custom DOM matchers: <code>toBeInTheDocument()</code>, <code>toHaveClass()</code>, <code>toBeDisabled()</code></td></tr>
+      <tr><td><code>@testing-library/user-event</code></td><td>Realistic user interaction simulation for tests (clicks, typing)</td></tr>
+      <tr><td><code>tailwindcss</code> + <code>postcss</code> + <code>autoprefixer</code></td><td>CSS utility framework; PostCSS is the transform runner; autoprefixer adds vendor prefixes</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout blue">
+    <span class="tag">Note: no @vitest/jsdom</span>
+    <p>Some tutorials recommend <code>@vitest/jsdom</code> but that package does not exist — the correct package is <code>jsdom</code>. The <code>environment: "jsdom"</code> setting in <code>vite.config.ts</code> tells Vitest to use the installed <code>jsdom</code> package automatically.</p>
+  </div>
+</section>
+
+<section id="inventory">
+  <h2><span class="sec-num">05</span> File inventory</h2>
+
+  <table>
+    <thead><tr><th>File</th><th>Role</th><th>Part covered</th></tr></thead>
+    <tbody>
+      <tr><td><code>package.json</code></td><td>Dependency manifest and npm script definitions</td><td>Part 3</td></tr>
+      <tr><td><code>vite.config.ts</code></td><td>Unified Vite build + Vitest test configuration</td><td>Parts 3, 4</td></tr>
+      <tr><td><code>tsconfig.json</code></td><td>TypeScript compiler options — strict mode, path aliases, JSX mode</td><td>Parts 3, 4</td></tr>
+      <tr><td><code>tailwind.config.ts</code></td><td>Content glob for class purging; font family extensions</td><td>Part 3</td></tr>
+      <tr><td><code>postcss.config.cjs</code></td><td>PostCSS plugin list (Tailwind + autoprefixer)</td><td>Part 3</td></tr>
+      <tr><td><code>index.html</code></td><td>Single HTML entry point; references <code>/src/main.tsx</code></td><td>Part 3</td></tr>
+      <tr><td><code>Dockerfile</code></td><td>Multi-stage: node:20-slim builder → nginx:alpine final image</td><td>Part 3</td></tr>
+      <tr><td><code>nginx.conf</code></td><td>nginx server block: SPA <code>try_files</code> routing + <code>/api/</code> proxy to backend:3000</td><td>Parts 3, 4</td></tr>
+      <tr><td><code>src/index.css</code></td><td>Tailwind directives + <code>@layer components</code> with <code>badge-*</code> and <code>btn-*</code> classes</td><td>Parts 3, 4</td></tr>
+      <tr><td><code>src/main.tsx</code></td><td>React root mount; wraps App in <code>StrictMode</code> + <code>BrowserRouter</code></td><td>Part 3</td></tr>
+      <tr><td><code>src/App.tsx</code></td><td>Placeholder (routes wired in D4)</td><td>Part 3</td></tr>
+      <tr><td><code>src/tests/setup.ts</code></td><td>Imports <code>@testing-library/jest-dom</code> for all test files</td><td>Part 3</td></tr>
+      <tr><td><code>src/config/pipelines.json</code></td><td>Pipeline filter presets (gnomAD AF threshold, consequence list, ClinVar exclusions)</td><td>Part 3</td></tr>
+      <tr><td><code>src/config/acgs-snv-criteria.json</code></td><td>28 ACGS SNV classification criteria with point weights, strengths, categories</td><td>Part 3</td></tr>
+      <tr><td><code>src/config/svig-criteria.json</code></td><td>18 SVIG-UK somatic oncogenic criteria with scoring thresholds</td><td>Part 3</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="series">
+  <h2><span class="sec-num">06</span> How to use this series</h2>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--accent-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="14" height="14" rx="2" fill="none" stroke="#005eb8" stroke-width="1.5"/><line x1="3" y1="7" x2="17" y2="7" stroke="#005eb8" stroke-width="1.5"/><line x1="7" y1="7" x2="7" y2="17" stroke="#005eb8" stroke-width="1.5"/></svg>
+        </div>
+        <div>
+          <div class="card-name">Part 1 · High-level outline</div>
+          <div class="card-sub">You are here</div>
+        </div>
+      </div>
+      <p>Purpose of the PR, build pipeline phases, data flow, dependency table, and this file inventory. Start here to understand what C1 is and is not before reading any code.</p>
+      <span class="pill blue">Orientation</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--purple-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="7" fill="none" stroke="#4b2d8e" stroke-width="1.5"/><text x="10" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="#4b2d8e">?</text></svg>
+        </div>
+        <div>
+          <div class="card-name">Part 2 · Key concepts</div>
+          <div class="card-sub">Background knowledge</div>
+        </div>
+      </div>
+      <p>Eight concepts you need before the config files make sense: Vite vs webpack, the dual Vite+Vitest config pattern, TypeScript strict mode options, Tailwind <code>@layer</code>, jsdom, nginx <code>try_files</code>, Docker multi-stage builds, and the criteria JSON schema.</p>
+      <span class="pill purple">Concepts</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--green-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5" width="14" height="2" rx="1" fill="#1a6e47"/><rect x="3" y="9" width="10" height="2" rx="1" fill="#1a6e47"/><rect x="3" y="13" width="12" height="2" rx="1" fill="#1a6e47"/></svg>
+        </div>
+        <div>
+          <div class="card-name">Part 3 · File walkthrough</div>
+          <div class="card-sub">Every file explained</div>
+        </div>
+      </div>
+      <p>Each of the 15 files covered individually: what it does, which options matter, design decisions, and common gotchas. Read sequentially or jump directly to the file you are reviewing.</p>
+      <span class="pill green">Walkthrough</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--amber-soft)">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 3 L17 17 H3 Z" fill="none" stroke="#b35c00" stroke-width="1.5" stroke-linejoin="round"/><line x1="10" y1="9" x2="10" y2="13" stroke="#b35c00" stroke-width="1.5"/><circle cx="10" cy="15" r="0.8" fill="#b35c00"/></svg>
+        </div>
+        <div>
+          <div class="card-name">Part 4 · Line-by-line reference</div>
+          <div class="card-sub">Dense annotations</div>
+        </div>
+      </div>
+      <p>Annotated deep dives into the four hardest files: <code>vite.config.ts</code> (dual Vite+Vitest pattern), <code>tsconfig.json</code> (unusual strict options), <code>nginx.conf</code> (SPA routing + proxy), and <code>src/index.css</code> (Tailwind <code>@layer components</code> pattern). Each line annotated with why, not just what.</p>
+      <span class="pill amber">Reference</span>
+    </div>
+  </div>
+</section>
+
+<div class="series-nav" style="margin-top:40px">
+  <a href="260521_PR_C1_Scaffold_1.html" class="current">1 · High-level outline</a>
+  <a href="260521_PR_C1_Scaffold_2.html">2 · Key concepts</a>
+  <a href="260521_PR_C1_Scaffold_3.html">3 · File walkthrough</a>
+  <a href="260521_PR_C1_Scaffold_4.html">4 · Line-by-line reference</a>
+</div>
+
+</main>
+</div>
+
+<footer>
+  PR C1 — Frontend Scaffold · Code walkthrough series · Author: Joo Wook Ahn · 21 May 2026 · Source: variant-viewer branch pr/C1 · Part 1 of 4 · Continues in Part 2.
+</footer>
+</body>
+</html>

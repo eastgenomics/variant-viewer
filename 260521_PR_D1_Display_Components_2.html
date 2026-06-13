@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR D1 — Display Components · Part 2: Key concepts</title>
+<style>
+  :root{
+    --ink:#0d1b2a; --ink-soft:#354656; --muted:#6b7c8d;
+    --line:#e0e7ef; --line-strong:#c5d0db;
+    --bg:#f7f9fb; --paper:#ffffff;
+    --accent:#005eb8; --accent-deep:#003d78; --accent-mid:#1a73c4; --accent-soft:#e3edf8;
+    --green:#1a6e47; --green-soft:#e0f0e8;
+    --amber:#b35c00; --amber-soft:#fdf0e0;
+    --red:#9b2335; --red-soft:#fce8ea;
+    --purple:#4b2d8e; --purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  figure{margin:24px 0}
+  .fig-wrap{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto}
+  figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;line-height:1.5}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}
+  .cb .k{color:#79b8ff}
+  .cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}
+  .cb .f{color:#85e89d}
+  .cb .t{color:#ffab70}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .concept-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 40px}
+  .concept-header{background:var(--accent-deep);padding:14px 18px}
+  .concept-title{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Inter",sans-serif;font-size:16px;font-weight:700;color:#fff}
+  .concept-body{padding:20px 22px}
+  .concept-body p{margin-bottom:10px}
+  .in-this-file{background:var(--accent-soft);border-left:3px solid var(--accent);padding:12px 16px;border-radius:0 6px 6px 0;margin-top:14px;font-size:13.5px;color:var(--ink-soft)}
+  .in-this-file strong{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR D1 DISPLAY COMPONENTS<br>21 May 2026</div>
+  <div class="toc-section">Part 2</div>
+  <ul>
+    <li><a href="#stateless">05 Stateless functional components</a></li>
+    <li><a href="#record">06 Record&lt;string,string&gt; lookup maps</a></li>
+    <li><a href="#tailwind">07 Tailwind and the badge-* layer</a></li>
+    <li><a href="#pick">08 TypeScript Pick&lt;T,K&gt;</a></li>
+    <li><a href="#nullish">09 Nullish coalescing ??</a></li>
+    <li><a href="#invariant1">10 Invariant 1 — PII exclusion</a></li>
+    <li><a href="#usestate">11 useState two-step confirmation</a></li>
+  </ul>
+  <div class="meta">Part 2 of 4<br>variant-viewer · PR D1<br>Continued from Part 1</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · Frontend SPA · PR D1 of 8 — Part 2 of 4: Key concepts</div>
+  <h1>PR D1 — Key Concepts</h1>
+  <p class="sub">The seven ideas you need before the code makes complete sense: stateless React components, TypeScript Record and Pick, Tailwind CSS component classes, nullish coalescing, the PII invariant, and the useState two-step confirmation pattern.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> D1 of 8 — targets pr/C2</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_D1_Display_Components_1.html">1 · High-level outline</a>
+  <a href="260521_PR_D1_Display_Components_2.html" class="current">2 · Key concepts</a>
+  <a href="260521_PR_D1_Display_Components_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_D1_Display_Components_4.html">4 · Line-by-line reference</a>
+</div>
+
+<section id="stateless">
+  <h2><span class="sec-num">05</span> Stateless functional components</h2>
+
+  <div class="concept-box">
+    <div class="concept-header"><div class="concept-title">React stateless functional component</div></div>
+    <div class="concept-body">
+      <p>In React, a <strong>functional component</strong> is simply a JavaScript function that accepts an object of <em>props</em> and returns JSX — a tree of UI elements. When the component is stateless, it means the function has no internal memory: given the same props, it will always return exactly the same output. This makes stateless components trivially testable, composable, and predictable.</p>
+
+      <div class="cb"><pre><span class="c">// Minimal stateless component — props in, JSX out, nothing else</span>
+<span class="k">function</span> <span class="f">Greeting</span>({ name }: { name: string }) {
+  <span class="k">return</span> &lt;p&gt;Hello, {name}&lt;/p&gt;;
+}
+
+<span class="c">// Every call with the same name produces identical HTML</span>
+<span class="f">Greeting</span>({ name: <span class="s">"Alice"</span> }) <span class="c">// → &lt;p&gt;Hello, Alice&lt;/p&gt;</span>
+<span class="f">Greeting</span>({ name: <span class="s">"Alice"</span> }) <span class="c">// → identical, always</span></pre></div>
+
+      <p>The props object is TypeScript-typed inline using an object destructuring pattern: <code>({ status }: { status: string })</code>. The part after the colon is the type — this is only a compile-time annotation, not runtime overhead.</p>
+
+      <div class="in-this-file"><strong>In this PR:</strong> <code>Navbar</code>, <code>WorkflowBadge</code>, <code>ClassificationBadge</code>, and <code>PatientHeader</code> are all purely stateless. <code>PatientListTable</code> is stateless in its outer function — the internal <code>DeletePatientButton</code> is the only place <code>useState</code> is used, and it is an inner component, not a hook on the outer function.</div>
+    </div>
+  </div>
+</section>
+
+<section id="record">
+  <h2><span class="sec-num">06</span> Record&lt;string, string&gt; lookup maps</h2>
+
+  <div class="concept-box">
+    <div class="concept-header"><div class="concept-title">TypeScript Record&lt;string, string&gt;</div></div>
+    <div class="concept-body">
+      <p>A <code>Record&lt;K, V&gt;</code> is TypeScript's way of typing a plain JavaScript object used as a key-value map. <code>Record&lt;string, string&gt;</code> means: "an object whose keys are strings and whose values are also strings." It is equivalent to <code>{ [key: string]: string }</code> but more readable.</p>
+
+      <div class="cb"><pre><span class="c">// A Record is just a typed object literal</span>
+<span class="k">const</span> colourMap: <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt; = {
+  red:   <span class="s">"bg-red-100 text-red-800"</span>,
+  green: <span class="s">"bg-green-100 text-green-800"</span>,
+};
+
+<span class="c">// Lookup — returns undefined if key is absent</span>
+colourMap[<span class="s">"red"</span>]      <span class="c">// → "bg-red-100 text-red-800"</span>
+colourMap[<span class="s">"purple"</span>]   <span class="c">// → undefined</span>
+
+<span class="c">// ?? fallback handles the missing-key case</span>
+colourMap[<span class="s">"purple"</span>] ?? <span class="s">"bg-gray-100 text-gray-600"</span>
+<span class="c">// → "bg-gray-100 text-gray-600"</span></pre></div>
+
+      <p>The key performance point: the <code>const</code> lookup tables (<code>BADGE_MAP</code>, <code>LABEL_MAP</code>, <code>classes</code>, <code>labels</code>) are defined <em>outside</em> the function body. This means they are allocated once when the module is first imported and reused on every render. If they were defined inside the function, they would be reallocated on every render call — wasteful for tables that never change.</p>
+
+      <div class="in-this-file">
+        <strong>In this PR:</strong> <code>WorkflowBadge</code> uses <em>inline</em> <code>const</code> declarations inside the function body — a minor inconsistency with <code>ClassificationBadge</code> which uses module-level <code>BADGE_MAP</code> / <code>LABEL_MAP</code>. Both are functionally correct; the module-level pattern in <code>ClassificationBadge</code> is marginally more efficient because the objects are only created once. For these tiny maps (4–7 entries) the difference is negligible in practice.
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tailwind">
+  <h2><span class="sec-num">07</span> Tailwind CSS and the badge-* component layer</h2>
+
+  <div class="concept-box">
+    <div class="concept-header"><div class="concept-title">Tailwind utility classes vs @layer components</div></div>
+    <div class="concept-body">
+      <p>Tailwind CSS is a utility-first CSS framework: instead of writing custom CSS rules, you compose class names directly in your HTML/JSX. Each class applies exactly one CSS rule: <code>text-sm</code> sets <code>font-size: 0.875rem</code>, <code>border</code> sets <code>border-width: 1px</code>, and so on.</p>
+
+      <div class="cb"><pre><span class="c">&lt;!-- Pure Tailwind utilities — readable but verbose --&gt;</span>
+&lt;span class=<span class="s">"inline-flex items-center px-2 py-0.5 rounded text-xs
+             font-medium bg-yellow-100 text-yellow-800"</span>&gt;
+  Pending
+&lt;/span&gt;</pre></div>
+
+      <p>When the same combination of utility classes is reused many times, Tailwind lets you extract them into a <em>component class</em> using <code>@layer components</code> in your CSS file. The variant-viewer project defines this in <code>frontend/src/index.css</code>:</p>
+
+      <div class="cb"><pre><span class="c">/* index.css — @layer components */</span>
+.badge {
+  <span class="k">@apply</span> inline-flex items-center px-<span class="n">2</span> py-<span class="n">0.5</span> rounded text-xs font-medium;
+}
+.badge-pending   { <span class="k">@apply</span> bg-yellow-<span class="n">100</span> text-yellow-<span class="n">800</span>; }
+.badge-reviewing { <span class="k">@apply</span> bg-blue-<span class="n">100</span> text-blue-<span class="n">800</span>; }
+.badge-reported  { <span class="k">@apply</span> bg-green-<span class="n">100</span> text-green-<span class="n">800</span>; }
+.badge-archived  { <span class="k">@apply</span> bg-gray-<span class="n">100</span> text-gray-<span class="n">600</span>; }</pre></div>
+
+      <p>Now instead of repeating all those utility classes in JSX, we just write <code>"badge badge-pending"</code>. The <code>badge</code> class provides the shared layout, and <code>badge-pending</code> provides the status-specific colour. This is why <code>WorkflowBadge</code> strings look like two class names — not one.</p>
+
+      <div class="in-this-file">
+        <strong>In this PR:</strong> <code>WorkflowBadge</code> maps each status to a <code>"badge badge-{status}"</code> string. <code>ClassificationBadge</code> maps each classification to <code>"badge badge-{hyphenated-classification}"</code>. The fallback <code>"badge bg-gray-100 text-gray-600"</code> applies the <code>badge</code> base class plus ad-hoc colour utilities — used when the lookup key is absent (unknown or future status values).
+      </div>
+    </div>
+  </div>
+
+  <h3>Full badge class reference</h3>
+  <table>
+    <thead>
+      <tr><th>Status / Classification</th><th>CSS class string</th><th>Background</th><th>Text</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>pending</code></td><td><code>badge badge-pending</code></td><td>yellow-100</td><td>yellow-800</td></tr>
+      <tr><td><code>reviewing</code></td><td><code>badge badge-reviewing</code></td><td>blue-100</td><td>blue-800</td></tr>
+      <tr><td><code>reported</code></td><td><code>badge badge-reported</code></td><td>green-100</td><td>green-800</td></tr>
+      <tr><td><code>archived</code></td><td><code>badge badge-archived</code></td><td>gray-100</td><td>gray-600</td></tr>
+      <tr><td><code>Pathogenic</code></td><td><code>badge badge-pathogenic</code></td><td>red-100</td><td>red-800</td></tr>
+      <tr><td><code>Likely_Pathogenic</code></td><td><code>badge badge-likely-pathogenic</code></td><td>orange-100</td><td>orange-800</td></tr>
+      <tr><td><code>VUS</code></td><td><code>badge badge-vus</code></td><td>yellow-100</td><td>yellow-800</td></tr>
+      <tr><td><code>Likely_Benign</code></td><td><code>badge badge-likely-benign</code></td><td>blue-100</td><td>blue-800</td></tr>
+      <tr><td><code>Benign</code></td><td><code>badge badge-benign</code></td><td>green-100</td><td>green-800</td></tr>
+      <tr><td><code>Oncogenic</code></td><td><code>badge badge-oncogenic</code></td><td>red-100</td><td>red-800</td></tr>
+      <tr><td><code>Likely_Oncogenic</code></td><td><code>badge badge-likely-oncogenic</code></td><td>orange-100</td><td>orange-800</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="pick">
+  <h2><span class="sec-num">08</span> TypeScript Pick&lt;T, K&gt;</h2>
+
+  <div class="concept-box">
+    <div class="concept-header"><div class="concept-title">TypeScript utility type: Pick&lt;T, K&gt;</div></div>
+    <div class="concept-body">
+      <p><code>Pick&lt;T, K&gt;</code> creates a new type that includes <em>only</em> the properties named in <code>K</code> from type <code>T</code>. It is one of TypeScript's built-in <em>utility types</em> — transforms on existing types that are evaluated at compile time with zero runtime cost.</p>
+
+      <div class="cb"><pre><span class="k">interface</span> <span class="t">PatientDetailResponse</span> {
+  id: <span class="t">number</span>;
+  lab_number: <span class="t">string</span>;
+  name: <span class="t">string</span> | <span class="k">null</span>;    <span class="c">// patient's full name — PII</span>
+  created_at: <span class="t">string</span> | <span class="k">null</span>;
+  samples: <span class="t">SampleSummary</span>[];
+}
+
+<span class="c">// Pick narrows to only the two safe fields</span>
+<span class="k">type</span> <span class="t">SafeProps</span> = <span class="t">Pick</span>&lt;<span class="t">PatientDetailResponse</span>, <span class="s">"id"</span> | <span class="s">"lab_number"</span>&gt;;
+<span class="c">// SafeProps = { id: number; lab_number: string }</span>
+
+<span class="c">// A component accepting SafeProps cannot access patient.name</span>
+<span class="k">function</span> <span class="f">Header</span>({ patient }: { patient: <span class="t">SafeProps</span> }) {
+  patient.name <span class="c">// ❌ TypeScript error: Property 'name' does not exist</span>
+  patient.lab_number <span class="c">// ✓ fine</span>
+}</pre></div>
+
+      <p>The practical effect: if a developer accidentally writes <code>{patient.name}</code> inside <code>PatientHeader</code>, the TypeScript compiler refuses to compile it. The PII exclusion is enforced before the code ever runs.</p>
+
+      <div class="in-this-file">
+        <strong>In this PR:</strong> <code>PatientHeader</code> declares its prop type as <code>Pick&lt;PatientDetailResponse, "id" | "lab_number"&gt;</code>. Callers must pass an object with at least <code>id</code> and <code>lab_number</code> — they may also pass a full <code>PatientDetailResponse</code> (TypeScript structural typing allows this), but inside the component only <code>id</code> and <code>lab_number</code> are accessible.
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="nullish">
+  <h2><span class="sec-num">09</span> Nullish coalescing ??</h2>
+
+  <div class="concept-box">
+    <div class="concept-header"><div class="concept-title">The ?? operator — fallback for null and undefined</div></div>
+    <div class="concept-body">
+      <p>The <code>??</code> operator returns the right-hand side if and only if the left-hand side is <code>null</code> or <code>undefined</code>. Unlike the <code>||</code> operator, it does <em>not</em> treat <code>0</code>, <code>""</code>, or <code>false</code> as falsy — it only triggers for the two "absent value" types in JavaScript.</p>
+
+      <div class="cb"><pre><span class="c">// ?? vs || — they behave differently for empty strings and zero</span>
+<span class="n">null</span> ?? <span class="s">"fallback"</span>       <span class="c">// → "fallback"</span>
+<span class="k">undefined</span> ?? <span class="s">"fallback"</span>  <span class="c">// → "fallback"</span>
+<span class="s">""</span>    ?? <span class="s">"fallback"</span>       <span class="c">// → ""  (empty string IS a value)</span>
+<span class="n">0</span>     ?? <span class="s">"fallback"</span>       <span class="c">// → 0   (zero IS a value)</span>
+
+<span class="s">""</span>    || <span class="s">"fallback"</span>       <span class="c">// → "fallback" (|| treats "" as falsy)</span>
+
+<span class="c">// Used in JSX for optional display fields</span>
+{patient.latest_sample_name ?? <span class="s">"—"</span>}  <span class="c">// → "—" only when null/undefined</span></pre></div>
+
+      <p>In JSX, rendering <code>null</code> or <code>undefined</code> produces no output, but the intent is unclear to a reader. Rendering <code>"—"</code> is explicit: the field is absent, and that is intentional. This is why every nullable display field in <code>PatientListTable</code> uses <code>??&nbsp;"—"</code>.</p>
+
+      <div class="in-this-file">
+        <strong>In this PR:</strong> <code>PatientListTable</code> uses <code>??&nbsp;"—"</code> for <code>latest_sample_name</code> and <code>pipeline_key</code>, and conditional rendering for <code>latest_workflow_status</code> (which can be null when no workflow row exists) and <code>latest_ingested_at</code> (which is null before any specimen is ingested).
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="invariant1">
+  <h2><span class="sec-num">10</span> Invariant 1 — PII exclusion</h2>
+
+  <p>The variant-viewer project has five documented invariants — properties that must always hold, regardless of what changes. <strong>Invariant 1</strong> states that no React component may render <code>patient.name</code>, <code>nhs_number</code>, or date of birth. Only the MRN (<code>lab_number</code>) is an acceptable patient identifier in the UI.</p>
+
+  <h3>Why this matters clinically</h3>
+  <p>Diagnostic variant review software is used in NHS laboratories. Patient names and NHS numbers are personally identifiable information (PII) subject to UK GDPR. Displaying them on-screen in a clinical context widens the surface area for accidental disclosure — shoulder-surfing, screenshots, screen recordings, or browser history. The MRN is sufficient to identify the relevant patient record within the laboratory's own systems and carries lower inherent risk if briefly visible.</p>
+
+  <h3>Three layers of enforcement</h3>
+  <table>
+    <thead><tr><th>Layer</th><th>Mechanism</th><th>Component</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>TypeScript type system</td>
+        <td><code>Pick&lt;PatientDetailResponse, "id" | "lab_number"&gt;</code> — the <code>name</code> field does not exist in the prop type</td>
+        <td><code>PatientHeader</code></td>
+      </tr>
+      <tr>
+        <td>Code review</td>
+        <td>PR D1 description explicitly lists "does any component render <code>patient.name</code>?" as a reviewer checklist item</td>
+        <td>All components</td>
+      </tr>
+      <tr>
+        <td>Automated tests</td>
+        <td><code>expect(screen.queryByText("Jane Smith")).not.toBeInTheDocument()</code> asserted in both <code>PatientHeader.test.tsx</code> and <code>PatientListTable.test.tsx</code> — test fixtures include a real name so the assertion would fail if the name were accidentally rendered</td>
+        <td>Both test files</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout amber">
+    <span class="tag">Migration 004 — dob also excluded</span>
+    <p>An earlier version of the design intended to show Year of Birth (YOB, extracted from <code>dob</code>) as a second patient identifier alongside the MRN. <strong>Migration 004</strong> (<code>migrations/004_remove_patient_dob.sql</code>) dropped the <code>dob</code> column from the <code>patients</code> table entirely, on UK GDPR data-minimisation grounds — storing a date of birth that is not required for variant interpretation creates an unnecessary compliance burden. The <code>formatYearOfBirth()</code> helper in <code>display-utils.ts</code> still exists (it is useful for other contexts) but is no longer called from any component. The test fixtures comment <code>// dob removed — migration 004</code> where the field was previously specified.</p>
+  </div>
+</section>
+
+<section id="usestate">
+  <h2><span class="sec-num">11</span> React useState — the two-step confirmation pattern</h2>
+
+  <div class="concept-box">
+    <div class="concept-header"><div class="concept-title">React useState hook</div></div>
+    <div class="concept-body">
+      <p><code>useState</code> is the standard React hook for adding local mutable state to a functional component. It returns a pair: the current value, and a setter function. When the setter is called, React re-renders the component with the new value. Until the setter is called, the value is frozen — the component does not re-render on its own.</p>
+
+      <div class="cb"><pre><span class="k">import</span> { useState } <span class="k">from</span> <span class="s">"react"</span>;
+
+<span class="k">function</span> <span class="f">Counter</span>() {
+  <span class="k">const</span> [count, setCount] = <span class="f">useState</span>(<span class="n">0</span>); <span class="c">// initial value = 0</span>
+
+  <span class="k">return</span> (
+    &lt;button onClick={() =&gt; <span class="f">setCount</span>(count + <span class="n">1</span>)}&gt;
+      Clicked {count} times
+    &lt;/button&gt;
+  );
+}</pre></div>
+
+      <p>The <strong>two-step confirmation pattern</strong> uses three boolean/string states to guard a destructive action from accidental clicks:</p>
+
+      <div class="cb"><pre><span class="c">// Three pieces of state for a safe delete button</span>
+<span class="k">const</span> [confirming, setConfirming] = <span class="f">useState</span>(<span class="k">false</span>);  <span class="c">// show confirm UI?</span>
+<span class="k">const</span> [busy, setBusy]             = <span class="f">useState</span>(<span class="k">false</span>);  <span class="c">// API call in flight?</span>
+<span class="k">const</span> [deleteError, setDeleteError] = <span class="f">useState</span>&lt;<span class="t">string</span> | <span class="k">null</span>&gt;(<span class="k">null</span>); <span class="c">// error msg</span>
+
+<span class="c">// State machine: idle → confirming → (busy → success | error)</span>
+<span class="c">//  idle:       confirming=false, busy=false, error=null  → shows "Delete" button</span>
+<span class="c">//  confirming: confirming=true,  busy=false, error=null  → shows confirm + cancel</span>
+<span class="c">//  busy:       confirming=true,  busy=true,  error=null  → shows "Deleting…" disabled</span>
+<span class="c">//  error:      confirming=true,  busy=false, error="msg" → shows error inline</span>
+<span class="c">//  success:    component unmounted (parent removes row)</span></pre></div>
+
+      <p>The <code>confirming</code> flag controls which UI branch is rendered. If <code>confirming</code> is false, only a "Delete" button appears. Once the user clicks it, <code>confirming</code> becomes true and the UI switches to a confirmation row with the label, a danger button, and a cancel button. This prevents accidental deletion from a single misclick.</p>
+
+      <p>The error state (<code>deleteError</code>) renders inline as a small red span next to the buttons, without dismissing the confirmation. This is intentional — the user may wish to retry or cancel after seeing the error, and closing the confirmation automatically would hide the fact that the delete failed.</p>
+
+      <div class="in-this-file">
+        <strong>In this PR:</strong> <code>DeletePatientButton</code> inside <code>PatientListTable.tsx</code> implements this exact pattern. The <code>onDelete(id)</code> callback is called only after a successful API response — if the API throws, the catch branch sets <code>deleteError</code> and leaves <code>confirming=true</code> so the user sees the error in context.
+      </div>
+    </div>
+  </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_D1_Display_Components_1.html">1 · High-level outline</a>
+    <a href="260521_PR_D1_Display_Components_2.html" class="current">2 · Key concepts</a>
+    <a href="260521_PR_D1_Display_Components_3.html">3 · Function walkthrough</a>
+    <a href="260521_PR_D1_Display_Components_4.html">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  Prepared by Joo Wook Ahn · 21 May 2026 · Source: eastgenomics/variant-viewer pr/D1 branch · frontend/src/components, frontend/src/tests · Continued from Part 1. Continues in Part 3.
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR B — Frontend SPA Specification · Part 3: Document walkthrough</title>
+<style>
+  :root{
+    --ink:#0d1b2a; --ink-soft:#354656; --muted:#6b7c8d;
+    --line:#e0e7ef; --line-strong:#c5d0db;
+    --bg:#f7f9fb; --paper:#ffffff;
+    --accent:#005eb8; --accent-deep:#003d78; --accent-mid:#1a73c4; --accent-soft:#e3edf8;
+    --green:#1a6e47; --green-soft:#e0f0e8;
+    --amber:#b35c00; --amber-soft:#fdf0e0;
+    --red:#9b2335; --red-soft:#fce8ea;
+    --purple:#4b2d8e; --purple-soft:#ede8f8;
+    --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-mid);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+  main{padding:0 56px 96px;max-width:900px}
+  @media(max-width:860px){main{padding:0 24px 64px}}
+  h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+  h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+  h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+  p{margin-bottom:13px;color:var(--ink-soft)}
+  strong{color:var(--ink)}
+  ul,ol{margin:0 0 14px;padding-left:22px}
+  li{margin:5px 0;color:var(--ink-soft)}
+  .toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+  .toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+  .toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+  .toc ul{list-style:none}
+  .toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+  .toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+  .toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+  .hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+  .hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+  .hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+  .hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+  .hero .meta-item{font-size:12px;color:var(--muted)}
+  .hero .meta-item strong{color:var(--ink-soft)}
+  section{padding-top:52px}
+  section+section{border-top:1px solid var(--line)}
+  footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+  .callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+  .callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+  .callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+  .callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+  .callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+  .callout.blue .tag{color:var(--accent-deep)}
+  .callout.green .tag{color:var(--green)}
+  .callout.amber .tag{color:var(--amber)}
+  .callout p:last-child{margin:0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f0f4f8;font-weight:600;font-size:12.5px;color:var(--ink);letter-spacing:.02em}
+  tr:hover td{background:#fafbfd}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+  .cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+  .cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+  .cb .c{color:#6e9cbf}
+  .cb .k{color:#79b8ff}
+  .cb .s{color:#9ecbff}
+  .cb .n{color:#b392f0}
+  .cb .f{color:#85e89d}
+  .cb .t{color:#ffab70}
+  .series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+  .series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+  .series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+  .series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+  .fn-box{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:0 0 36px}
+  .fn-header{background:var(--accent-deep);padding:14px 18px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .fn-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;color:#fff;font-weight:700}
+  .fn-lines{font-size:12px;color:#a8c8e8}
+  .fn-phase{font-size:11px;padding:2px 9px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+  .fn-phase.p1{background:#b35c00;color:#fff}
+  .fn-phase.p2{background:#1a6e47;color:#fff}
+  .fn-phase.p3{background:#4b2d8e;color:#fff}
+  .fn-phase.p4{background:#9b2335;color:#fff}
+  .fn-phase.setup{background:#005eb8;color:#fff}
+  .fn-body{padding:18px}
+  .fn-body p{margin-bottom:10px}
+  .io-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .io-box{background:#f7f9fb;border:1px solid var(--line);border-radius:6px;padding:12px}
+  .io-box h4{margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .io-box ul{margin:0;padding-left:18px}
+  .io-box li{font-size:13px;margin:3px 0}
+  .file-section{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#f0f4f8;border:1px solid var(--line);border-radius:6px;margin:20px 0 8px;font-size:13px}
+  .file-section .fs-name{font-weight:700;color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace}
+  .file-section .fs-range{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em}
+  .pill.green{background:var(--green-soft);color:var(--green)}
+  .pill.blue{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill.amber{background:var(--amber-soft);color:var(--amber)}
+  .pill.purple{background:var(--purple-soft);color:var(--purple)}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR B SPECIFICATION<br>21 May 2026</div>
+  <div class="toc-section">Part 3 of 4</div>
+  <ul>
+    <li><a href="#readme">14 README.md</a></li>
+    <li><a href="#design">15 DESIGN.md</a></li>
+    <li><a href="#implementation">16 IMPLEMENTATION.md</a></li>
+    <li><a href="#reference">17 REFERENCE.md</a></li>
+    <li><a href="#buildprompt">18 build-prompt.md</a></li>
+  </ul>
+  <div class="meta">Continued from Part 2 · Source: specification/frontend/ on pr/B</div>
+</aside>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Frontend Engineering · Clinical Bioinformatics · East Genomics</div>
+  <h1>PR B — Frontend SPA Specification</h1>
+  <p class="sub">Part 3 of 4: Document walkthrough — section-by-section coverage of all five specification files: what each section says, why it exists, and what a reviewer should check.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>Series</strong> Part 3 of 4</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_B_Specification_1.html">1 · High-level outline</a>
+  <a href="260521_PR_B_Specification_2.html">2 · Key concepts</a>
+  <a href="260521_PR_B_Specification_3.html" class="current">3 · Document walkthrough</a>
+  <a href="260521_PR_B_Specification_4.html">4 · Deep reference</a>
+</div>
+
+<section id="readme">
+  <h2><span class="sec-num">14</span> README.md — orientation</h2>
+
+  <div class="file-section">
+    <span class="fs-name">specification/frontend/README.md</span>
+    <span class="fs-range">135 lines · read first</span>
+    <span class="pill blue">Orientation</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§ "What this SPA does"</span>
+      <span class="fn-lines">6 use cases</span>
+      <span class="fn-phase setup">Scope definition</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Lists the six user-facing workflows in numbered order. This is the entry point for a reviewer who wants to understand what the finished product does before reading the technical design.</p>
+      <div class="io-grid">
+        <div class="io-box"><h4>What it covers</h4><ul><li>List patients (paginated)</li><li>Patient detail + specimen cards</li><li>Classify variants (local scoring)</li><li>Upload VCF (dev + prod paths)</li><li>Workflow transitions</li><li>Delete patients and specimens</li></ul></div>
+        <div class="io-box"><h4>What to check</h4><ul><li>Is the description of the classification workflow accurate — specifically that scoring runs locally and Save draft / Confirm are distinct actions?</li><li>Does the upload description correctly distinguish dev (ingest-direct) from prod (presigned S3)?</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§ "Project layout (target)"</span>
+      <span class="fn-lines">~50 lines of annotated file tree</span>
+      <span class="fn-phase p1">Structure</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Shows the complete directory layout with an inline comment on every file explaining its role. This is the single-source-of-truth for "what goes where" and is used as the checklist when scaffolding M19.</p>
+      <p><strong>Design decision:</strong> The layout puts all test files under <code>src/tests/</code> rather than co-located with their components (<code>src/components/WorkflowBadge.test.tsx</code>). The reasoning is that the test directory mirrors the structure of the implementation and is easy to find by convention; co-location was considered but rejected because it makes the component directory harder to scan visually.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§ "Non-goals"</span>
+      <span class="fn-lines">9 bullet points</span>
+      <span class="fn-phase p4">Scope boundary</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Explicitly states what the SPA will NOT do in PRs 8–11. This prevents scope creep and documents why certain seemingly obvious features are absent.</p>
+      <p>The most important non-goals for reviewers: no SSR, no login screen (API key at nginx/ALB layer), no patient PII display (hardcoded by design, not an oversight), no direct DB access, no pagination on patient list (loads all patients in v0.1).</p>
+      <div class="callout amber">
+        <span class="tag">Watch for</span>
+        <p>If a reviewer sees that patient names are not shown and asks "is that a bug?", the answer is in README.md §Non-goals — it is deliberate. The field is returned by the API but discarded at the component layer.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="design">
+  <h2><span class="sec-num">15</span> DESIGN.md — architecture and contracts</h2>
+
+  <div class="file-section">
+    <span class="fs-name">specification/frontend/DESIGN.md</span>
+    <span class="fs-range">677 lines · read second</span>
+    <span class="pill blue">Architecture</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§1 Problem statement + §2 Architecture</span>
+      <span class="fn-lines">~80 lines</span>
+      <span class="fn-phase setup">Context</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> §1 explains why the port is necessary (SSR coupling, deployment constraints). §2 contains a Mermaid flowchart showing the component dependency graph — which pages render which components, which components call which lib modules, and which lib modules make API calls.</p>
+      <p><strong>Key insight from the architecture diagram:</strong> Only <code>api.ts</code> and <code>VariantTable</code> make network calls. Everything else is either pure rendering or pure computation. This constraint makes the codebase highly testable because most components can be rendered with props alone, with no HTTP mocking needed.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§3 Module responsibilities</span>
+      <span class="fn-lines">§3.1–§3.13 covering 13 modules</span>
+      <span class="fn-phase p2">Contracts</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> For each module, states what it must do and what it must NOT do. The "must NOT" clauses are as important as the positive responsibilities — they encode isolation guarantees that keep the codebase clean.</p>
+      <table>
+        <thead><tr><th>Module</th><th>Critical "must NOT"</th></tr></thead>
+        <tbody>
+          <tr><td><code>api.ts</code></td><td>Must not log or expose the API key. Must not contain business logic.</td></tr>
+          <tr><td><code>classification-engine.ts</code></td><td>Must not differ from the Python backend in scoring logic or thresholds.</td></tr>
+          <tr><td><code>display-utils.ts</code></td><td>Must not make network calls or import React.</td></tr>
+          <tr><td><code>PatientListTable</code></td><td>Must not display <code>name</code> or <code>nhs_number</code> columns.</td></tr>
+          <tr><td><code>ClassificationPanel</code></td><td>Must not allow framework change after a criterion has been applied. Must not accept evidence links with non-http/https protocols.</td></tr>
+          <tr><td><code>WorkflowControl</code></td><td>Must not optimistically update status before the API responds.</td></tr>
+        </tbody>
+      </table>
+      <p>The <strong>WorkflowControl TRANSITIONS map</strong> in §3.9 is worth particular attention: it must be an exact mirror of <code>VALID_TRANSITIONS</code> in <code>backend/app/routes/workflow.py</code>. If the backend state machine changes and the frontend is not updated, users will see buttons that trigger API errors.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§4 Data model (TypeScript interfaces)</span>
+      <span class="fn-lines">~120 lines of interface definitions</span>
+      <span class="fn-phase p3">Type contracts</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Defines every TypeScript interface that maps to a backend API response. These are the contracts that implementation PRs C2–D4 must satisfy.</p>
+      <p><strong>Key design choices encoded in the interfaces:</strong></p>
+      <ul>
+        <li><code>PatientSummary.name</code> is present (nullable) but never displayed — it exists in the type to match the backend response shape, while the UI intentionally ignores it.</li>
+        <li><code>VariantDetailResponse.case_type</code> was added after review: <code>ClassificationPage</code> needs it to select the ACGS SNV vs SVIG-UK framework. Without it, all variants would be classified with the germline framework even for somatic cases.</li>
+        <li><code>PipelineFilters.gnomad_af_max</code> is <code>number | null</code> (not just <code>number</code>) — null represents a cleared filter input where no AF limit is applied.</li>
+        <li><code>ClassificationDetail.criteria</code> is a nested array inside <code>active_classification</code>. <code>ClassificationPage</code> must destructure this before passing to <code>ClassificationPanel</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§5–§11 Error handling, styling, testing, compliance</span>
+      <span class="fn-lines">~200 lines</span>
+      <span class="fn-phase p1">Cross-cutting concerns</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>§5 Error handling strategy</strong> — a table mapping every error condition to the component responsible and the user-visible result. Notably: delete failure keeps the confirmation dialog open with an inline error, rather than dismissing silently (a common UX bug in first-pass implementations).</p>
+      <p><strong>§6 Styling conventions</strong> — the badge-* and btn-* class system. All workflow status and classification result badges must use these classes. The classes are defined in <code>src/index.css</code>'s <code>@layer components</code> block, which means they are available to all components via Tailwind's purge mechanism.</p>
+      <p><strong>§7 Testing strategy</strong> — lists what to mock and what to assert for each component. The key design decision here: <code>classification-engine.ts</code> is imported <strong>real</strong> (not mocked) in ClassificationPanel tests. This is intentional — the live score computation is part of what ClassificationPanel tests verify.</p>
+      <p><strong>§9 Compliance alignment</strong> — DSPT/GDPR (no PII), DCB0129 hazard mitigation (evidence link validation), CAF A2 (API key not logged). Each has a one-line shell command for verification.</p>
+    </div>
+  </div>
+</section>
+
+<section id="implementation">
+  <h2><span class="sec-num">16</span> IMPLEMENTATION.md — milestone TDD build plan</h2>
+
+  <div class="file-section">
+    <span class="fs-name">specification/frontend/IMPLEMENTATION.md</span>
+    <span class="fs-range">1,496 lines · read third</span>
+    <span class="pill green">Build plan</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§1 Backend pre-requisite milestones (M_pre1–8)</span>
+      <span class="fn-lines">Table of 8 rows with change + tests</span>
+      <span class="fn-phase p4">Pre-conditions</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Documents all backend changes that must be in <code>main</code> before frontend work begins. Each row specifies the module, the exact change, and the test(s) that verify it.</p>
+      <p>The most critical pre-requisite for clinical safety is <strong>M_pre6</strong>: making <code>locked_by</code> nullable in <code>ClassificationSubmitRequest</code>. Without this, the Save draft button cannot work — the backend would reject any classification submit without a locked_by user ID.</p>
+      <p>M_pre8 (<code>POST /api/ingest-direct</code>) enables the dev upload path. Without it, UploadForm cannot function in a local development environment because the prod path requires S3 credentials.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§2 Milestone plan table</span>
+      <span class="fn-lines">9-row table mapping milestone → PR → test → verification</span>
+      <span class="fn-phase setup">Overview</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> The master reference table. For each milestone, gives the PR it belongs to, the modules to build, the test file to write first (the "Red" step), and the condition that defines "done" (the "Green" step).</p>
+      <div class="callout blue">
+        <span class="tag">How milestones map to PRs</span>
+        <p>M_pre1–8 and M19–M22 ship in PRs A and C1–C2. M23–M24 ship in PR D1–D2. M25 ships in PR D3. M26 ships in PR D4. Each PR is independently reviewable, and each has exactly one milestone's worth of changes.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§3–§10 Individual milestone sections (M19–M26)</span>
+      <span class="fn-lines">~1,300 lines of code sketches</span>
+      <span class="fn-phase p2">Implementation detail</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> For each milestone, provides the complete test file to write (Red section) and enough of the implementation sketch to build from (Green section). A builder can follow these sections without needing any additional design documents.</p>
+      <p>Each milestone section is structured:</p>
+      <ol>
+        <li><strong>Red</strong> — paste this test file and run <code>npm test</code>; all tests must fail.</li>
+        <li><strong>Green</strong> — implement until all tests pass. The sketch shows enough detail to avoid ambiguity on hard decisions.</li>
+        <li><strong>Verification</strong> — exact <code>npm test</code> command to confirm the milestone is complete.</li>
+      </ol>
+      <p><strong>Design decisions embedded in the sketches:</strong></p>
+      <ul>
+        <li><strong>M21 (classification engine)</strong> — four golden test cases: PVS1+PM2 → LP (score 9), empty → VUS (score 0), BS1+BS2 → Benign (score −8), O2 very_strong → Likely_Oncogenic (score 8). The SVIG test uses O2 (not SVS1 or any invented code) because SVIG criteria are named O1–O11 and B1–B7 in the JSON config.</li>
+        <li><strong>M25 (CriterionRow)</strong> — the evidence link rejection test is required (not optional) to satisfy Invariant 3. The test uses <code>expect(onChange).not.toHaveBeenCalled()</code> — not just "not called with the bad URL" — because the implementation returns early before calling onChange at all.</li>
+        <li><strong>M26 (ClassificationPage)</strong> — <code>variant.case_type</code> is passed with a runtime validation (<code>variant.case_type === 'somatic' ? 'somatic' : 'germline'</code>) rather than a TypeScript cast, providing defence against unexpected values from the database.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="reference">
+  <h2><span class="sec-num">17</span> REFERENCE.md — API catalogue and configuration</h2>
+
+  <div class="file-section">
+    <span class="fs-name">specification/frontend/REFERENCE.md</span>
+    <span class="fs-range">645 lines · read fourth</span>
+    <span class="pill purple">Reference</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§0 Backend pre-requisites table</span>
+      <span class="fn-lines">8-row table</span>
+      <span class="fn-phase p4">Pre-conditions</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Companion to IMPLEMENTATION.md §1. Provides a quick-reference table linking each backend pre-requisite to the frontend feature it enables, so a reviewer can immediately understand which frontend capability is blocked by which backend change.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§1 Backend API endpoint catalogue</span>
+      <span class="fn-lines">§1.1–§1.6 covering 15 endpoints</span>
+      <span class="fn-phase p1">API contracts</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> For every endpoint used by the SPA: HTTP method, path, request parameters, and the exact JSON response shape. This is the most important section for reviewers checking that the TypeScript interfaces in DESIGN.md match the backend.</p>
+      <p><strong>Key things to verify in this section:</strong></p>
+      <ul>
+        <li><strong>GET /api/patients response</strong> — uses <code>items</code> key (not <code>patients</code>), and includes <code>total</code>, <code>limit</code>, <code>offset</code>. The frontend <code>api.ts</code> must read <code>r.items</code>, not <code>r.patients</code>.</li>
+        <li><strong>GET /api/variants/{id}</strong> — <code>active_classification</code> contains nested <code>criteria</code> array. ClassificationPage must split this before passing to ClassificationPanel (<code>initialClassification</code> = classification minus criteria; <code>initialCriteria</code> = the criteria array).</li>
+        <li><strong>PUT /api/variants/{id}/classification</strong> — response field is <code>classification_id</code> at the top level, not nested.</li>
+        <li><strong>POST /api/upload-url</strong> — request body uses <code>vcf_filename</code>, not <code>filename</code>. An easy mistake to make when porting from the Next.js reference which used a different field name.</li>
+        <li><strong>§1.4b POST /api/ingest-direct</strong> — dev-only endpoint. Accepts multipart/form-data. Returns 413 if VCF is over 500 MB.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§2 Environment variables</span>
+      <span class="fn-lines">4-row table</span>
+      <span class="fn-phase setup">Configuration</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Documents the four <code>VITE_</code> variables, their defaults, and when each is required. Particularly important is the <code>VITE_APP_ENV</code> note: the dev upload path is activated by <code>import.meta.env.DEV</code> (automatically true when running <code>npm run dev</code>) OR by <code>VITE_APP_ENV === 'development'</code> — the prod path requires an explicit production build.</p>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§4 CSS class reference + §8 Workflow state machine</span>
+      <span class="fn-lines">~60 lines</span>
+      <span class="fn-phase p3">Implementation aids</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>§4</strong> — complete list of badge-* and btn-* classes with their Tailwind expansions. Used when implementing WorkflowBadge and ClassificationBadge to verify the correct class names.</p>
+      <p><strong>§8 Workflow state machine</strong> — the four valid transitions expressed as a text diagram. Must match the <code>VALID_TRANSITIONS</code> dict in <code>backend/app/routes/workflow.py</code> and the <code>TRANSITIONS</code> map in <code>WorkflowControl.tsx</code>. Any discrepancy means the frontend renders buttons that will fail when clicked.</p>
+      <div class="cb"><pre><span class="c">// REFERENCE.md §8 (must match backend exactly)</span>
+pending   → reviewing, archived
+reviewing → reported,  archived
+reported  → archived
+archived  → (terminal — no buttons rendered)</pre></div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">§9 Classification scoring + §11 Glossary</span>
+      <span class="fn-lines">~50 lines</span>
+      <span class="fn-phase p2">Clinical reference</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>§9</strong> — complete scoring tables for ACGS SNV and SVIG-UK. The ACGS SNV threshold table defines exactly where the Likely_Benign / Benign boundary falls (≤−6 is Benign, not ≤−7). An off-by-one error here would cause systematic misclassification.</p>
+      <p><strong>§11 Glossary</strong> — defines MRN, VEP, HGVSc, HGVSp, gnomAD AF, REVEL, SpliceAI, ACGS SNV, SVIG-UK, and Specimen. Useful for reviewers not familiar with clinical genomics terminology.</p>
+    </div>
+  </div>
+</section>
+
+<section id="buildprompt">
+  <h2><span class="sec-num">18</span> build-prompt.md — the build session brief</h2>
+
+  <div class="file-section">
+    <span class="fs-name">specification/frontend/build-prompt.md</span>
+    <span class="fs-range">108 lines · used to start a build session</span>
+    <span class="pill amber">Build brief</span>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">Starting instruction and build rules</span>
+      <span class="fn-lines">~30 lines</span>
+      <span class="fn-phase setup">Execution rules</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> When a developer or AI agent starts a new session to implement the SPA, they use this file as their initial prompt. It encodes:</p>
+      <ul>
+        <li>The instruction to read all four spec files in order before writing any code.</li>
+        <li>The TDD rule — write the test first, confirm it fails, then implement.</li>
+        <li>The commit message format: <code>feat(frontend): M&lt;N&gt; — &lt;short description&gt;</code>.</li>
+        <li>The prohibition on global npm installs and on AI attribution in commits.</li>
+        <li>The reference implementation pointer: <code>git show origin/discovery/nextjs:&lt;path&gt;</code> — read the Next.js prototype before implementing each component.</li>
+        <li>The starting check: run <code>pytest</code> to verify M_pre1–8 are complete before starting M19.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">Milestone verification table</span>
+      <span class="fn-lines">9-row table</span>
+      <span class="fn-phase p2">Quality gates</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> Compact version of the verification table from IMPLEMENTATION.md §2. Each row gives the <strong>exact shell command</strong> to run at the end of each milestone, and the expected output. A milestone is not complete until its verification command passes.</p>
+      <p>The M26 verification command is the most comprehensive:</p>
+      <div class="cb"><pre><span class="c"># M26: every quality gate in sequence</span>
+cd frontend
+npm test               <span class="c"># all tests green</span>
+npx tsc --noEmit       <span class="c"># no TypeScript errors</span>
+npm run build          <span class="c"># dist/ produced cleanly</span>
+docker build -t vv-frontend .  <span class="c"># Docker image builds</span></pre></div>
+    </div>
+  </div>
+
+  <div class="fn-box">
+    <div class="fn-header">
+      <span class="fn-name">The five invariants with verification commands</span>
+      <span class="fn-lines">~50 lines</span>
+      <span class="fn-phase p4">Safety gates</span>
+    </div>
+    <div class="fn-body">
+      <p><strong>Purpose:</strong> The invariants in build-prompt.md are the authoritative version — more concise and actionable than the compliance section in DESIGN.md. Each invariant gives:</p>
+      <ul>
+        <li>A one-sentence plain-English statement of the requirement.</li>
+        <li>A shell command or test file that verifies it.</li>
+        <li>The expected output for a passing check.</li>
+      </ul>
+      <div class="callout green">
+        <span class="tag">Why build-prompt.md exists separately from DESIGN.md</span>
+        <p>DESIGN.md is written for human readers who want to understand the architecture. build-prompt.md is written for an AI agent or a developer starting a fresh session with no prior context. It is intentionally terse and instruction-first. The two documents overlap on invariants and milestones, but the build-prompt is self-contained — a reader does not need to have read DESIGN.md first to follow it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="series-nav">
+  <a href="260521_PR_B_Specification_1.html">1 · High-level outline</a>
+  <a href="260521_PR_B_Specification_2.html">2 · Key concepts</a>
+  <a href="260521_PR_B_Specification_3.html" class="current">3 · Document walkthrough</a>
+  <a href="260521_PR_B_Specification_4.html">4 · Deep reference</a>
+</div>
+
+</main>
+</div>
+<footer>
+  Continued from Part 2. Continues in Part 4. · Joo Wook Ahn · 21 May 2026 · Source: specification/frontend/ on branch pr/B, variant-viewer (eastgenomics/variant-viewer)
+</footer>
+</body>
+</html>

@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR A — Backend API Extensions · Part 4 of 4</title>
+<style>
+:root{
+  --ink:#0d1b2a;--ink-soft:#354656;--muted:#6b7c8d;
+  --line:#e0e7ef;--line-strong:#c5d0db;
+  --bg:#f7f9fb;--paper:#ffffff;
+  --accent:#005eb8;--accent-deep:#003d78;--accent-mid:#1a73c4;--accent-soft:#e3edf8;
+  --green:#1a6e47;--green-soft:#e0f0e8;
+  --amber:#b35c00;--amber-soft:#fdf0e0;
+  --red:#9b2335;--red-soft:#fce8ea;
+  --purple:#4b2d8e;--purple-soft:#ede8f8;
+  --shadow:0 1px 3px rgba(13,27,42,.05),0 4px 20px rgba(13,27,42,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;}
+a{color:var(--accent-mid);text-decoration:none}
+a:hover{text-decoration:underline}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1320px;margin:0 auto}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.toc{display:none}}
+main{padding:0 56px 96px;max-width:900px}
+@media(max-width:860px){main{padding:0 24px 64px}}
+h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+h2{font-size:24px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+h2 .sec-num{font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;padding:3px 9px;border-radius:999px;font-weight:700;white-space:nowrap}
+h3{font-size:17px;font-weight:700;margin:28px 0 10px;color:var(--ink)}
+h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;font-weight:600}
+p{margin-bottom:13px;color:var(--ink-soft)}
+strong{color:var(--ink)}
+ul,ol{margin:0 0 14px;padding-left:22px}
+li{margin:5px 0;color:var(--ink-soft)}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 24px;background:var(--paper);border-right:1px solid var(--line);font-size:13px}
+.toc-brand{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-deep);margin-bottom:20px;line-height:1.4}
+.toc-section{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px}
+.toc ul{list-style:none}
+.toc ul li a{display:block;padding:5px 0 5px 16px;color:var(--ink-soft);border-left:2px solid transparent;transition:all .15s;font-size:12.5px;line-height:1.4}
+.toc ul li a:hover{color:var(--accent);border-left-color:var(--accent);text-decoration:none;padding-left:20px}
+.toc .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);line-height:1.6}
+.hero{padding:52px 0 36px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:12px}
+.hero h1{font-size:38px;line-height:1.1;letter-spacing:-.015em;font-weight:800;color:var(--ink);margin-bottom:14px;max-width:22ch}
+.hero .sub{font-size:17px;line-height:1.55;color:var(--ink-soft);max-width:64ch}
+.hero .meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.hero .meta-item{font-size:12px;color:var(--muted)}
+.hero .meta-item strong{color:var(--ink-soft)}
+section{padding-top:52px}
+section+section{border-top:1px solid var(--line)}
+footer{padding:32px 56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);max-width:1320px;margin:0 auto;line-height:1.7}
+.callout{border-radius:6px;padding:18px 22px;margin:18px 0;border:1px solid}
+.callout.blue{border-color:#b3cce8;background:var(--accent-soft)}
+.callout.green{border-color:#a8d4bb;background:var(--green-soft)}
+.callout.amber{border-color:#e8c28a;background:var(--amber-soft)}
+.callout .tag{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.callout.blue .tag{color:var(--accent-deep)}
+.callout.green .tag{color:var(--green)}
+.callout.amber .tag{color:var(--amber)}
+.callout p:last-child{margin:0}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f0f4f8;padding:2px 6px;border-radius:3px;color:var(--accent-deep)}
+.cb{background:#1e2d3d;border-radius:8px;padding:20px 22px;margin:16px 0;overflow-x:auto}
+.cb pre{color:#cdd9e5;font:13px/1.75 ui-monospace,Menlo,Consolas,monospace;margin:0;white-space:pre}
+.cb .c{color:#6e9cbf}.cb .k{color:#79b8ff}.cb .s{color:#9ecbff}.cb .n{color:#b392f0}.cb .f{color:#85e89d}.cb .t{color:#ffab70}
+.anno{list-style:none;margin:4px 0 24px;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.anno li{display:grid;grid-template-columns:36px 1fr;gap:0;border-bottom:1px solid var(--line);font-size:13.5px}
+.anno li:last-child{border-bottom:none}
+.anno .num{background:var(--accent-deep);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+.anno .txt{padding:10px 14px;color:var(--ink-soft);line-height:1.5}
+.anno .txt strong{color:var(--ink)}
+.acb{margin:20px 0 32px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.acb-header{background:var(--accent-deep);padding:10px 16px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+.acb-fn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;color:#fff;font-weight:700}
+.acb-desc{font-size:12px;color:#a8c8e8}
+.acb-code{background:#1e2d3d;overflow-x:auto}
+.acb-code pre{color:#cdd9e5;font:12.5px/1.9 ui-monospace,Menlo,Consolas,monospace;margin:0;padding:16px 20px;white-space:pre}
+.acb-annos{border-top:2px solid #2d4a63}
+.anno-row{display:grid;grid-template-columns:44px 1fr;border-bottom:1px solid var(--line)}
+.anno-row:last-child{border-bottom:none}
+.anno-num{background:#f0f4f8;border-right:1px solid var(--line);display:flex;align-items:flex-start;justify-content:center;padding:12px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;color:var(--accent-deep);padding-top:14px}
+.anno-txt{padding:12px 16px;font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+.anno-txt strong{color:var(--ink)}
+.anno-txt code{font-size:12.5px}
+.series-nav{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.series-nav a{display:inline-block;padding:6px 14px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
+.series-nav a.current{background:var(--accent-deep);color:#fff;border-color:var(--accent-deep)}
+.series-nav a:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-brand">PERSONAL BRIEFING — PR A BACKEND EXTENSIONS<br>21 May 2026</div>
+  <div class="toc-section">Part 4 of 4</div>
+  <ul>
+    <li><a href="#filter-builder">list_sample_variants filter builder</a></li>
+    <li><a href="#delete-patient">delete_patient sentinel cascade</a></li>
+    <li><a href="#submit-cls">submit_classification locked_by</a></li>
+    <li><a href="#ingest-direct">ingest_direct _do closure</a></li>
+  </ul>
+  <div class="meta">Part 4 of 4 · Line-by-line reference<br>Continued from Part 3</div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">Code walkthrough · Backend API · variant-viewer — Part 4 of 4: Line-by-line reference</div>
+  <h1>PR A — Backend API Extensions</h1>
+  <p class="sub">Dense line-by-line annotations for the four hardest functions: the dynamic variant filter builder, the sentinel-pattern delete cascade, the nullable locked_by SQL construction, and the ingest-direct transaction pipeline.</p>
+  <div class="meta-row">
+    <span class="meta-item"><strong>Author</strong> Joo Wook Ahn</span>
+    <span class="meta-item"><strong>Date</strong> 21 May 2026</span>
+    <span class="meta-item"><strong>PR</strong> #31 · M_pre1–8</span>
+  </div>
+</header>
+
+<div class="series-nav">
+  <a href="260521_PR_A_Backend_Extensions_1.html">1 · High-level outline</a>
+  <a href="260521_PR_A_Backend_Extensions_2.html">2 · Key concepts</a>
+  <a href="260521_PR_A_Backend_Extensions_3.html">3 · Function walkthrough</a>
+  <a href="260521_PR_A_Backend_Extensions_4.html" class="current">4 · Line-by-line reference</a>
+</div>
+
+<section id="filter-builder">
+  <h2><span class="sec-num">21</span> list_sample_variants — dynamic filter builder</h2>
+
+  <p>The filter-building section of <code>list_sample_variants</code> (samples.py, ~lines 130–165) is the most complex piece of new logic in this PR. It constructs a WHERE clause and a parameter list dynamically based on which filter parameters were provided.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">list_sample_variants</span>
+      <span class="acb-desc">Filter builder and ORDER BY construction · samples.py lines ~130–195</span>
+    </div>
+    <div class="acb-code">
+      <pre><span class="c">    # ① Start with the mandatory filter — always present</span>
+    filter_clauses = [<span class="s">"v.sample_id = %s"</span>]
+    filter_params: <span class="t">list</span> = [sample_id]
+
+    <span class="k">if</span> gnomad_af_max <span class="k">is not None</span>:     <span class="c"># ② Check None, not falsy</span>
+        filter_clauses.append(
+            <span class="s">"(v.gnomad_af IS NULL OR v.gnomad_af &lt;= %s)"</span>  <span class="c"># ③ Include nulls</span>
+        )
+        filter_params.append(gnomad_af_max)
+
+    <span class="k">if</span> consequences:                   <span class="c"># ④ Non-empty string check</span>
+        csq_list = [c.strip() <span class="k">for</span> c <span class="k">in</span> consequences.split(<span class="s">","</span>) <span class="k">if</span> c.strip()]
+        <span class="k">if</span> csq_list:                    <span class="c"># ⑤ Guard against [""] after split</span>
+            filter_clauses.append(<span class="s">"v.consequence = ANY(%s)"</span>)  <span class="c"># ⑥ PG ANY</span>
+            filter_params.append(csq_list)
+
+    <span class="k">if</span> clinvar_exclude:
+        excl_list = [c.strip() <span class="k">for</span> c <span class="k">in</span> clinvar_exclude.split(<span class="s">","</span>) <span class="k">if</span> c.strip()]
+        <span class="k">if</span> excl_list:
+            filter_clauses.append(
+                <span class="s">"(v.clinvar_sig IS NULL OR v.clinvar_sig != ALL(%s))"</span>  <span class="c"># ⑦</span>
+            )
+            filter_params.append(excl_list)
+
+    <span class="k">if</span> gene:
+        filter_clauses.append(<span class="s">"v.gene ILIKE %s"</span>)    <span class="c"># ⑧ Case-insensitive</span>
+        filter_params.append(gene)
+
+    where_sql = <span class="s">" AND "</span>.join(filter_clauses)     <span class="c"># ⑨ Join all clauses</span>
+
+    SORTABLE = {                                  <span class="c"># ⑩ Whitelist</span>
+        <span class="s">"chrom"</span>: <span class="s">"chrom_order, v.pos"</span>,
+        <span class="s">"gene"</span>:  <span class="s">"v.gene"</span>,
+        <span class="s">"gnomad_af"</span>: <span class="s">"v.gnomad_af"</span>,
+    }
+    order_col = SORTABLE.get(sort_by, <span class="s">"chrom_order, v.pos"</span>)  <span class="c"># ⑪</span>
+    order_dir = <span class="s">"DESC"</span> <span class="k">if</span> sort_dir == <span class="s">"desc"</span> <span class="k">else</span> <span class="s">"ASC"</span>   <span class="c"># ⑫</span>
+
+    rows = <span class="k">await</span> asyncio.to_thread(
+        db.query,
+        <span class="s">f"""SELECT ... WHERE {where_sql}         <span class="c">-- ⑬ where_sql interpolated</span>
+        ORDER BY {order_col} {order_dir}      <span class="c">-- ⑭ order clauses interpolated</span>
+        LIMIT %s OFFSET %s"""</span>,               <span class="c"># ⑮ limit/offset parameterised</span>
+        tuple(filter_params) + (limit, offset),
+    )</pre>
+    </div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Always include the sample_id filter.</strong> This is the mandatory constraint — every query must be scoped to the requested sample. Starting the list with it means the resulting WHERE clause is never empty (which would require special-casing the JOIN logic).</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong><code>is not None</code>, not a truthiness check.</strong> <code>gnomad_af_max</code> could legitimately be <code>0.0</code> (filter to variants absent from gnomAD entirely). A truthiness check (<code>if gnomad_af_max:</code>) would skip the filter when the value is zero. Always use <code>is not None</code> for optional numeric parameters.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong><code>IS NULL OR gnomad_af &lt;= threshold</code>.</strong> Variants where gnomAD AF is NULL (absent from gnomAD databases) should pass a gnomAD filter — absence likely means the variant is rare or novel. Without the <code>IS NULL</code> guard, those variants would be excluded, hiding potentially significant rare variants.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Empty string is falsy.</strong> If the client sends <code>consequences=</code> (empty string), <code>if consequences:</code> is False and no filter clause is added. This means an empty consequences param is silently ignored — intentional behaviour documented in the spec.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>Double-guard after split.</strong> <code>"".split(",")</code> produces <code>[""]</code>, not <code>[]</code>. After stripping and filtering, <code>csq_list</code> would be empty. Without this inner <code>if csq_list:</code>, an empty list would be appended and <code>ANY('{}')</code> would match nothing — silently returning zero variants.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>PostgreSQL <code>ANY(%s)</code> with a list parameter.</strong> When psycopg2 receives a Python list as a parameter, it formats it as a PostgreSQL array literal: <code>ARRAY['stop_gained','missense_variant']</code>. <code>= ANY(array)</code> is PostgreSQL's way of testing membership. This is functionally equivalent to <code>IN (?, ?)</code> in other databases but avoids the need to generate a variable number of placeholders.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong><code>!= ALL(%s)</code> with IS NULL guard.</strong> <code>clinvar_sig IS NULL</code> variants should pass the exclusion filter (not excluded because their ClinVar significance is absent, which is different from being classified as Benign). <code>!= ALL(array)</code> is PostgreSQL's "not in array" equivalent. Without the IS NULL guard, null-clinvar variants would be dropped.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong><code>ILIKE</code> for case-insensitive gene search.</strong> Gene names like <code>BRCA1</code> may be entered as <code>brca1</code> or <code>Brca1</code> by the user. <code>ILIKE</code> is PostgreSQL's case-insensitive <code>LIKE</code>. No wildcard is added here — the user must supply their own <code>%</code> if they want prefix matching. The <code>gene</code> value is passed as a <code>%s</code> parameter (safe).</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>Join clauses with AND.</strong> Since the list always contains at least one clause (the mandatory sample_id filter), <code>" AND ".join()</code> always produces valid SQL. Result example: <code>v.sample_id = %s AND (v.gnomad_af IS NULL OR v.gnomad_af &lt;= %s) AND v.gene ILIKE %s</code>.</div></div>
+      <div class="anno-row"><div class="anno-num">⑩</div><div class="anno-txt"><strong>SORTABLE is a source-code dictionary.</strong> Its keys are the exact values that <code>sort_by</code> may take (enforced by the <code>pattern=</code> regex in <code>Query()</code>). Its values are SQL fragments that will be interpolated into the ORDER BY clause. These are string literals written by a developer, never derived from user input.</div></div>
+      <div class="anno-row"><div class="anno-num">⑪</div><div class="anno-txt"><strong><code>SORTABLE.get(sort_by, default)</code>.</strong> The default handles the case where <code>sort_by == "chrom"</code> — the chrom sort requires two sub-columns (<code>chrom_order</code> from the CASE expression, then <code>v.pos</code> within a chromosome). The <code>.get()</code> fallback also provides a safe default if the regex ever allowed a value not in the dict.</div></div>
+      <div class="anno-row"><div class="anno-num">⑫</div><div class="anno-txt"><strong>Ternary over two literals.</strong> <code>order_dir</code> can only ever be the string <code>"DESC"</code> or <code>"ASC"</code> — both are source-code literals. The input <code>sort_dir</code> is compared to the string <code>"desc"</code> (validated by <code>pattern=^(asc|desc)$</code>). No user string ever reaches the SQL.</div></div>
+      <div class="anno-row"><div class="anno-num">⑬</div><div class="anno-txt"><strong><code>where_sql</code> interpolated into the f-string.</strong> This is the assembled WHERE clause from step ⑨. It contains only SQL fragments and <code>%s</code> placeholders. All actual user values are in <code>filter_params</code> and are passed as parameters (not interpolated).</div></div>
+      <div class="anno-row"><div class="anno-num">⑭</div><div class="anno-txt"><strong><code>order_col</code> and <code>order_dir</code> interpolated.</strong> These are safe because they came from the SORTABLE dict and the ternary respectively — neither can contain user-supplied strings. A SQL injection attempt via <code>sort_by</code> is caught at the <code>Query(pattern=)</code> layer before this code runs.</div></div>
+      <div class="anno-row"><div class="anno-num">⑮</div><div class="anno-txt"><strong>LIMIT and OFFSET are parameterised.</strong> Even though they are always integers validated by <code>Query(ge=, le=)</code>, they are passed as <code>%s</code> parameters, not interpolated. This is belt-and-braces: mixing interpolation and parameterisation for different parts of the same query would be confusing to maintain.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="delete-patient">
+  <h2><span class="sec-num">22</span> delete_patient — sentinel cascade</h2>
+
+  <p>The <code>delete_patient</code> function demonstrates the sentinel exception pattern, the transaction callback, and the deliberate ordering of DELETE statements and the audit INSERT.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">delete_patient</span>
+      <span class="acb-desc">Sentinel pattern + cascade delete + audit · patients.py lines 124–159</span>
+    </div>
+    <div class="acb-code">
+      <pre><span class="k">class</span> <span class="t">_PatientNotFound</span>(Exception):     <span class="c"># ①</span>
+    <span class="k">pass</span>
+
+@router.delete(<span class="s">"/{patient_id}"</span>, status_code=<span class="n">204</span>)
+<span class="k">async def</span> <span class="f">delete_patient</span>(patient_id: <span class="t">int</span>):
+    <span class="k">def</span> <span class="f">_do</span>(conn):                         <span class="c"># ②</span>
+        <span class="k">with</span> conn.cursor() <span class="k">as</span> c:
+            c.execute(
+                <span class="s">"SELECT id FROM patients WHERE id = %s"</span>,
+                (patient_id,)              <span class="c"># ③</span>
+            )
+            <span class="k">if not</span> c.fetchone():
+                <span class="k">raise</span> _PatientNotFound()   <span class="c"># ④</span>
+
+            c.execute(                     <span class="c"># ⑤</span>
+                <span class="s">"DELETE FROM variants WHERE sample_id IN "</span>
+                <span class="s">"(SELECT id FROM samples WHERE patient_id = %s)"</span>,
+                (patient_id,)
+            )
+            c.execute(                     <span class="c"># ⑥</span>
+                <span class="s">"DELETE FROM workflow WHERE sample_id IN "</span>
+                <span class="s">"(SELECT id FROM samples WHERE patient_id = %s)"</span>,
+                (patient_id,)
+            )
+            c.execute(                     <span class="c"># ⑦</span>
+                <span class="s">"DELETE FROM samples WHERE patient_id = %s"</span>,
+                (patient_id,)
+            )
+            c.execute(                     <span class="c"># ⑧</span>
+                <span class="s">"INSERT INTO audit_log ..."</span>
+                <span class="s">"VALUES (%s, 'delete_patient', 'patient', %s, NULL, NULL)"</span>,
+                (<span class="s">"system"</span>, patient_id)
+            )
+            c.execute(                     <span class="c"># ⑨</span>
+                <span class="s">"DELETE FROM patients WHERE id = %s"</span>,
+                (patient_id,)
+            )
+
+    <span class="k">try</span>:
+        <span class="k">await</span> asyncio.to_thread(db.run_in_transaction, _do)  <span class="c"># ⑩</span>
+    <span class="k">except</span> _PatientNotFound:
+        <span class="k">raise</span> HTTPException(status_code=<span class="n">404</span>, ...)  <span class="c"># ⑪</span></pre>
+    </div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Module-level sentinel class.</strong> Declared at module level so both the <code>_do</code> closure and the handler can reference it. The leading underscore marks it as an implementation detail. It extends plain <code>Exception</code> with no added fields — the type alone carries the meaning.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>Inner function (closure).</strong> <code>_do</code> is defined inside <code>delete_patient</code>. It captures <code>patient_id</code> from the outer scope. It is a plain synchronous function — psycopg2 is synchronous and must run in a thread, not in the event loop.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Existence check before any deletes.</strong> This SELECT runs inside the transaction, so if the row is deleted between this check and the subsequent DELETEs by another concurrent request, the DELETEs simply affect zero rows — no error. The existence check is primarily for user-facing correctness (returning 404 vs silently doing nothing).</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong>Raise the sentinel, not HTTPException.</strong> If this raised <code>HTTPException(404)</code>, it would propagate from the thread back to <code>asyncio.to_thread</code>, then to the <code>await</code> — but FastAPI's exception handler is set up in the event loop context, not in the thread. The result would be a 500 Internal Server Error. The sentinel is caught after the thread completes, in the async handler where FastAPI can process it correctly.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>Delete variants first.</strong> The <code>variants</code> table has a foreign key to <code>samples</code>. Attempting to delete samples before their variants would fail with a foreign key constraint violation. The subquery <code>SELECT id FROM samples WHERE patient_id = %s</code> finds all sample IDs for this patient in one pass.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>Delete workflow rows.</strong> The <code>workflow</code> table also has a foreign key to <code>samples</code>. Like variants, it must be deleted before the sample rows.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>Delete samples after their dependants.</strong> At this point all variants and workflow rows for this patient's samples have been removed, so the foreign key constraints are satisfied and this DELETE will succeed.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong>Audit INSERT before the patient DELETE.</strong> The audit log records <code>entity_id = patient_id</code>. If the patient row is deleted first, and the <code>audit_log.entity_id</code> column has a foreign key reference to <code>patients.id</code>, this INSERT would fail. Even if there is no such constraint, inserting with a patient_id that no longer exists would be logically inconsistent. The audit must precede the final delete — both remain atomic within the transaction.</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>Patient row deleted last.</strong> All dependent rows are gone, the audit is written. The patient row is now safe to delete. If any step above raised an exception, <code>db.run_in_transaction</code> rolls back the entire transaction — no partial state is left in the database.</div></div>
+      <div class="anno-row"><div class="anno-num">⑩</div><div class="anno-txt"><strong><code>asyncio.to_thread</code> runs _do on a thread pool.</strong> The event loop is free to serve other requests while the thread is blocked waiting for PostgreSQL. The thread pool is managed by the event loop; the default size is the number of CPU cores × 5.</div></div>
+      <div class="anno-row"><div class="anno-num">⑪</div><div class="anno-txt"><strong>Convert sentinel to HTTP response.</strong> The <code>_PatientNotFound</code> exception propagates from the thread back to the <code>await asyncio.to_thread(...)` call. The <code>except</code> block catches it here, in the async handler, where FastAPI can return a proper 404 response.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="submit-cls">
+  <h2><span class="sec-num">23</span> submit_classification — locked_by SQL construction</h2>
+
+  <p>The <code>submit_classification</code> handler contains a subtle but important pattern: the SQL keyword <code>NULL</code> or <code>NOW()</code> is interpolated into the INSERT statement based on whether <code>body.locked_by</code> is Python <code>None</code>. This is safe precisely because the decision is made by Python code, not by user input.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">submit_classification — _do closure</span>
+      <span class="acb-desc">locked_by nullable INSERT · classification.py lines ~148–190</span>
+    </div>
+    <div class="acb-code">
+      <pre>    <span class="k">def</span> <span class="f">_do</span>(conn) -&gt; <span class="t">int</span>:
+        <span class="k">with</span> conn.cursor() <span class="k">as</span> c:
+            c.execute(                                   <span class="c"># ①</span>
+                <span class="s">"UPDATE variant_classification SET deleted_at=NOW() "</span>
+                <span class="s">"WHERE variant_id=%s AND deleted_at IS NULL"</span>,
+                (variant_id,)
+            )
+
+            <span class="c"># ② Decide the SQL fragment based on Python None check</span>
+            locked_at_sql = <span class="s">"NOW()"</span> <span class="k">if</span> body.locked_by <span class="k">is not None</span> <span class="k">else</span> <span class="s">"NULL"</span>
+
+            c.execute(                                   <span class="c"># ③</span>
+                <span class="s">"INSERT INTO variant_classification "</span>
+                <span class="s">"(variant_id, framework, framework_version, score, classification, "</span>
+                <span class="s">"locked_at, locked_by) "</span>
+                <span class="s">f"VALUES (%s, %s, %s, %s, %s, {locked_at_sql}, %s) RETURNING id"</span>,
+                (
+                    variant_id,
+                    body.framework,
+                    framework_version,
+                    result.score,
+                    result.classification,
+                    body.locked_by,              <span class="c"># ④</span>
+                ),
+            )
+            classification_id: <span class="t">int</span> = c.fetchone()[<span class="n">0</span>]
+
+            <span class="k">for</span> crit <span class="k">in</span> body.criteria:       <span class="c"># ⑤</span>
+                c.execute(
+                    <span class="s">"INSERT INTO classification_criterion (...) VALUES (%s,...,%s,...)"</span>,
+                    (
+                        classification_id,
+                        crit.criterion_code,
+                        crit.applied,
+                        crit.strength,
+                        crit.notes,
+                        psycopg2.extras.Json(crit.evidence_links),  <span class="c"># ⑥</span>
+                        crit.pre_computed,
+                        crit.pre_computed_value,
+                    ),
+                )
+        <span class="k">return</span> classification_id</pre>
+    </div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>Soft-delete the existing active classification.</strong> A variant can only have one active classification (one with <code>deleted_at IS NULL</code>). Before inserting a new one, the existing one is soft-deleted by setting <code>deleted_at = NOW()</code>. This preserves the historical record while making the new one the active classification.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong>The locked_at SQL fragment is determined in Python.</strong> <code>body.locked_by</code> is either <code>None</code> (Python None, set by the JSON <code>null</code> value) or a non-empty string (validated by the field validator). The ternary produces either the SQL keyword <code>"NOW()"</code> or <code>"NULL"</code> — both are string literals written by a developer. No user-supplied string reaches this interpolation.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>f-string INSERT with interpolated SQL keyword.</strong> The <code>{locked_at_sql}</code> expands to either <code>NOW()</code> or <code>NULL</code> — SQL function calls, not parameter placeholders. This is necessary because <code>%s</code> can only represent values, not SQL expressions like function calls. The pattern is safe because <code>locked_at_sql</code> can never contain user input.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong><code>locked_by</code> is the last parameter.</strong> The user-supplied string (or Python <code>None</code>, which psycopg2 serialises as SQL <code>NULL</code>) is always passed as a <code>%s</code> parameter — never interpolated. There are therefore seven parameters for seven <code>%s</code> placeholders in the VALUES clause. The <code>locked_at</code> column does not consume a parameter slot because it uses the literal SQL expression.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>One INSERT per criterion.</strong> Criteria are stored individually in <code>classification_criterion</code>, not as a JSON blob in the classification row. This allows future queries to filter or group by criterion code, strength, or pre-computed status without parsing JSON.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong><code>psycopg2.extras.Json(list)</code> for JSONB column.</strong> The <code>evidence_links</code> column is JSONB. Without the <code>Json()</code> wrapper, psycopg2 would try to bind a Python list as a PostgreSQL ARRAY, which would fail because the column type is JSONB, not an array type. The <code>Json()</code> wrapper instructs psycopg2 to JSON-serialise the list and bind it as a JSON string, which PostgreSQL then stores as JSONB.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="ingest-direct">
+  <h2><span class="sec-num">24</span> ingest_direct — the _do transaction pipeline</h2>
+
+  <p>The <code>ingest_direct</code> function's transaction callback is the most complex single block of code in this PR. It writes seven different tables in a carefully ordered sequence. Each step builds on the primary keys returned by the previous INSERT.</p>
+
+  <div class="acb">
+    <div class="acb-header">
+      <span class="acb-fn">ingest_direct — _do closure</span>
+      <span class="acb-desc">Full write pipeline: patient → sample → variants → classification → criteria → workflow → audit · ingest.py lines ~133–220</span>
+    </div>
+    <div class="acb-code">
+      <pre>    <span class="k">def</span> <span class="f">_do</span>(conn):
+        <span class="k">with</span> conn.cursor() <span class="k">as</span> cur:
+
+            cur.execute(<span class="s">"""INSERT INTO patients (lab_number)    <span class="c">  # ①</span>
+               VALUES (%s)
+               ON CONFLICT (lab_number) DO UPDATE
+                 SET lab_number = EXCLUDED.lab_number
+               RETURNING id"""</span>, (lab_number,))
+            patient_id: <span class="t">int</span> = cur.fetchone()[<span class="n">0</span>]             <span class="c"># ②</span>
+
+            cur.execute(<span class="s">"SELECT id FROM samples WHERE          <span class="c">   # ③</span>
+               patient_id = %s AND name = %s AND s3_key = %s"</span>,
+               (patient_id, specimen_name, <span class="s">f"direct:{vcf_name}"</span>))
+            <span class="k">if</span> cur.fetchone():
+                <span class="k">raise</span> DuplicateSubmissionError(...)           <span class="c"># ④</span>
+
+            cur.execute(<span class="s">"""INSERT INTO samples                   <span class="c">  # ⑤</span>
+               (patient_id, name, vcf_filename, s3_key, ...)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)
+               RETURNING id"""</span>, (patient_id, specimen_name,
+               vcf_name, <span class="s">f"direct:{vcf_name}"</span>, ...))
+            sample_id: <span class="t">int</span> = cur.fetchone()[<span class="n">0</span>]
+
+            <span class="k">for</span> v <span class="k">in</span> variants:                              <span class="c"># ⑥</span>
+                cur.execute(<span class="s">"""INSERT INTO variants (...) RETURNING id"""</span>, ...)
+                variant_id: <span class="t">int</span> = cur.fetchone()[<span class="n">0</span>]       <span class="c"># ⑦</span>
+
+                framework, _ = select_framework(case_type, v.gene)  <span class="c"># ⑧</span>
+                framework_version = get_framework_version(framework)
+                cur.execute(                                  <span class="c"># ⑨</span>
+                    <span class="s">"INSERT INTO variant_classification "</span>
+                    <span class="s">"(variant_id, framework, framework_version) "</span>
+                    <span class="s">"VALUES (%s, %s, %s) RETURNING id"</span>, ...)
+                classification_id: <span class="t">int</span> = cur.fetchone()[<span class="n">0</span>]
+
+                <span class="k">for</span> suggestion <span class="k">in</span> pre_compute_criteria(v, case_type):  <span class="c"># ⑩</span>
+                    cur.execute(
+                        <span class="s">"INSERT INTO classification_criterion "</span>
+                        <span class="s">"(..., applied, ..., pre_computed, pre_computed_value) "</span>
+                        <span class="s">"VALUES (%s, %s, FALSE, %s, TRUE, %s)"</span>,  <span class="c"># ⑪</span>
+                        (classification_id, suggestion.criterion_code, ...)
+                    )
+
+            cur.execute(                                       <span class="c"># ⑫</span>
+                <span class="s">"INSERT INTO workflow (sample_id, status) VALUES (%s, 'pending')"</span>,
+                (sample_id,)
+            )
+            cur.execute(                                       <span class="c"># ⑬</span>
+                <span class="s">"INSERT INTO audit_log (...) VALUES (%s, 'ingest_direct', ...)"</span>,
+                (user_id, sample_id)
+            )
+            <span class="k">return</span> sample_id</pre>
+    </div>
+    <div class="acb-annos">
+      <div class="anno-row"><div class="anno-num">①</div><div class="anno-txt"><strong>UPSERT patient by lab_number.</strong> The same patient may be submitted multiple times (e.g. multiple specimens over time). <code>ON CONFLICT (lab_number) DO UPDATE SET lab_number = EXCLUDED.lab_number</code> is a no-op update that still triggers the <code>RETURNING id</code> clause, ensuring we always get the existing patient's id. A plain INSERT would fail with a unique constraint violation on re-submission.</div></div>
+      <div class="anno-row"><div class="anno-num">②</div><div class="anno-txt"><strong><code>RETURNING id</code> fetched immediately.</strong> PostgreSQL's <code>RETURNING</code> clause emits the newly generated or existing primary key back to the client without a second query. <code>cur.fetchone()[0]</code> retrieves the single integer. This pattern repeats for every INSERT in the closure.</div></div>
+      <div class="anno-row"><div class="anno-num">③</div><div class="anno-txt"><strong>Idempotency check on s3_key sentinel.</strong> Direct uploads use <code>"direct:{vcf_filename}"</code> as the s3_key (a sentinel value). If the same filename is uploaded again for the same patient and specimen, this query finds the existing row and the DuplicateSubmissionError is raised. The check must happen inside the transaction so it is serialised correctly against concurrent uploads.</div></div>
+      <div class="anno-row"><div class="anno-num">④</div><div class="anno-txt"><strong><code>DuplicateSubmissionError</code> escapes the closure cleanly.</strong> This is the existing exception class from <code>lib/ingest.py</code>. Unlike <code>_PatientNotFound</code>, it is imported (not a local sentinel) because it is also used by <code>manual_ingest</code> and the async handler catches it in both cases to return a 409.</div></div>
+      <div class="anno-row"><div class="anno-num">⑤</div><div class="anno-txt"><strong>s3_key = <code>"direct:{vcf_name}"</code>.</strong> The samples table has a UNIQUE constraint on <code>s3_key</code>. For direct uploads there is no S3 key, so a distinguishable sentinel string is used instead. This approach allows the idempotency check at ③ to work correctly across S3 and direct uploads using the same column.</div></div>
+      <div class="anno-row"><div class="anno-num">⑥</div><div class="anno-txt"><strong>One loop iteration per variant.</strong> The <code>variants</code> list was populated by <code>parse_vcf()</code> before the closure was called. Parsing happens outside the transaction intentionally — it may take seconds for large files, and holding a transaction open during parsing would hold database locks unnecessarily.</div></div>
+      <div class="anno-row"><div class="anno-num">⑦</div><div class="anno-txt"><strong>variant_id fetched per variant.</strong> Each INSERT returns the new row's id via RETURNING. This id is immediately used to insert the classification shell and criteria for that variant — the foreign key relationship means the variant must exist before the classification shell can reference it.</div></div>
+      <div class="anno-row"><div class="anno-num">⑧</div><div class="anno-txt"><strong><code>select_framework</code> per variant.</strong> The classification framework is determined per-variant based on <code>case_type</code> (from the form field) and the variant's gene (from the VCF INFO). Germline variants in CanVIG-UK genes use ACGS SNV; all somatic variants use SVIG-UK. This mirrors what the production ingest path does.</div></div>
+      <div class="anno-row"><div class="anno-num">⑨</div><div class="anno-txt"><strong>Classification shell without score or criteria.</strong> The INSERT only specifies <code>variant_id</code>, <code>framework</code>, and <code>framework_version</code>. The <code>score</code>, <code>classification</code>, <code>locked_at</code>, and <code>locked_by</code> columns default to NULL. This shell exists so the analyst can see the framework assignment and pre-computed criteria when they first open the classification panel.</div></div>
+      <div class="anno-row"><div class="anno-num">⑩</div><div class="anno-txt"><strong><code>pre_compute_criteria(v, case_type)</code> returns suggestions.</strong> This function analyses the variant's annotation fields (gnomAD AF, ClinVar significance, etc.) and returns a list of criterion suggestions — e.g. BA1 (stand-alone benign) if gnomAD AF is above the threshold. Each suggestion has a criterion code, a suggested strength, and a pre-computed value string.</div></div>
+      <div class="anno-row"><div class="anno-num">⑪</div><div class="anno-txt"><strong><code>applied = FALSE</code> for pre-computed criteria.</strong> Pre-computed criteria are stored as suggestions, not as applied criteria. The analyst can accept them (setting applied = TRUE via the classification panel) or leave them unapplied. They appear in the UI with a purple badge indicating their pre-computed origin.</div></div>
+      <div class="anno-row"><div class="anno-num">⑫</div><div class="anno-txt"><strong>Workflow row inserted after all variants.</strong> The workflow row (with status <code>'pending'</code>) is a sample-level record, inserted once regardless of how many variants the sample has. It is inserted after all variant rows to ensure the variant data is present before the sample appears in the patient list as 'pending' review.</div></div>
+      <div class="anno-row"><div class="anno-num">⑬</div><div class="anno-txt"><strong>Audit log inserted last (before return).</strong> Records who triggered the direct ingest and which sample was created. Returning <code>sample_id</code> from the closure allows the async handler to include it in the response without any additional database query.</div></div>
+    </div>
+  </div>
+
+  <div class="series-nav">
+    <a href="260521_PR_A_Backend_Extensions_1.html">1 · High-level outline</a>
+    <a href="260521_PR_A_Backend_Extensions_2.html">2 · Key concepts</a>
+    <a href="260521_PR_A_Backend_Extensions_3.html">3 · Function walkthrough</a>
+    <a href="260521_PR_A_Backend_Extensions_4.html" class="current">4 · Line-by-line reference</a>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>
+  PR A — Backend API Extensions (M_pre1–8) · Code walkthrough Part 4 of 4 (final) · Author: Joo Wook Ahn · Date: 21 May 2026 · Sources: backend/app/routes/{patients,samples,variants,classification,ingest}.py, migrations/004_remove_patient_dob.sql, docker-compose.yml · Continued from Part 3.
+</footer>
+
+</body>
+</html>
