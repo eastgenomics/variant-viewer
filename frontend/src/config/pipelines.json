@@ -1,0 +1,20 @@
+{
+  "pipelines": {
+    "dragen_germline": {
+      "label": "DRAGEN Germline",
+      "default_filters": {
+        "gnomad_af_max": 0.01,
+        "consequences": "stop_gained,frameshift_variant,splice_acceptor_variant,splice_donor_variant,missense_variant",
+        "clinvar_exclude": "Benign,Likely_benign"
+      }
+    },
+    "dragen_somatic": {
+      "label": "DRAGEN Somatic",
+      "default_filters": {
+        "gnomad_af_max": 0.001,
+        "consequences": "",
+        "clinvar_exclude": ""
+      }
+    }
+  }
+}
